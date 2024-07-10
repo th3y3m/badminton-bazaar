@@ -1,4 +1,5 @@
 ﻿using BusinessObjects;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,6 +34,10 @@ namespace Repositories
         public List<Payment> GetAll()
         {
             return _dbContext.Payments.ToList();
+        }
+        public DbSet<Payment> GetDbSet()
+        {
+            return _dbContext.Payments;
         }
 
         public void Delete(string id) {

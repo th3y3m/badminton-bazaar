@@ -1,4 +1,5 @@
 ﻿using BusinessObjects;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,6 +34,11 @@ namespace Repositories
         public List<UserDetail> GetAll()
         {
             return _dbContext.UserDetails.ToList();
+        }
+        
+        public DbSet<UserDetail> GetDbSet()
+        {
+            return _dbContext.UserDetails;
         }
 
     }

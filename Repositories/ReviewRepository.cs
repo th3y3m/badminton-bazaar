@@ -1,4 +1,5 @@
 ﻿using BusinessObjects;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,6 +34,11 @@ namespace Repositories
         public List<Review> GetAll()
         {
             return _dbContext.Reviews.ToList();
+        }
+        
+        public DbSet<Review> GetDbSet()
+        {
+            return _dbContext.Reviews;
         }
 
         public void Delete(string id) {

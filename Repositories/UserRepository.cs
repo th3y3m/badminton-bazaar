@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Repositories
 {
@@ -13,6 +14,11 @@ namespace Repositories
 
         public List<IdentityUser> GetAll() {
             return _dbContext.Users.ToList();
+        }
+
+        public DbSet<IdentityUser> GetDbSet()
+        {
+           return _dbContext.Users;
         }
 
         public IdentityUser GetById(string id) {

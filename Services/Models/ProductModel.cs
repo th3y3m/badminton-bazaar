@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 
-namespace Services.Model
+namespace Services.Models
 {
     public class ProductModel
     {

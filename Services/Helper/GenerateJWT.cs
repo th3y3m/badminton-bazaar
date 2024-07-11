@@ -22,7 +22,7 @@ namespace Services.Helper
             _roleManager = roleManager;
         }
 
-        public string GenerateToken(IdentityUser user, string role)
+        public static string GenerateToken(IdentityUser user, string role)
         {
             var jwtTokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_configuration["JWT:Secret"]);

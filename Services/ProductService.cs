@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Repositories;
 using Services.Helper;
-using Services.Model;
+using Services.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;

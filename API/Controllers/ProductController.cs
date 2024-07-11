@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Repositories;
 using Services;
 using Services.Helper;
-using Services.Model;
+using Services.Models;
 
 namespace API.Controllers
 {

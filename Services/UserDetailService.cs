@@ -21,7 +21,7 @@ namespace Services
 
         public PaginatedList<UserDetail> GetPaginatedUserDetails(int pageIndex, int pageSize)
         {
-            var source = _dbContext.Products.AsNoTracking();
+            var source = _userDetailRepository.GetDbSet().AsNoTracking();
             var count = source.Count();
             var items = source.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
 

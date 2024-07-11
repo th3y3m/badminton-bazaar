@@ -123,7 +123,7 @@ namespace API.Controllers
             {
                 ToEmail = user.Email,
                 Subject = "Court Caller Confirmation Email (Register)",
-                Body = API.Helper.FormEmail.EnailContent(user.Email, callbackUrl)
+                Body = FormEmail.EnailContent(user.Email, callbackUrl)
             };
             await _mailService.SendEmailAsync(mailRequest);
 

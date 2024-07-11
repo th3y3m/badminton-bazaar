@@ -13,14 +13,7 @@ namespace Services.Helper
 {
     public class GenerateJWT
     {
-        private readonly IConfiguration _configuration;
-        private readonly RoleManager<IdentityRole> _roleManager;
-
-        public GenerateJWT(IConfiguration configuration, RoleManager<IdentityRole> roleManager)
-        {
-            _configuration = configuration;
-            _roleManager = roleManager;
-        }
+        private static readonly IConfiguration _configuration;
 
         public static string GenerateToken(IdentityUser user, string role)
         {

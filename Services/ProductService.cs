@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Repositories;
 using Services.Helper;
+using Services.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -70,5 +71,45 @@ namespace Services
 
             return new PaginatedList<Product>(items, count, pageIndex, pageSize);
         }
+
+        public Product AddProduct(ProductModel productModel)
+        {
+            var product = new Product
+            {
+                ProductId = "P" + GenerateId.GenerateRandomId(4),
+                ProductName = productModel.ProductName,
+                CategoryId = productModel.CategoryId,
+                SupplierId = productModel.SupplierId,
+                ProductDescription = productModel.ProductDescription,
+                UnitPrice = productModel.UnitPrice,
+                QuantityInStock = productModel.QuantityInStock,
+                ImageUrl = productModel.ImageUrl,
+                Status = productModel.Status
+            };
+            _productRepository.Add(product);
+            return product;
+        }
+
+        public Product UpdateProduct(ProductModel productModel, string productId)
+        {
+            var product = new Product
+            {
+                ProductId = productId,
+                ProductName = productModel.ProductName,
+                CategoryId = productModel.CategoryId,
+                SupplierId = productModel.SupplierId,
+                ProductDescription = productModel.ProductDescription,
+                UnitPrice = productModel.UnitPrice,
+                QuantityInStock = productModel.QuantityInStock,
+                ImageUrl = productModel.ImageUrl,
+                Status = productModel.Status
+            };
+            _productRepository.Update(product);
+            return product;
+        }
+
+        public void DeleteProduct(string productId) => _productRepository.Delete(productId);
+        
+        public Product GetProductById(string productId) => _productRepository.GetById(productId);
     }
 }

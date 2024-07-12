@@ -20,7 +20,7 @@ namespace Services
         }
 
         public PaginatedList<OrderDetail> GetPaginatedOrderDetails(
-            string productId,
+            string productVariantId,
             string orderId,
             string sortBy,
             string status,
@@ -29,9 +29,9 @@ namespace Services
         {
             var source = _orderDetailRepository.GetDbSet().AsNoTracking();
 
-            if (!string.IsNullOrEmpty(productId))
+            if (!string.IsNullOrEmpty(productVariantId))
             {
-                source = source.Where(p => p.ProductId == productId);
+                source = source.Where(p => p.ProductVariantId == productVariantId);
             }
             if (!string.IsNullOrEmpty(orderId))
             {

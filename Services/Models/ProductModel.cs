@@ -24,15 +24,15 @@ namespace Services.Models
         [StringLength(500)]
         public string? ProductDescription { get; set; }
 
-        public decimal UnitPrice { get; set; }
+        public decimal BasePrice { get; set; }
 
-        public int QuantityInStock { get; set; }
+        [StringLength(10)]
+        public string Gender { get; set; }
 
         [StringLength(int.MaxValue)]
         public string? ImageUrl { get; set; }
 
-        [StringLength(50)]
-        public string Status { get; set; }
+        public bool Status { get; set; }
 
         public IFormFile ProductImageUrl { get; set; }
     }

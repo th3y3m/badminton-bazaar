@@ -43,7 +43,7 @@ namespace Repositories
 
         public void Delete(string id) {
             var supplier = GetById(id);
-            supplier.Status = "Inactive";
+            supplier.Status = false;
             _dbContext.Suppliers.Update(supplier);
             _dbContext.SaveChanges();
         }

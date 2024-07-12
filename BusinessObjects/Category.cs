@@ -22,8 +22,9 @@ namespace BusinessObjects
         public string Description { get; set; }
 
         [Required]
-        [StringLength(50)]
-        public string Status { get; set; }
+        public bool Status { get; set; }
+
+
 
         public virtual ICollection<Product> Products { get; set; }
     }

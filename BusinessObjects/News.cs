@@ -28,10 +28,9 @@ namespace BusinessObjects
         public string Image { get; set; }
 
         [Required]
-        [StringLength(50)]
-        public string Status { get; set; }
+        public bool IsHomepageSlideshow { get; set; }
 
         [Required]
-        public bool IsHomepageSlideshow { get; set; }
+        public bool Status { get; set; }
     }
 }

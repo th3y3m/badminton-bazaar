@@ -42,7 +42,7 @@ namespace Repositories
 
         public void Delete(string id) {
             var news = GetById(id);
-            news.Status = "Inactive";
+            news.Status = false;
             _dbContext.News.Update(news);
             _dbContext.SaveChanges();
         }

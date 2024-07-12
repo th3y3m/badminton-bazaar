@@ -43,6 +43,9 @@ namespace Repositories
         public virtual DbSet<Payment> Payments { get; set; }
         public virtual DbSet<Product> Products { get; set; }
         public virtual DbSet<Supplier> Suppliers { get; set; }
+        public virtual DbSet<Color> Colors { get; set; }
+        public virtual DbSet<Size> Sizes { get; set; }
+        public virtual DbSet<ProductVariant> ProductVariants { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

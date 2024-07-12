@@ -23,7 +23,7 @@ namespace Services
         public PaginatedList<Product> GetPaginatedProducts(
             string searchQuery,
             string sortBy,
-            string status,
+            bool? status,
             string supplierId,
             string categoryId,
             int pageIndex,
@@ -38,7 +38,7 @@ namespace Services
             }
 
             // Apply status filter
-            if (!string.IsNullOrEmpty(status))
+            if (status.HasValue)
             {
                 source = source.Where(p => p.Status == status);
             }
@@ -60,8 +60,8 @@ namespace Services
             {
                 "name_asc" => source.OrderBy(p => p.ProductName),
                 "name_desc" => source.OrderByDescending(p => p.ProductName),
-                "price_asc" => source.OrderBy(p => p.UnitPrice),
-                "price_desc" => source.OrderByDescending(p => p.UnitPrice),
+                "price_asc" => source.OrderBy(p => p.BasePrice),
+                "price_desc" => source.OrderByDescending(p => p.BasePrice),
                 _ => source
             };
 
@@ -81,8 +81,7 @@ namespace Services
                 CategoryId = productModel.CategoryId,
                 SupplierId = productModel.SupplierId,
                 ProductDescription = productModel.ProductDescription,
-                UnitPrice = productModel.UnitPrice,
-                QuantityInStock = productModel.QuantityInStock,
+                BasePrice = productModel.BasePrice,
                 ImageUrl = productModel.ImageUrl,
                 Status = productModel.Status
             };
@@ -99,8 +98,7 @@ namespace Services
                 CategoryId = productModel.CategoryId,
                 SupplierId = productModel.SupplierId,
                 ProductDescription = productModel.ProductDescription,
-                UnitPrice = productModel.UnitPrice,
-                QuantityInStock = productModel.QuantityInStock,
+                BasePrice = productModel.BasePrice,
                 ImageUrl = productModel.ImageUrl,
                 Status = productModel.Status
             };

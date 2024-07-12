@@ -28,14 +28,18 @@ namespace BusinessObjects
 
         public decimal? Freight { get; set; }
 
-        [Required]
-        [StringLength(50)]
-        public string Status { get; set; }
-
         [StringLength(500)]
         [Required]
         public string ShipAddress { get; set; }
 
+        [Required]
+        [StringLength(50)]
+        public string Status { get; set; }
+
+
+
         public virtual IdentityUser User { get; set; }
+
+        public virtual ICollection<OrderDetail> OrderDetails { get; set; }
     }
 }

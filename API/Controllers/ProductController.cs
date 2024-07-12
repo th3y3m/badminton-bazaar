@@ -22,7 +22,7 @@ namespace API.Controllers
         public ActionResult<PaginatedList<Product>> GetPaginatedProducts(
             [FromQuery] string searchQuery = "",
             [FromQuery] string sortBy = "name_asc",
-            [FromQuery] string status = "",
+            [FromQuery] bool? status = true,
             [FromQuery] string supplierId = "",
             [FromQuery] string categoryId = "",
             [FromQuery] int pageIndex = 1,

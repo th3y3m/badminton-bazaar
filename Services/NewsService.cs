@@ -22,7 +22,7 @@ namespace Services
         public PaginatedList<News> GetPaginatedOrders(
             string searchQuery,
             string sortBy,
-            string status,
+            bool? status,
             int pageIndex,
             int pageSize)
         {
@@ -33,7 +33,7 @@ namespace Services
                 source = source.Where(p => p.Title.ToLower().Contains(searchQuery.ToLower()) || p.Content.ToLower().Contains(searchQuery.ToLower()));
             }
 
-            if (!string.IsNullOrEmpty(status))
+            if (status.HasValue)
             {
                 source = source.Where(p => p.Status == status);
             }

@@ -18,18 +18,23 @@ namespace BusinessObjects
         [StringLength(10)]
         public string OrderId { get; set; }
         
-        [ForeignKey("Product")]
+        [ForeignKey("ProductVariant")]
         [StringLength(10)]
-        public string ProductId { get; set; }
+        public string ProductVariantId { get; set; }
 
         [Required]
         public int Quantity { get; set; }
         [Required]
         public decimal UnitPrice { get; set; }
 
-        public virtual Product Product { get; set; }
+
+
+        // Navigation properties
+        public virtual ProductVariant ProductVariant { get; set; }
 
         public virtual Order Order { get; set; }
+
+
 
         public decimal TotalPrice() => Quantity * UnitPrice;
     }

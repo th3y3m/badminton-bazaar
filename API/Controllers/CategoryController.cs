@@ -2,11 +2,9 @@
 
 namespace API.Controllers
 {
-    public class CategoryController : Controller
+    [Route("api/[controller]")]
+    [ApiController]
+    public class CategoryController : ControllerBase
     {
-        public IActionResult Index()
-        {
-            return View();
-        }
     }
 }

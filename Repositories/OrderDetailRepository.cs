@@ -31,7 +31,7 @@ namespace Repositories
 
         public OrderDetail GetById(string id) => _dbContext.OrderDetails.Find(id);
         public OrderDetail GetByOrderId(string id) => _dbContext.OrderDetails.FirstOrDefault(x => x.OrderId == id);
-        public OrderDetail GetByProductId(string id) => _dbContext.OrderDetails.FirstOrDefault(x => x.ProductId == id);
+        public OrderDetail GetByProductId(string id) => _dbContext.OrderDetails.FirstOrDefault(x => x.ProductVariantId == id);
 
         public List<OrderDetail> GetAll()
         {

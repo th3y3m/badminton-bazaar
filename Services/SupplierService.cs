@@ -23,7 +23,7 @@ namespace Services
         public PaginatedList<Supplier> GetPaginatedSuppliers(
             string searchQuery,
             string sortBy,
-            string status,
+            bool? status,
             int pageIndex,
             int pageSize)
         {
@@ -36,9 +36,9 @@ namespace Services
             }
 
             // Apply status filter
-            if (!string.IsNullOrEmpty(status))
+            if (status.HasValue)
             {
-                source = source.Where(p => p.Status.ToLower() == status.ToLower());
+                source = source.Where(p => p.Status == status);
             }
 
             // Apply sorting

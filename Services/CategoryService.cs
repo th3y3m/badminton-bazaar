@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Repositories;
 using Services.Helper;
+using Services.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -50,5 +51,38 @@ namespace Services
 
             return new PaginatedList<Category>(items, count, pageIndex, pageSize);
         }
+
+        public Category GetCategoryById(string id) => _categoryRepository.GetById(id);
+
+        public Category AddCategory(CategoryModel categoryModel)
+        {
+            var category = new Category
+            {
+                CategoryId = "CAT" + GenerateId.GenerateRandomId(4),
+                CategoryName = categoryModel.CategoryName,
+                Description = categoryModel.Description,
+                Status = categoryModel.Status,
+            };
+            _categoryRepository.Add(category);
+            return category;
+        }
+
+        public Category UpdateCategory(CategoryModel categoryModel, string id)
+        {
+            var category = _categoryRepository.GetById(id);
+            if (category == null)
+            {
+                throw new Exception("Category not found");
+            }
+            category.CategoryName = categoryModel.CategoryName;
+            category.Description = categoryModel.Description;
+            category.Status = categoryModel.Status;
+            _categoryRepository.Update(category);
+            return category;
+        }
+
+        public void DeleteCategory(string id) => _categoryRepository.Delete(id);
+
+
     }
 }

@@ -1,9 +1,11 @@
 ﻿using BusinessObjects;
+using Firebase.Storage;
 using Microsoft.AspNetCore.Mvc;
 using Repositories;
 using Services;
 using Services.Helper;
 using Services.Models;
+using System.Text.Json;
 
 namespace API.Controllers
 {
@@ -20,6 +22,8 @@ namespace API.Controllers
 
         [HttpGet]
         public ActionResult<PaginatedList<Product>> GetPaginatedProducts(
+            [FromQuery] decimal? start,
+            [FromQuery] decimal? end,
             [FromQuery] string searchQuery = "",
             [FromQuery] string sortBy = "name_asc",
             [FromQuery] bool? status = true,
@@ -28,7 +32,7 @@ namespace API.Controllers
             [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 10)
         {
-            var paginatedProducts = _productService.GetPaginatedProducts(searchQuery, sortBy, status, supplierId, categoryId, pageIndex, pageSize);
+            var paginatedProducts = _productService.GetPaginatedProducts(searchQuery,start, end, sortBy, status, supplierId, categoryId, pageIndex, pageSize);
             return Ok(paginatedProducts);
         }
 
@@ -40,11 +44,31 @@ namespace API.Controllers
         }
 
         [HttpPost]
-        public ActionResult<Product> AddProduct([FromBody] ProductModel productModel)
+        public async Task<ActionResult<Product>> AddProduct([FromBody] ProductModel productModel)
         {
+            var file = productModel.ProductImageUrl;
+
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest("No file uploaded.");
+            }
+
+            var fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
+            using (var stream = file.OpenReadStream())
+            {
+                var task = new FirebaseStorage("court-callers.appspot.com")
+                    .Child("NewsImages")
+                    .Child(fileName)
+                    .PutAsync(stream);
+
+                var downloadUrl = await task;
+                productModel.ImageUrl = downloadUrl; // Directly assign the URL
+            }
+
             var product = _productService.AddProduct(productModel);
             return Ok(product);
         }
+
 
         [HttpPut]
         public ActionResult<Product> UpdateProduct([FromBody] ProductModel productModel, [FromBody] string productId)
@@ -59,6 +83,7 @@ namespace API.Controllers
             _productService.DeleteProduct(id);
             return Ok();
         }
+
 
 
     }

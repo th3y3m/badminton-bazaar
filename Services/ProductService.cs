@@ -22,6 +22,8 @@ namespace Services
 
         public PaginatedList<Product> GetPaginatedProducts(
             string searchQuery,
+            decimal? start,
+            decimal? end,
             string sortBy,
             bool? status,
             string supplierId,
@@ -35,6 +37,12 @@ namespace Services
             if (!string.IsNullOrEmpty(searchQuery))
             {
                 source = source.Where(p => p.ProductName.ToLower().Contains(searchQuery.ToLower()));
+            }
+
+            // Apply price filter check if start and end are not null because i will use react nouislider
+            if (start.HasValue && end.HasValue)
+            {
+                source = source.Where(p => p.BasePrice >= start && p.BasePrice <= end);
             }
 
             // Apply status filter

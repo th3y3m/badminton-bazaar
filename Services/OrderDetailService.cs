@@ -1,0 +1,54 @@
+﻿using BusinessObjects;
+using Microsoft.EntityFrameworkCore;
+using Repositories;
+using Services.Helper;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Services
+{
+    public class OrderDetailService
+    {
+        private readonly OrderDetailRepository _orderDetailRepository;
+
+        public OrderDetailService(OrderDetailRepository orderDetailRepository)
+        {
+            _orderDetailRepository = orderDetailRepository;
+        }
+
+        public PaginatedList<OrderDetail> GetPaginatedOrderDetails(
+            string productId,
+            string orderId,
+            string sortBy,
+            string status,
+            int pageIndex,
+            int pageSize)
+        {
+            var source = _orderDetailRepository.GetDbSet().AsNoTracking();
+
+            if (!string.IsNullOrEmpty(productId))
+            {
+                source = source.Where(p => p.ProductId == productId);
+            }
+            if (!string.IsNullOrEmpty(orderId))
+            {
+                source = source.Where(p => p.OrderId == orderId);
+            }
+
+            source = sortBy switch
+            {
+                "totelprice_asc" => source.OrderBy(p => p.TotalPrice()),
+                "totalprice_desc" => source.OrderByDescending(p => p.TotalPrice()),
+                _ => source
+            };
+
+            var count = source.Count();
+            var items = source.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
+
+            return new PaginatedList<OrderDetail>(items, count, pageIndex, pageSize);
+        }
+    }
+}

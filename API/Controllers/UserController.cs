@@ -14,7 +14,6 @@ namespace API.Controllers
             _userDetailService = userDetailService;
         }
 
-        [HttpGet]
 
 
     }

@@ -30,5 +30,7 @@ namespace BusinessObjects
         public virtual Product Product { get; set; }
 
         public virtual Order Order { get; set; }
+
+        public decimal TotalPrice() => Quantity * UnitPrice;
     }
 }

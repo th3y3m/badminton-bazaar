@@ -34,7 +34,7 @@ namespace Services
             // Apply search filter
             if (!string.IsNullOrEmpty(searchQuery))
             {
-                source = source.Where(p => p.ProductName.Contains(searchQuery));
+                source = source.Where(p => p.ProductName.ToLower().Contains(searchQuery.ToLower()));
             }
 
             // Apply status filter

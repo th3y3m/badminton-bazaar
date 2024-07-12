@@ -32,13 +32,13 @@ namespace Services
             // Apply search filter
             if (!string.IsNullOrEmpty(searchQuery))
             {
-                source = source.Where(p => p.CompanyName.Contains(searchQuery));
+                source = source.Where(p => p.CompanyName.ToLower().Contains(searchQuery.ToLower()));
             }
 
             // Apply status filter
             if (!string.IsNullOrEmpty(status))
             {
-                source = source.Where(p => p.Status == status);
+                source = source.Where(p => p.Status.ToLower() == status.ToLower());
             }
 
             // Apply sorting

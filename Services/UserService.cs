@@ -27,7 +27,7 @@ namespace Services
             // Apply search filter
             if (!string.IsNullOrEmpty(searchQuery))
             {
-                source = source.Where(p => p.Email.Contains(searchQuery));
+                source = source.Where(p => p.Email.ToLower().Contains(searchQuery.ToLower()));
             }
 
             // Apply status filter

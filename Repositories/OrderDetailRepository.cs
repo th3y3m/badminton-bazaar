@@ -1,4 +1,5 @@
 ﻿using BusinessObjects;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,10 +30,16 @@ namespace Repositories
         }
 
         public OrderDetail GetById(string id) => _dbContext.OrderDetails.Find(id);
+        public OrderDetail GetByOrderId(string id) => _dbContext.OrderDetails.FirstOrDefault(x => x.OrderId == id);
+        public OrderDetail GetByProductId(string id) => _dbContext.OrderDetails.FirstOrDefault(x => x.ProductId == id);
 
         public List<OrderDetail> GetAll()
         {
             return _dbContext.OrderDetails.ToList();
+        }
+        public DbSet<OrderDetail> GetDbSet()
+        {
+            return _dbContext.OrderDetails;
         }
 
         public void Delete(string id) {

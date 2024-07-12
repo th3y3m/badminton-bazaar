@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Repositories;
 using Services.Helper;
+using Services.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,8 +38,8 @@ namespace Services
             // Apply sorting
             source = sortBy switch
             {
-                "FullName_asc" => source.OrderBy(p => p.FullName),
-                "FullName_desc" => source.OrderByDescending(p => p.FullName),
+                "name_asc" => source.OrderBy(p => p.FullName),
+                "name_desc" => source.OrderByDescending(p => p.FullName),
                 _ => source
             };
 
@@ -47,6 +48,20 @@ namespace Services
             var items = source.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
 
             return new PaginatedList<UserDetail>(items, count, pageIndex, pageSize);
+        }
+
+        public UserDetail GetUserById(string id) => _userDetailRepository.GetById(id);
+
+        public void AddUserDetail(UserDetail userDetail) => _userDetailRepository.Add(userDetail);
+
+        public void UpdateUserDetail(UserDetailModel userDetail, string id) 
+        {
+            
+            var user = _userDetailRepository.GetById(id);
+            user.FullName = userDetail.FullName;
+            user.Address = userDetail.Address;
+            user.ProfilePicture = userDetail.ProfilePicture;
+            _userDetailRepository.Update(user);
         }
     }
 }

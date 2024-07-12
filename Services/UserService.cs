@@ -50,5 +50,37 @@ namespace Services
 
             return new PaginatedList<IdentityUser>(items, count, pageIndex, pageSize);
         }
+
+        public IdentityUser GetUserById(string id) => _userRepository.GetById(id);
+
+        public IdentityUser AddUser(IdentityUser user)
+        {
+            _userRepository.Add(user);
+            return user;
+        }
+
+        public IdentityUser UpdateUser(IdentityUser user, string userId)
+        {
+            var existingUser = _userRepository.GetById(userId);
+            if (existingUser == null)
+            {
+                return null;
+            }
+
+            existingUser.Email = user.Email;
+            existingUser.UserName = user.UserName;
+            existingUser.PhoneNumber = user.PhoneNumber;
+
+            _userRepository.Update(existingUser);
+            return existingUser;
+        }
+
+        public void DeleteUser(string id) => _userRepository.Delete(id);
+
+        public void GetAllUsers() => _userRepository.GetAll();
+
+        public void BanUser(string id) => _userRepository.Ban(id);
+
+        public void UnbanUser(string id) => _userRepository.Unban(id);
     }
 }

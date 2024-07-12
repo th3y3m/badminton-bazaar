@@ -41,5 +41,19 @@ namespace Repositories
             _dbContext.Users.Update(user);
             _dbContext.SaveChanges();
         }
+
+        public void Ban(string id) {
+            var user = GetById(id);
+            user.LockoutEnabled = false;
+            _dbContext.Users.Update(user);
+            _dbContext.SaveChanges();
+        }
+
+        public void Unban(string id) {
+            var user = GetById(id);
+            user.LockoutEnabled = true;
+            _dbContext.Users.Update(user);
+            _dbContext.SaveChanges();
+        }
     }
 }

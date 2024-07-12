@@ -19,7 +19,7 @@ namespace Services
             _categoryRepository = categoryRepository;
         }
 
-        public PaginatedList<Category> GetPaginatedOrders(
+        public PaginatedList<Category> GetPaginatedCategories(
             string searchQuery,
             string sortBy,
             bool? status,

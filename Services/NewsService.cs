@@ -19,7 +19,7 @@ namespace Services
             _newsRepository = newsRepository;
         }
 
-        public PaginatedList<News> GetPaginatedOrders(
+        public PaginatedList<News> GetPaginatedNews(
             string searchQuery,
             string sortBy,
             bool? status,

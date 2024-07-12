@@ -22,6 +22,9 @@ namespace Services.Models
 
         public int StockQuantity { get; set; }
 
+        [StringLength(int.MaxValue)]
+        public string? VariantImageURL { get; set; } = null;
+
         public decimal Price { get; set; }
 
         public bool Status { get; set; }

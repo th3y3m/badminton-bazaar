@@ -19,9 +19,15 @@ namespace Services
             _sizeRepository = sizeRepository;
         }
 
-        public void Add(Size size)
+        public Size Add(string sizeName)
         {
+            var size = new Size
+            {
+                SizeId = "SZ" + GenerateId.GenerateRandomId(5),
+                SizeName = sizeName
+            };
             _sizeRepository.Add(size);
+            return size;
         }
 
         public void Update(Size size)

@@ -24,7 +24,7 @@ namespace Services
             string sortBy,
             string userId,
             string productId,
-            int rating,
+            int? rating,
             int pageIndex,
             int pageSize)
         {
@@ -45,7 +45,7 @@ namespace Services
                 source = source.Where(p => p.ProductId == productId);
             }
 
-            if (rating > 0)
+            if (rating.HasValue)
             {
                 source = source.Where(p => p.Rating == rating);
             }

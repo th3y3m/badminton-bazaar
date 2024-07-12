@@ -19,9 +19,16 @@ namespace Services
             _colorRepository = colorRepository;
         }
 
-        public void Add(Color color)
+        public Color Add(string colorName)
         {
+            var color = new Color
+            {
+                ColorId = "CL" + GenerateId.GenerateRandomId(5),
+                ColorName = colorName
+            };
+
             _colorRepository.Add(color);
+            return color;
         }
 
         public void Update(Color color)

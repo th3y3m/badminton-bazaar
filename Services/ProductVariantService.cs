@@ -20,7 +20,7 @@ namespace Services
             _productVariantRepository = productVariantRepository;
         }
 
-        public void Add(ProductVariantModel productVariantModel)
+        public ProductVariant Add(ProductVariantModel productVariantModel)
         {
             var productVariant = new ProductVariant
             {
@@ -34,6 +34,7 @@ namespace Services
                 VariantImageURL = productVariantModel.ProductImageUrl != null ? productVariantModel.ProductImageUrl[0].FileName : null
             };
             _productVariantRepository.Add(productVariant);
+            return productVariant;
         }
 
         public void Update(ProductVariantModel productVariantModel, string id)

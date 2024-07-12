@@ -71,7 +71,7 @@ namespace API.Controllers
 
 
         [HttpPut]
-        public ActionResult<Product> UpdateProduct([FromBody] ProductModel productModel, [FromBody] string productId)
+        public ActionResult<Product> UpdateProduct([FromBody] ProductModel productModel, [FromQuery] string productId)
         {
             var product = _productService.UpdateProduct(productModel, productId);
             return Ok(product);

@@ -42,7 +42,7 @@ namespace API.Controllers
         }
 
         [HttpPut]
-        public ActionResult UpdateSupplier([FromBody] SupplierModel supplier, [FromBody] string id)
+        public ActionResult UpdateSupplier([FromBody] SupplierModel supplier, [FromQuery] string id)
         {
             var updatedSupplier = _supplierService.UpdateSupplier(supplier, id);
             return Ok(updatedSupplier);

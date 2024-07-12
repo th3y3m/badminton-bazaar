@@ -42,7 +42,7 @@ namespace API.Controllers
         }
 
         [HttpPut]
-        public ActionResult UpdateCategory([FromBody] CategoryModel categoryModel, [FromBody] string categoryId)
+        public ActionResult UpdateCategory([FromBody] CategoryModel categoryModel, [FromQuery] string categoryId)
         {
             var category = _categoryService.UpdateCategory(categoryModel, categoryId);
             return Ok(category);

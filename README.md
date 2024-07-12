@@ -1,3 +1,5 @@
+[![Badminton Bazaar (CI applied)](https://github.com/th3y3m/badminton-bazaar/actions/workflows/ci-script.yml/badge.svg)](https://github.com/th3y3m/badminton-bazaar/actions/workflows/ci-script.yml)
+
 # Welcome to badminton-bazaar Repository
 
 ## You will find in this repo the following stuff

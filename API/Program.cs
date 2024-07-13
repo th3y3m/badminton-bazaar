@@ -29,6 +29,16 @@ namespace API
             });
             // Add services to the container.
 
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddDistributedMemoryCache();
+            builder.Services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromMinutes(120);
+                options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true;
+            });
+
+
             builder.Services.AddIdentity<IdentityUser, IdentityRole>()
                 .AddEntityFrameworkStores<Repositories.DbContext>()
                 .AddDefaultTokenProviders();
@@ -155,6 +165,7 @@ namespace API
             });
 
             app.UseRouting();
+            app.UseSession();
 
             app.UseAuthorization();
 

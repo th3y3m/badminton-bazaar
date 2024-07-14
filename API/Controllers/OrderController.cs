@@ -28,5 +28,33 @@ namespace API.Controllers
             var paginatedOrders = _orderService.GetPaginatedOrders(start, end, sortBy, status, pageIndex, pageSize);
             return Ok(paginatedOrders);
         }
+
+        [HttpGet("Price/{orderId}")]
+        public ActionResult<decimal> TotalPrice(string orderId)
+        {
+            var totalPrice = _orderService.TotalPrice(orderId);
+            return Ok(totalPrice);
+        }
+
+        [HttpGet("{orderId}")]
+        public ActionResult<Order> GetOrderById(string orderId)
+        {
+            var order = _orderService.GetOrderById(orderId);
+            return Ok(order);
+        }
+
+        [HttpPost]
+        public ActionResult<Order> CreateOrder([FromBody] string userId)
+        {
+            var newOrder = _orderService.AddOrder(userId);
+            return Ok(newOrder);
+        }
+
+        [HttpDelete("{orderId}")]
+        public ActionResult<Order> DeleteOrder(string orderId)
+        {
+            _orderService.CancelOrder(orderId);
+            return Ok();
+        }
     }
 }

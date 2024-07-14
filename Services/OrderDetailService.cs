@@ -50,5 +50,10 @@ namespace Services
 
             return new PaginatedList<OrderDetail>(items, count, pageIndex, pageSize);
         }
+
+        public List<OrderDetail> GetOrderDetail(string orderId)
+        {
+            return _orderDetailRepository.GetAll().Where(p => p.OrderId == orderId).ToList();
+        }
     }
 }

@@ -57,6 +57,27 @@ namespace Services
             Session.SetObjectAsJson(sessionKey, cartItems);
         }
 
+        public void DeleteUnitItem(string productId, string userId)
+        {
+            var sessionKey = GetCartSessionKey(userId);
+            var selectedProduct = _productVariantService.GetById(productId);
+            CartItem item = null;
+            Dictionary<string, CartItem> cartItems = Session.GetObjectFromJson<Dictionary<string, CartItem>>(sessionKey);
+
+            if (cartItems == null)
+            {
+                cartItems = new Dictionary<string, CartItem>();
+                Session.SetObjectAsJson(sessionKey, cartItems);
+            }
+
+            item = cartItems.GetValueOrDefault(productId);
+            if (item != null)
+            {
+                item.Quantity --;
+            }
+            Session.SetObjectAsJson(sessionKey, cartItems);
+        }
+
         public void RemoveFromCart(string productId, string userId)
         {
             var sessionKey = GetCartSessionKey(userId);

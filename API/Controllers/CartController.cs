@@ -22,6 +22,13 @@ namespace API.Controllers
             _cartService.AddToCart(productId, userId);
             return Ok(new { message = "Item added to cart" });
         }
+        
+        [HttpPost("DeleteUnitItem")]
+        public IActionResult DeleteUnitItem([FromBody] string productId, [FromQuery] string userId)
+        {
+            _cartService.DeleteUnitItem(productId, userId);
+            return Ok(new { message = "Item deleted" });
+        }
 
         [HttpGet]
         public IActionResult GetCart([FromQuery] string userId)

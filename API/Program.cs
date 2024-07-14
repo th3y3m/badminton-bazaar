@@ -126,6 +126,7 @@ namespace API
             builder.Services.AddScoped<SupplierService>();
             builder.Services.AddScoped<UserDetailService>();
             builder.Services.AddScoped<UserService>();
+            builder.Services.AddScoped<CartService>();
 
             //builder.Services.AddScoped<VnpayService>();
 

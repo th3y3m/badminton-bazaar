@@ -17,9 +17,9 @@ namespace API.Controllers
         }
 
         [HttpPost("add")]
-        public IActionResult AddToCart([FromBody] CartItem cartItem, [FromQuery] string userId)
+        public IActionResult AddToCart([FromBody] string productId, [FromQuery] string userId)
         {
-            _cartService.AddToCart(cartItem, userId);
+            _cartService.AddToCart(productId, userId);
             return Ok(new { message = "Item added to cart" });
         }
 
@@ -42,6 +42,35 @@ namespace API.Controllers
         {
             _cartService.ClearCart(userId);
             return Ok(new { message = "Cart cleared" });
+        }
+
+        [HttpPost("remove")]
+        public IActionResult RemoveFromCart([FromBody] string productId, [FromQuery] string userId)
+        {
+            _cartService.RemoveFromCart(productId, userId);
+            return Ok(new { message = "Item removed from cart" });
+        }
+
+        [HttpPost("update")]
+        public IActionResult UpdateCart([FromBody] string productId, [FromQuery] int quantity, [FromQuery] string userId)
+        {
+            _cartService.UpgradeCart(userId, productId, quantity);
+            return Ok(new { message = "Cart updated" });
+        }
+
+        [HttpPost("DeleteCookie")]
+        public IActionResult DeleteCookie([FromQuery] string userId)
+        {
+            _cartService.DeleteCartInCookie(userId);
+            return Ok(new { message = "Cookie deleted" });
+        }
+
+
+        [HttpGet("ItemsInCart")]
+        public IActionResult NumberOfItemsInCart([FromQuery] string userId)
+        {
+            var cart = _cartService.NumberOfItemsInCart(userId);
+            return Ok(cart);
         }
     }
 

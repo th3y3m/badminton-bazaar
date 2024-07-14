@@ -3,8 +3,8 @@ using Services;
 
 namespace API.Controllers
 {
+    [Route("api/[controller]")]
     [ApiController]
-    [Route("api/orderdetail")]
     public class OrderDetailController : ControllerBase
     {
         private readonly OrderDetailService _orderDetailService;
@@ -14,7 +14,7 @@ namespace API.Controllers
             _orderDetailService = orderDetailService;
         }
 
-        [HttpGet]
+        [HttpGet("GetOrderDetail")]
         public IActionResult GetOrderDetail([FromQuery] string orderId)
         {
             var orderDetail = _orderDetailService.GetOrderDetail(orderId);

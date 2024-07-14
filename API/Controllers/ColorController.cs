@@ -25,7 +25,7 @@ namespace API.Controllers
             return Ok(paginatedCategories);
         }
 
-        [HttpGet]
+        [HttpGet("{id}")]
         public ActionResult GetColorById(string id)
         {
             var color = _colorService.GetById(id);

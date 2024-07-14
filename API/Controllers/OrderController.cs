@@ -16,7 +16,7 @@ namespace API.Controllers
             _orderService = orderService;
         }
 
-        [HttpGet]
+        [HttpGet("GetPaginatedOrders")]
         public ActionResult<PaginatedList<Order>> GetPaginatedOrders(
             [FromQuery] DateOnly? start,
             [FromQuery] DateOnly? end,
@@ -43,14 +43,14 @@ namespace API.Controllers
             return Ok(order);
         }
 
-        [HttpPost]
+        [HttpPost("CreateOrder")]
         public ActionResult<Order> CreateOrder([FromBody] string userId)
         {
             var newOrder = _orderService.AddOrder(userId);
             return Ok(newOrder);
         }
 
-        [HttpDelete("{orderId}")]
+        [HttpDelete("DeleteOrder/{orderId}")]
         public ActionResult<Order> DeleteOrder(string orderId)
         {
             _orderService.CancelOrder(orderId);

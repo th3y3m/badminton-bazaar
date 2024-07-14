@@ -5,8 +5,8 @@ using System.Text;
 
 namespace API.Controllers
 {
+    [Route("api/[controller]")]
     [ApiController]
-    [Route("api/cart")]
     public class CartController : ControllerBase
     {
         private readonly CartService _cartService;
@@ -16,7 +16,7 @@ namespace API.Controllers
             _cartService = cartService;
         }
 
-        [HttpPost("add")]
+        [HttpPost("Add")]
         public IActionResult AddToCart([FromBody] string productId, [FromQuery] string userId)
         {
             _cartService.AddToCart(productId, userId);
@@ -30,7 +30,7 @@ namespace API.Controllers
             return Ok(new { message = "Item deleted" });
         }
 
-        [HttpGet]
+        [HttpGet("GetCart")]
         public IActionResult GetCart([FromQuery] string userId)
         {
             var cart = _cartService.GetCart(userId);

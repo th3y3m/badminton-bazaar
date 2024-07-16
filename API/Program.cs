@@ -128,10 +128,10 @@ namespace API
             builder.Services.AddScoped<UserService>();
             builder.Services.AddScoped<CartService>();
 
-            //builder.Services.AddScoped<VnpayService>();
+            builder.Services.AddScoped<VnpayService>();
 
             //builder.Services.AddTransient<IMailService, MailService>();
-            //builder.Services.Configure<MailSettings>(configuration.GetSection("MailSettings"));
+            builder.Services.Configure<MailSettings>(configuration.GetSection("MailSettings"));
 
             builder.Services.AddCors(options =>
             {

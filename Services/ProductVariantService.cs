@@ -39,17 +39,22 @@ namespace Services
 
         public void Update(ProductVariantModel productVariantModel, string id)
         {
-            var productVariant = new ProductVariant
+
+            var productVariant = GetById(id);
+
+            if (productVariant == null)
             {
-                ProductVariantId = id,
-                ProductId = productVariantModel.ProductId,
-                SizeId = productVariantModel.SizeId,
-                ColorId = productVariantModel.ColorId,
-                Price = productVariantModel.Price,
-                StockQuantity = productVariantModel.StockQuantity,
-                Status = productVariantModel.Status,
-                VariantImageURL = productVariantModel.ProductImageUrl != null ? productVariantModel.ProductImageUrl[0].FileName : null
-            };
+                return;
+            }
+
+            productVariant.ProductId = productVariantModel.ProductId;
+            productVariant.SizeId = productVariantModel.SizeId;
+            productVariant.ColorId = productVariantModel.ColorId;
+            productVariant.Price = productVariantModel.Price;
+            productVariant.StockQuantity = productVariantModel.StockQuantity;
+            productVariant.Status = productVariantModel.Status;
+            productVariant.VariantImageURL = productVariantModel.ProductImageUrl != null ? productVariantModel.ProductImageUrl[0].FileName : null;
+
             _productVariantRepository.Update(productVariant);
         }
 

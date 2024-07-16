@@ -14,8 +14,8 @@ namespace API.Controllers
             _orderDetailService = orderDetailService;
         }
 
-        [HttpGet("GetOrderDetail")]
-        public IActionResult GetOrderDetail([FromQuery] string orderId)
+        [HttpGet("l/{orderId}")]
+        public IActionResult GetOrderDetailByOrderId([FromQuery] string orderId)
         {
             var orderDetail = _orderDetailService.GetOrderDetail(orderId);
             return Ok(orderDetail);

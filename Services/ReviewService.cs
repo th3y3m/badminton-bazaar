@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Repositories;
 using Services.Helper;
+using Services.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -66,5 +67,54 @@ namespace Services
 
             return new PaginatedList<Review>(items, count, pageIndex, pageSize);
         }
+
+        public Review GetReviewById(string id)
+        {
+            return _reviewRepository.GetById(id);
+        }
+
+        public Review AddReview(ReviewModel reviewModel)
+        {
+            
+            var review = new Review
+            {
+                ReviewId = "R" + GenerateId.GenerateRandomId(5),
+                UserId = reviewModel.UserId,
+                ProductId = reviewModel.ProductId,
+                Rating = reviewModel.Rating,
+                ReviewText = reviewModel.ReviewText,
+                ReviewDate = DateTime.Now
+            };
+
+            _reviewRepository.Add(review);
+
+            return review;
+        }
+
+        public Review UpdateReview(ReviewModel reviewModel, string reviewId)
+        {
+            var review = GetReviewById(reviewId);
+
+            if (review == null)
+            {
+                return null;
+            }
+
+            review.UserId = reviewModel.UserId;
+            review.ProductId = reviewModel.ProductId;
+            review.Rating = reviewModel.Rating;
+            review.ReviewText = reviewModel.ReviewText;
+            review.ReviewDate = DateTime.Now;
+
+            _reviewRepository.Update(review);
+
+            return review;
+        }
+
+        public void DeleteReview(string id)
+        {
+            _reviewRepository.Delete(id);
+        }
+
     }
 }

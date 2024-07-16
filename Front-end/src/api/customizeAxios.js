@@ -5,8 +5,6 @@ const instance = axios.create({
 });
 
 instance.interceptors.response.use(function (response) {
-    // Any status code that lie within the range of 2xx cause this function to trigger
-    // Do something with response data
     return response.data ? response.data : { statuscode: response.status };
 }, function (error) {
     let res = {};
@@ -22,3 +20,5 @@ instance.interceptors.response.use(function (response) {
     }
     return res;
 });
+
+export default instance;

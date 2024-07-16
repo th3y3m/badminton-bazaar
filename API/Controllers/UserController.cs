@@ -44,14 +44,14 @@ namespace API.Controllers
             return Ok();
         }
 
-        [HttpPut("{id}/ban")]
+        [HttpPut("ban/{id}")]
         public ActionResult BanUser(string id)
         {
             _userService.BanUser(id);
             return Ok();
         }
 
-        [HttpPut("{id}/unban")]
+        [HttpPut("unban/{id}")]
         public ActionResult UnbanUser(string id)
         {
             _userService.UnbanUser(id);

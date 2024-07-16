@@ -58,6 +58,12 @@ namespace Services
         {
             
             var user = _userDetailRepository.GetById(id);
+
+            if (user == null)
+            {
+                return;
+            }
+
             user.FullName = userDetail.FullName;
             user.Address = userDetail.Address;
             user.ProfilePicture = userDetail.ProfilePicture;

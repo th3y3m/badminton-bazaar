@@ -99,17 +99,16 @@ namespace Services
 
         public Product UpdateProduct(ProductModel productModel, string productId)
         {
-            var product = new Product
-            {
-                ProductId = productId,
-                ProductName = productModel.ProductName,
-                CategoryId = productModel.CategoryId,
-                SupplierId = productModel.SupplierId,
-                ProductDescription = productModel.ProductDescription,
-                BasePrice = productModel.BasePrice,
-                ImageUrl = productModel.ImageUrl,
-                Status = productModel.Status
-            };
+            var product = GetProductById(productId);
+
+            product.ProductName = productModel.ProductName;
+            product.CategoryId = productModel.CategoryId;
+            product.SupplierId = productModel.SupplierId;
+            product.ProductDescription = productModel.ProductDescription;
+            product.BasePrice = productModel.BasePrice;
+            product.ImageUrl = productModel.ImageUrl;
+            product.Status = productModel.Status;
+
             _productRepository.Update(product);
             return product;
         }

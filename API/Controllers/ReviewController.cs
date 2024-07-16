@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Services;
+using Services.Models;
 
 namespace API.Controllers
 {
@@ -28,5 +29,32 @@ namespace API.Controllers
             return Ok(paginatedReviews);
         }
 
+        [HttpGet("{id}")]
+        public ActionResult GetReviewById(string id)
+        {
+            var review = _reviewService.GetReviewById(id);
+            return Ok(review);
+        }
+
+        [HttpPost]
+        public ActionResult AddReview([FromBody] ReviewModel reviewModel)
+        {
+            var review = _reviewService.AddReview(reviewModel);
+            return Ok(review);
+        }
+
+        [HttpPut]
+        public ActionResult UpdateReview([FromBody] ReviewModel reviewModel, [FromQuery] string id)
+        {
+            var review = _reviewService.UpdateReview(reviewModel, id);
+            return Ok(review);
+        }
+
+        [HttpDelete("{id}")]
+        public ActionResult DeleteReviewById(string id)
+        {
+            _reviewService.DeleteReview(id);
+            return Ok();
+        }
     }
 }

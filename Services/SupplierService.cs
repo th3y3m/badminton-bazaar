@@ -75,6 +75,11 @@ namespace Services
         public Supplier UpdateSupplier(SupplierModel supplierModel, string id)
         {
             var supplier = _supplierRepository.GetById(id);
+
+            if (supplier == null)
+            {
+                return null;
+            }
             supplier.CompanyName = supplierModel.CompanyName;
             supplier.Address = supplierModel.Address;
             supplier.Status = supplierModel.Status;

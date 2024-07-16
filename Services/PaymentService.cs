@@ -59,5 +59,14 @@ namespace Services
 
             return new PaginatedList<Payment>(items, count, pageIndex, pageSize);
         }
+
+        public Payment GetPaymentById(string id) => _paymentRepository.GetById(id);
+
+        public void AddPayment(Payment payment) => _paymentRepository.Add(payment);
+
+        public void UpdatePayment(Payment payment) => _paymentRepository.Update(payment);
+
+        public void DeletePayment(string id) => _paymentRepository.Delete(id);
+        
     }
 }

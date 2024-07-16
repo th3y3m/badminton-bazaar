@@ -5,6 +5,7 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { NextUIProvider } from '@nextui-org/react';
 import Header from './components/Header/Header';
+import Footer from './components/Footer/Footer';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -13,6 +14,7 @@ root.render(
       <main className="light text-foreground bg-background">
         <Header />
         <App />
+        <Footer />
       </main>
     </NextUIProvider>
   </React.StrictMode>

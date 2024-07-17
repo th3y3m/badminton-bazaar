@@ -17,13 +17,12 @@ namespace API.Controllers
         }
 
         [HttpGet]
-        [HttpGet]
         public ActionResult GetPaginatedNews(
-            [FromQuery] bool? status = false,
+            [FromQuery] bool? status,
             [FromQuery] bool? isHomePageBanner = false,
             [FromQuery] bool? isHomePageSlideShow = false,
             [FromQuery] string searchQuery = "",
-            [FromQuery] string sortBy = "size_asc",
+            [FromQuery] string sortBy = "publicationdate_asc",
             [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 10)
         {

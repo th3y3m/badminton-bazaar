@@ -19,8 +19,8 @@ namespace API.Controllers
         [HttpGet]
         public ActionResult GetPaginatedNews(
             [FromQuery] bool? status,
-            [FromQuery] bool? isHomePageBanner = false,
-            [FromQuery] bool? isHomePageSlideShow = false,
+            [FromQuery] bool? isHomePageBanner,
+            [FromQuery] bool? isHomePageSlideShow,
             [FromQuery] string searchQuery = "",
             [FromQuery] string sortBy = "publicationdate_asc",
             [FromQuery] int pageIndex = 1,

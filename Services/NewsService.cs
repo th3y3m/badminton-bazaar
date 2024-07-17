@@ -33,11 +33,11 @@ namespace Services
 
             if (IsHomepageBanner.HasValue)
             {
-                source = source.Where(p => p.Status == status);
+                source = source.Where(p => p.IsHomepageBanner == IsHomepageBanner);
             }
             if (IsHomepageSlideShow.HasValue)
             {
-                source = source.Where(p => p.Status == status);
+                source = source.Where(p => p.IsHomepageSlideshow == IsHomepageSlideShow);
             }
 
 
@@ -78,8 +78,8 @@ namespace Services
                 NewId = "N" + GenerateId.GenerateRandomId(5),
                 Title = newsModel.Title,
                 Content = newsModel.Content,
-                PublicationDate = newsModel.PublicationDate,
                 Image = newsModel.Image,
+                PublicationDate = DateTime.Now,
                 IsHomepageSlideshow = newsModel.IsHomepageSlideshow,
                 IsHomepageBanner = newsModel.IsHomepageBanner,
                 Status = newsModel.Status
@@ -98,7 +98,6 @@ namespace Services
 
             news.Title = newsModel.Title;
             news.Content = newsModel.Content;
-            news.PublicationDate = newsModel.PublicationDate;
             news.Image = newsModel.Image;
             news.IsHomepageSlideshow = newsModel.IsHomepageSlideshow;
             news.IsHomepageBanner = newsModel.IsHomepageBanner;

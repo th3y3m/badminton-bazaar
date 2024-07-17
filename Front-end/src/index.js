@@ -15,7 +15,6 @@ root.render(
     <NextUIProvider>
       <main className="light text-foreground bg-background">
         <Header />
-        <App />
         <Home />
         <Footer />
       </main>

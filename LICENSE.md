@@ -20,6 +20,6 @@ SOFTWARE.
 
 ---
 
-**Court Callers - Badminton Court Booking Management**
+**Badminton Bazaar - Badminton Shop**
 
-&copy; 2024 Court Callers
+&copy; 2024 Badminton Bazaar

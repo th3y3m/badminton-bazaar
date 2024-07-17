@@ -15,8 +15,6 @@ namespace Services.Models
         [StringLength(int.MaxValue)]
         public string Content { get; set; }
 
-        public DateTime PublicationDate { get; set; }
-
         [StringLength(int.MaxValue)]
         public string Image { get; set; }
 

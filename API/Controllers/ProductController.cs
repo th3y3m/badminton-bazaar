@@ -84,7 +84,14 @@ namespace API.Controllers
             return Ok();
         }
 
-
+        //GetTopSeller
+        [HttpGet("topseller/{numberOfProducts}")]
+        
+        public ActionResult<List<Product>> GetTopSeller(int numberOfProducts)
+        {
+            var products = _productService.GetTopSeller(numberOfProducts);
+            return Ok(products);
+        }
 
     }
 }

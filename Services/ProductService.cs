@@ -14,6 +14,8 @@ namespace Services
     public class ProductService
     {
         private readonly ProductRepository _productRepository;
+        private readonly ProductVariantRepository _productVariantRepository;
+        private readonly OrderDetailRepository _orderDetailRepository;
 
         public ProductService(ProductRepository productRepository)
         {
@@ -70,6 +72,7 @@ namespace Services
                 "name_desc" => source.OrderByDescending(p => p.ProductName),
                 "price_asc" => source.OrderBy(p => p.BasePrice),
                 "price_desc" => source.OrderByDescending(p => p.BasePrice),
+                "top_seller" => source.OrderByDescending(p => GetSelledProduct(p.ProductId)),
                 _ => source
             };
 
@@ -114,7 +117,28 @@ namespace Services
         }
 
         public void DeleteProduct(string productId) => _productRepository.Delete(productId);
-        
+
         public Product GetProductById(string productId) => _productRepository.GetById(productId);
+        public int GetSelledProduct(string productId)
+        {
+            int total = 0;
+            List<ProductVariant> productVariants = _productVariantRepository.GetAll().Where(p => p.ProductId == productId).ToList();
+            foreach (var productVariant in productVariants)
+            {
+                List<OrderDetail> orderDetails = _orderDetailRepository.GetAll().Where(p => p.ProductVariantId == productVariant.ProductVariantId).ToList();
+                foreach (var orderDetail in orderDetails)
+                {
+                    total += orderDetail.Quantity;
+                }
+            }
+            return total;
+        }
+
+        public List<Product> GetTopSeller(int n)
+        {
+            List<Product> products = _productRepository.GetAll().ToList();
+            products.Sort((x, y) => GetSelledProduct(y.ProductId).CompareTo(GetSelledProduct(x.ProductId)));
+            return products.GetRange(0, n);
+        }
     }
 }

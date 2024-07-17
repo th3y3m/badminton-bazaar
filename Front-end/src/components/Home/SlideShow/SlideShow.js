@@ -15,9 +15,7 @@ const SlideShowHomePage = () => {
             setLoading(true);
             setError(null);
             try {
-                const response = await fetch(
-                    `https://courtcaller.azurewebsites.net/api/News/SlideShowImage`
-                );
+                const response = await fetch
                 const data = await response.json();
                 console.log("data", data);
                 setNews(data ?? []);;
@@ -36,7 +34,6 @@ const SlideShowHomePage = () => {
                 {news.map((fadeImage, index) => (
                     <div key={index}>
                         <img style={{ width: '100%', height: '500px', objectFit: 'cover' }} src={fadeImage.image} />
-                        {/* <h2>{fadeImage.title}</h2> */}
                     </div>
                 ))}
             </Fade>

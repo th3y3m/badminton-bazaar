@@ -5,35 +5,25 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BusinessObjects
+namespace Services.Models
 {
-    public class News
+    public class NewsModel
     {
-        [Key]
-        [StringLength(10)]
-        public string NewId { get; set; }
-
-        [Required]
         [StringLength(255)]
         public string Title { get; set; }
 
-        [Required]
         [StringLength(int.MaxValue)]
         public string Content { get; set; }
 
-        [Required]
         public DateTime PublicationDate { get; set; }
 
         [StringLength(int.MaxValue)]
         public string Image { get; set; }
 
-        [Required]
         public bool IsHomepageSlideshow { get; set; }
 
-        [Required]
         public bool IsHomepageBanner { get; set; }
 
-        [Required]
         public bool Status { get; set; }
     }
 }

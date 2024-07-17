@@ -4,8 +4,10 @@ import './index.scss';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { NextUIProvider } from '@nextui-org/react';
-import Header from './components/Header/Header';
-import Footer from './components/Footer/Footer';
+
+import Home from './components/Home/Home';
+import Header from './components/Layour/Header/Header';
+import Footer from './components/Layour/Footer/Footer';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -14,6 +16,7 @@ root.render(
       <main className="light text-foreground bg-background">
         <Header />
         <App />
+        <Home />
         <Footer />
       </main>
     </NextUIProvider>

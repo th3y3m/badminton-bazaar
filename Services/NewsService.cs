@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Repositories;
 using Services.Helper;
+using Services.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,11 +23,23 @@ namespace Services
         public PaginatedList<News> GetPaginatedNews(
             string searchQuery,
             string sortBy,
+            bool? IsHomepageBanner,
+            bool? IsHomepageSlideShow,
             bool? status,
             int pageIndex,
             int pageSize)
         {
             var source = _newsRepository.GetDbSet().AsNoTracking();
+
+            if (IsHomepageBanner.HasValue)
+            {
+                source = source.Where(p => p.Status == status);
+            }
+            if (IsHomepageSlideShow.HasValue)
+            {
+                source = source.Where(p => p.Status == status);
+            }
+
 
             if (!string.IsNullOrEmpty(searchQuery))
             {
@@ -52,5 +65,67 @@ namespace Services
 
             return new PaginatedList<News>(items, count, pageIndex, pageSize);
         }
+
+        public News GetNewsById(string id)
+        {
+            return _newsRepository.GetById(id);
+        }
+
+        public News AddNews(NewsModel newsModel)
+        {
+            var news = new News
+            {
+                NewId = "N" + GenerateId.GenerateRandomId(5),
+                Title = newsModel.Title,
+                Content = newsModel.Content,
+                PublicationDate = newsModel.PublicationDate,
+                Image = newsModel.Image,
+                IsHomepageSlideshow = newsModel.IsHomepageSlideshow,
+                IsHomepageBanner = newsModel.IsHomepageBanner,
+                Status = newsModel.Status
+            };
+            _newsRepository.Add(news);
+            return news;
+        }
+
+        public News UpdateNews(string id, NewsModel newsModel)
+        {
+            var news = _newsRepository.GetById(id);
+            if (news == null)
+            {
+                return null;
+            }
+
+            news.Title = newsModel.Title;
+            news.Content = newsModel.Content;
+            news.PublicationDate = newsModel.PublicationDate;
+            news.Image = newsModel.Image;
+            news.IsHomepageSlideshow = newsModel.IsHomepageSlideshow;
+            news.IsHomepageBanner = newsModel.IsHomepageBanner;
+            news.Status = newsModel.Status;
+
+            _newsRepository.Update(news);
+            return news;
+        }
+
+        public News DeleteNews(string id) {
+            var news = _newsRepository.GetById(id);
+            if (news == null)
+            {
+                return null;
+            }
+            _newsRepository.Delete(id);
+            return news;
+        }
+
+        public List<News> GetSlideshowNews() {
+            return _newsRepository.GetAll().Where(p => p.IsHomepageSlideshow == true).ToList();
+        }
+
+        public List<News> GetBannerNews() {
+            return _newsRepository.GetAll().Where(p => p.IsHomepageBanner == true).ToList();
+        }
+
+
     }
 }

@@ -85,7 +85,7 @@ namespace API.Controllers
         }
 
         //GetTopSeller
-        [HttpGet("topseller/{numberOfProducts}")]
+        [HttpGet("TopSeller/{numberOfProducts}")]
         
         public ActionResult<List<Product>> GetTopSeller(int numberOfProducts)
         {

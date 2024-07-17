@@ -54,11 +54,15 @@ const updateProduct = async (productModel, productId) => {
 const deleteProductById = async (id) => {
     return axios.delete(`Product/${id}`);
 };
+const getTopSeller = async (num) => {
+    return axios.get(`Product/TopSeller/${num}`);
+};
 
 export {
     fetchPaginatedProducts,
     fetchProductById,
     addProduct,
     updateProduct,
-    deleteProductById
+    deleteProductById,
+    getTopSeller
 };

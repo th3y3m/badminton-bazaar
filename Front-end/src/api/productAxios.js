@@ -57,6 +57,9 @@ const deleteProductById = async (id) => {
 const getTopSeller = async (num) => {
     return axios.get(`Product/TopSeller/${num}`);
 };
+const numOfProductRemaining = async (id) => {
+    return axios.get(`Product/ProductRemaining/${id}`);
+};
 
 export {
     fetchPaginatedProducts,
@@ -64,5 +67,6 @@ export {
     addProduct,
     updateProduct,
     deleteProductById,
-    getTopSeller
+    getTopSeller,
+    numOfProductRemaining
 };

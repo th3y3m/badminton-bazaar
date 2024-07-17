@@ -3,7 +3,7 @@ import logo from './logo.jpeg';
 
 const Header = () => {
     return (
-        <header className="bg-white border-b-4 border-orange-500">
+        <header className="bg-white border-b-4 border-orange-500 relative">
             <div className="max-w-7xl mx-auto flex justify-between items-center py-2">
                 <div className="flex items-center">
                     <input
@@ -27,13 +27,12 @@ const Header = () => {
             </div>
             <nav className="bg-orange-500">
                 <ul className="flex justify-center space-x-4 text-white font-semibold py-2">
-                    <li><a href="#" className="hover:underline">DANH MỤC SẢN PHẨM</a></li>
-                    <li><a href="#" className="hover:underline">VỢT CẦU LÔNG</a></li>
-                    <li><a href="#" className="hover:underline">NAM</a></li>
-                    <li><a href="#" className="hover:underline">NỮ</a></li>
-                    <li><a href="#" className="hover:underline">SẢN PHẨM KHUYẾN MẠI</a></li>
-                    <li><a href="#" className="hover:underline">ĐỊA ĐIỂM KINH DOANH</a></li>
-                    <li><a href="#" className="hover:underline">TIN TỨC</a></li>
+                    <li><a href="#" className="hover:underline">PRODUCTS</a></li>
+                    <li><a href="#" className="hover:underline">RACKETS</a></li>
+                    <li><a href="#" className="hover:underline">MEN</a></li>
+                    <li><a href="#" className="hover:underline">WOMEN</a></li>
+                    <li><a href="#" className="hover:underline">ABOUT US</a></li>
+                    <li><a href="#" className="hover:underline">NEWS</a></li>
                 </ul>
             </nav>
         </header>

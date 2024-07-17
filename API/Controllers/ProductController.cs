@@ -93,5 +93,13 @@ namespace API.Controllers
             return Ok(products);
         }
 
+        [HttpGet("ProductRemaining/{id}")]
+        public ActionResult<int> ProductRemaining(string id)
+        {
+            var products = _productService.ProductRemaining(id);
+            return Ok(products);
+        }
+
+
     }
 }

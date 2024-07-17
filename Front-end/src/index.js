@@ -3,22 +3,22 @@ import ReactDOM from 'react-dom/client';
 import './index.scss';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
-import { NextUIProvider } from '@nextui-org/react';
 
 import Home from './components/Home/Home';
 import Header from './components/Layour/Header/Header';
 import Footer from './components/Layour/Footer/Footer';
+import ProductPage from './components/Product/ProductsPage';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <NextUIProvider>
-      <main className="light text-foreground bg-background">
-        <Header />
-        <Home />
-        <Footer />
-      </main>
-    </NextUIProvider>
+
+
+    <Header />
+    <ProductPage />
+    <Footer />
+
+
   </React.StrictMode>
 );
 

@@ -17,9 +17,11 @@ namespace Services
         private readonly ProductVariantRepository _productVariantRepository;
         private readonly OrderDetailRepository _orderDetailRepository;
 
-        public ProductService(ProductRepository productRepository)
+        public ProductService(ProductRepository productRepository, ProductVariantRepository productVariantRepository, OrderDetailRepository orderDetailRepository)
         {
             _productRepository = productRepository;
+            _productVariantRepository = productVariantRepository;
+            _orderDetailRepository = orderDetailRepository;
         }
 
         public PaginatedList<Product> GetPaginatedProducts(
@@ -119,26 +121,60 @@ namespace Services
         public void DeleteProduct(string productId) => _productRepository.Delete(productId);
 
         public Product GetProductById(string productId) => _productRepository.GetById(productId);
+        //public int GetSelledProduct(string productId)
+        //{
+        //    int total = 0;
+        //    List<ProductVariant> productVariants = _productVariantRepository.GetAll().Where(p => p.ProductId == productId).ToList();
+        //    foreach (var productVariant in productVariants)
+        //    {
+        //        List<OrderDetail> orderDetails = _orderDetailRepository.GetAll().Where(p => p.ProductVariantId == productVariant.ProductVariantId).ToList();
+        //        foreach (var orderDetail in orderDetails)
+        //        {
+        //            total += orderDetail.Quantity;
+        //        }
+        //    }
+        //    return total;
+        //}
+
+        //public List<Product> GetTopSeller(int n)
+        //{
+        //    List<Product> products = _productRepository.GetAll().ToList();
+        //    products.Sort((x, y) => GetSelledProduct(y.ProductId).CompareTo(GetSelledProduct(x.ProductId)));
+        //    return products.GetRange(0, n);
+        //}
+
         public int GetSelledProduct(string productId)
         {
-            int total = 0;
-            List<ProductVariant> productVariants = _productVariantRepository.GetAll().Where(p => p.ProductId == productId).ToList();
-            foreach (var productVariant in productVariants)
-            {
-                List<OrderDetail> orderDetails = _orderDetailRepository.GetAll().Where(p => p.ProductVariantId == productVariant.ProductVariantId).ToList();
-                foreach (var orderDetail in orderDetails)
-                {
-                    total += orderDetail.Quantity;
-                }
-            }
-            return total;
+            return _orderDetailRepository.GetAll()
+                                         .Where(od => _productVariantRepository.GetAll()
+                                                                               .Any(pv => pv.ProductId == productId && pv.ProductVariantId == od.ProductVariantId))
+                                         .Sum(od => od.Quantity);
         }
 
         public List<Product> GetTopSeller(int n)
         {
-            List<Product> products = _productRepository.GetAll().ToList();
-            products.Sort((x, y) => GetSelledProduct(y.ProductId).CompareTo(GetSelledProduct(x.ProductId)));
-            return products.GetRange(0, n);
+            var productSales = _productRepository.GetAll()
+                                                 .Select(p => new
+                                                 {
+                                                     Product = p,
+                                                     TotalSales = GetSelledProduct(p.ProductId)
+                                                 })
+                                                 .OrderByDescending(ps => ps.TotalSales)
+                                                 .Take(n)
+                                                 .Select(ps => ps.Product)
+                                                 .ToList();
+            return productSales;
+        }
+
+        public int ProductRemaining(string productId)
+        {
+            var productVariants = _productVariantRepository.GetAll().Where(p => p.ProductId == productId).ToList();
+            int total = 0;
+            foreach (var productVariant in productVariants)
+            {
+                total += productVariant.StockQuantity;
+            }
+            return total;
         }
     }
 }

@@ -3,20 +3,45 @@ import ReactDOM from 'react-dom/client';
 import './index.scss';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
-
 import Home from './components/Home/Home';
 import Header from './components/Layour/Header/Header';
 import Footer from './components/Layour/Footer/Footer';
 import ProductPage from './components/Product/ProductsPage';
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { AuthProvider } from "./AuthContext";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+import { BrowserRouter } from "react-router-dom";
+
+
+
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
+    <ToastContainer
+      position="top-right"
+      autoClose={5000}
+      hideProgressBar={false}
+      newestOnTop={false}
+      closeOnClick
+      rtl={false}
+      pauseOnFocusLoss
+      draggable
+      pauseOnHover
+      theme="light"
+    />
 
+    <BrowserRouter>
+      <GoogleOAuthProvider clienId="333628503460-h7f0nupbv8c3u8e548tj6f9ruioj8jso.apps.googleusercontent.com">
+        <AuthProvider>
+          <Header />
+          <ProductPage />
+          <Footer />
+        </AuthProvider>
+      </GoogleOAuthProvider>
 
-    <Header />
-    <ProductPage />
-    <Footer />
+    </BrowserRouter>
 
 
   </React.StrictMode>

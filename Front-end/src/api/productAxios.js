@@ -14,8 +14,10 @@ const fetchPaginatedProducts = async (params) => {
     } = params;
 
     const queryParams = new URLSearchParams();
-    if (start !== undefined) queryParams.append('start', start);
-    if (end !== undefined) queryParams.append('end', end);
+    // if (start !== undefined || start !== null) queryParams.append('start', start);
+    // if (end !== undefined || end !== null) queryParams.append('end', end);
+    if (start) queryParams.append('start', start);
+    if (end) queryParams.append('end', end);
     if (searchQuery) queryParams.append('searchQuery', searchQuery);
     if (sortBy) queryParams.append('sortBy', sortBy);
     if (status !== undefined) queryParams.append('status', status);
@@ -23,7 +25,7 @@ const fetchPaginatedProducts = async (params) => {
     if (categoryId) queryParams.append('categoryId', categoryId);
     if (pageIndex) queryParams.append('pageIndex', pageIndex);
     if (pageSize) queryParams.append('pageSize', pageSize);
-
+    console.log(`Product?${queryParams.toString()}`);
     return axios.get(`Product?${queryParams.toString()}`);
 };
 

@@ -12,6 +12,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { AuthProvider } from "./AuthContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { BrowserRouter } from "react-router-dom";
+import RouterCustom from './router';
 
 
 
@@ -35,9 +36,7 @@ root.render(
     <BrowserRouter>
       <GoogleOAuthProvider clienId="333628503460-h7f0nupbv8c3u8e548tj6f9ruioj8jso.apps.googleusercontent.com">
         <AuthProvider>
-          <Header />
-          <ProductPage />
-          <Footer />
+          <RouterCustom />
         </AuthProvider>
       </GoogleOAuthProvider>
 

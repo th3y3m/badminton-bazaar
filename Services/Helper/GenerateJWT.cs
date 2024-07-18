@@ -13,12 +13,10 @@ namespace Services.Helper
 {
     public class GenerateJWT
     {
-        private static readonly IConfiguration _configuration;
-
         public static string GenerateToken(IdentityUser user, string role)
         {
             var jwtTokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_configuration["JWT:Secret"]);
+            var key = Encoding.ASCII.GetBytes("JFY6rIq/uHpNoAUQ9VSvBExfnqXosicZZIyWALbcaxs=");
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]

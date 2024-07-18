@@ -3,7 +3,7 @@ import Header from "./Header/Header";
 import Footer from "./Footer/Footer";
 
 
-const masterLayout = ({ children, ...props }) => {
+const MasterLayout = ({ children, ...props }) => {
     return (
         <div {...props}>
             <Header />
@@ -13,4 +13,4 @@ const masterLayout = ({ children, ...props }) => {
     );
 };
 
-export default memo(masterLayout);
+export default memo(MasterLayout);

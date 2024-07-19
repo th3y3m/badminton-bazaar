@@ -1,13 +1,14 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import logo from './logo.jpeg';
 import { AuthContext } from '../../../AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { numberOfItemsInCart } from '../../../api/cartAxios';
 
 const Header = () => {
 
     const { user, logout } = useContext(AuthContext);
-
+    const [numebrOfProductsInCart, setNumebrOfProductsInCart] = useState(0);
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -15,6 +16,25 @@ const Header = () => {
         navigate('/');
         toast.success('Logout successfully');
     }
+
+    const handleCart = () => {
+        navigate('/cart');
+    }
+
+    const fetchCart = async (userId) => {
+        try {
+            const data = await numberOfItemsInCart(userId);
+            setNumebrOfProductsInCart(data);
+        } catch (error) {
+            console.error("Error fetching products:", error);
+        }
+    };
+
+    useEffect(() => {
+        if (user) {
+            fetchCart(user.id);
+        }
+    }, [user, numebrOfProductsInCart]);
 
     return (
         <header className="bg-white border-b-4 border-orange-500 relative">
@@ -31,12 +51,13 @@ const Header = () => {
                 </div>
                 <div className="flex items-center">
                     <div className="relative">
-                        <button className="text-orange-600 text-2xl">
+                        <button className="text-orange-600 text-2xl" onClick={handleCart}>
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
                             </svg>
+                            <span className="ml-1 absolute top-0 right-0 bg-orange-600 text-white text-sm rounded-full h-5 w-5 flex items-center justify-center">{user ? 0 : numebrOfProductsInCart}</span>
                         </button>
-                        <span className="absolute top-0 right-0 bg-orange-600 text-white text-sm rounded-full h-5 w-5 flex items-center justify-center">0</span>
+
                         <div>
                             {user ? (
                                 <div className="flex items-center">

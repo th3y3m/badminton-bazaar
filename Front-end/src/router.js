@@ -4,6 +4,7 @@ import { ROUTERS } from './utils/Routers';
 import HomePage from "./components/Home/Home";
 import ProductPage from "./components/Product/ProductsPage";
 import Login from "./components/Login/Login";
+import CartPage from "./components/Cart/CartPage";
 
 const ProtectedRoute = ({ component: Component, allowedRoles, ...rest }) => {
     const userRole = localStorage.getItem('userRole');
@@ -22,7 +23,7 @@ const renderUserRouter = () => {
         // { path: ROUTERS.USER.PAYMENTDETAIL, component: PaymentDetail },
         // { path: ROUTERS.USER.PAYMENTFAILED, component: PaymentFailed },
         // { path: ROUTERS.USER.PAYMENTSUCCESSFUL, component: PaymentSuccessful },
-        // { path: ROUTERS.USER.CART, component: Cart },
+        { path: ROUTERS.USER.CART, component: CartPage },
         // { path: ROUTERS.USER.ORDERS, component: Orders },
         { path: ROUTERS.USER.PRODUCTS, component: ProductPage },
     ];

@@ -4,7 +4,7 @@ const fetchPaginatedOrders = async (params) => {
     const {
         start,
         end,
-        sortBy = "name_asc",
+        sortBy = "orderdate_asc",
         status = null,
         pageIndex = 1,
         pageSize = 10

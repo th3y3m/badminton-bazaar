@@ -20,7 +20,7 @@ namespace API.Controllers
         public ActionResult<PaginatedList<Order>> GetPaginatedOrders(
             [FromQuery] DateOnly? start,
             [FromQuery] DateOnly? end,
-            [FromQuery] string sortBy = "name_asc",
+            [FromQuery] string sortBy = "orderdate_asc",
             [FromQuery] string? status = null,
             [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 10)

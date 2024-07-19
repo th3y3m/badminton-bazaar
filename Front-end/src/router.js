@@ -5,6 +5,8 @@ import HomePage from "./components/Home/Home";
 import ProductPage from "./components/Product/ProductsPage";
 import Login from "./components/Login/Login";
 import CartPage from "./components/Cart/CartPage";
+import Register from "./components/Register/Register";
+import ProductDetailsPage from "./components/Product/ProductDetailsPage";
 
 const ProtectedRoute = ({ component: Component, allowedRoles, ...rest }) => {
     const userRole = localStorage.getItem('userRole');
@@ -24,7 +26,9 @@ const renderUserRouter = () => {
         // { path: ROUTERS.USER.PAYMENTFAILED, component: PaymentFailed },
         // { path: ROUTERS.USER.PAYMENTSUCCESSFUL, component: PaymentSuccessful },
         { path: ROUTERS.USER.CART, component: CartPage },
-        // { path: ROUTERS.USER.ORDERS, component: Orders },
+        { path: ROUTERS.USER.REGISTER, component: Register },
+        { path: ROUTERS.USER.PRODUCTDETAILS + "/:id", component: ProductDetailsPage },
+                // { path: ROUTERS.USER.ORDERS, component: Orders },
         { path: ROUTERS.USER.PRODUCTS, component: ProductPage },
     ];
 

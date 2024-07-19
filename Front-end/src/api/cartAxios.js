@@ -1,6 +1,6 @@
 import axios from './customizeAxios'; // Assuming your axios instance is saved in axios.js
 
-const addtoCart = async (productId, userId) => {
+const addToCart = async (productId, userId) => {
     return await axios.post(`Cart/Add?userId=${userId}`, { productId });
 };
 
@@ -37,7 +37,7 @@ const numberOfItemsInCart = async (userId) => {
 };
 
 export {
-    addtoCart,
+    addToCart,
     deleteUnitItem,
     getCart,
     saveCart,

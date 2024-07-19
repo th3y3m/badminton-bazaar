@@ -17,6 +17,10 @@ const fetchPaginatedSizes = async (params) => {
     return axios.get(`Size?${queryParams.toString()}`);
 };
 
+const fetchSizesOfProduct = async (productId) => {
+    return axios.get(`Size/GetSizesOfProduct/${productId}`);
+}
+
 const fetchSizeById = async (id) => {
     return axios.get(`Size/${id}`);
 };
@@ -28,5 +32,6 @@ const addSize = async (SizeModel) => {
 export {
     fetchPaginatedSizes,
     fetchSizeById,
-    addSize
+    addSize,
+    fetchSizesOfProduct
 };

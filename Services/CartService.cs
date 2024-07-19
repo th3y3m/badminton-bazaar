@@ -172,7 +172,7 @@ namespace Services
         public int NumberOfItemsInCart(string userId)
         {
             var sessionKey = GetCartSessionKey(userId);
-            List<CartItem> items = null;
+            List<CartItem> items = new List<CartItem>();
             int count = 0;
             Dictionary<string, CartItem> cartItems = Session.GetObjectFromJson<Dictionary<string, CartItem>>(sessionKey);
 

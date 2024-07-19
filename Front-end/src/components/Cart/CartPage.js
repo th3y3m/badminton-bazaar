@@ -1,12 +1,15 @@
 import { useContext, useEffect, useState } from 'react';
 import { getCart, saveCart } from "../../api/cartAxios";
-import { AuthContext } from '../../context/AuthContext'; // Assuming the path
+import { AuthContext } from '../../AuthContext'
 import ProductRow from './ProductRow'; // Assuming the path
+import { useNavigate } from 'react-router-dom';
+import { createOrder } from '../../api/orderAxios';
+
 
 const CartPage = () => {
-    const { user } = useContext(AuthContext);
     const [cartItems, setCartItems] = useState([]);
     const [totalPrice, setTotalPrice] = useState(0);
+    const { user } = useContext(AuthContext);
     const navigate = useNavigate();
 
     const getCartDetails = async (userId) => {
@@ -54,6 +57,8 @@ const CartPage = () => {
                     <div className='flex my-6 justify-end'>
                         <button className="bg-blue-500 text-white px-4 py-2 rounded-lg" onClick={handlePlaceOrders}>Place Orders</button>
                     </div>
+
+
                 </div>
             )}
         </div>

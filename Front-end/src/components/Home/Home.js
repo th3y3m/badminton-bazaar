@@ -123,7 +123,7 @@ const HomePage = () => {
                         <div className="bg-white p-4 shadow-md rounded-lg">
                             <h2 className="text-xl font-bold mb-4">TOP SELLERS</h2>
                             <ul>
-                                {topSellers.slice(1, 4).map((product) => (
+                                {topSellers.length > 0 && topSellers.slice(1, 4).map((product) => (
                                     <li key={product.productId} className="flex items-center justify-between border-b border-gray-200 py-2">
                                         <div className="flex items-center">
                                             <img src={product.imageUrl} alt={product.productName} className="w-16" />
@@ -159,7 +159,7 @@ const HomePage = () => {
                 </div>
 
                 <div className='racket my-6'>
-                    <p className='bg-[#f5f5f5] border-t-2 border-t-[#ed3b05]'>BEST SELLER</p>
+                    <p className='bg-[#f5f5f5] border-t-2 border-t-[#ed3b05]'>RACKETS</p>
 
                     {rackets.length > 0 && <div className='clothes grid grid-cols-5 gap-1'>
                         {rackets.slice(0, 11).map((product) => (

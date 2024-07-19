@@ -2,7 +2,7 @@ import axios from './customizeAxios'; // Import the configured axios instance
 
 const fetchPaginatedProductVariants = async (params) => {
     const {
-        sortBy = "name_asc",
+        sortBy = "price_asc",
         status = true,
         colorId = "",
         sizeId = "",

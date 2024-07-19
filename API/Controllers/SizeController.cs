@@ -38,5 +38,12 @@ namespace API.Controllers
             var size = _sizeService.Add(sizeModel);
             return Ok(size);
         }
+
+        [HttpGet("GetSizesOfProduct/{id}")]
+        public ActionResult GetSizesOfProduct(string id)
+        {
+            var sizes = _sizeService.GetSizesOfProduct(id);
+            return Ok(sizes);
+        }
     }
 }

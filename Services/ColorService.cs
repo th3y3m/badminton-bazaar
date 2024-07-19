@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Repositories;
 using Services.Helper;
+using Services.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,10 +14,30 @@ namespace Services
     public class ColorService
     {
         private readonly ColorRepository _colorRepository;
+        private readonly ProductVariantRepository _productVariantRepository;
 
-        public ColorService(ColorRepository colorRepository)
+        public ColorService(ColorRepository colorRepository, ProductVariantRepository productVariantRepository)
         {
             _colorRepository = colorRepository;
+            _productVariantRepository = productVariantRepository;
+        }
+
+        public List<ColorModel> GetColorsOfProduct(string productId)
+        {
+            var productVariants = _productVariantRepository.GetAll().Where(p => p.ProductId == productId).ToList();
+            var colorIds = productVariants.Select(p => p.ColorId).ToList();
+            var colors = GetAll().Where(p => colorIds.Contains(p.ColorId)).ToList();
+            var colorModels = new List<ColorModel>();
+            foreach (var color in colors)
+            {
+                var colorModel = new ColorModel
+                {
+                    ColorId = color.ColorId,
+                    ColorName = color.ColorName
+                };
+                colorModels.Add(colorModel);
+            }
+            return colorModels;
         }
 
         public Color Add(string colorName)

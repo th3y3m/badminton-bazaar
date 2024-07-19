@@ -3,6 +3,7 @@ import { fetchPaginatedProducts } from "../../api/productAxios";
 import Product from "./Product";
 import ReactPaginate from 'react-paginate';
 import Slider from '@mui/material/Slider';
+import { useNavigate } from "react-router-dom";
 
 
 const ProductPage = () => {
@@ -13,6 +14,7 @@ const ProductPage = () => {
     const [totalProduct, setTotalProduct] = useState(0);
     const [totalPage, setTotalPage] = useState(0);
     const [currentPage, setCurrentPage] = useState(1); // Added state for current page
+    const navigate = useNavigate();
 
 
     const handlePageClick = (data) => {
@@ -117,7 +119,9 @@ const ProductPage = () => {
                     </div>
                     <div className="grid grid-cols-4 gap-4 mt-4">
                         {products.length > 0 && products.map((product) => (
-                            <div key={product.productId} className="border border-gray-300 p-2">
+                            <div key={product.productId} className="border border-gray-300 p-2" 
+                            onClick={() => navigate(`/product/${product.productId}`)}
+                            >
                                 <Product product={product} />
                             </div>
                         ))}

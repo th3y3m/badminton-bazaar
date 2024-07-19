@@ -38,5 +38,12 @@ namespace API.Controllers
             var color = _colorService.Add(colorModel);
             return Ok(color);
         }
+
+        [HttpGet("GetColorsOfProduct/{id}")]
+        public ActionResult GetColorsOfProduct(string id)
+        {
+            var colors = _colorService.GetColorsOfProduct(id);
+            return Ok(colors);
+        }
     }
 }

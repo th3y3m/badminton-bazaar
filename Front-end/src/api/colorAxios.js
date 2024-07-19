@@ -25,8 +25,13 @@ const addColor = async (colorModel) => {
     return axios.post('Color', { colorModel });
 };
 
+const fetchColorsOfProduct = async (productId) => {
+    return axios.get(`Color/GetColorsOfProduct/${productId}`);
+}
+
 export {
     fetchPaginatedColors,
     fetchColorById,
-    addColor
+    addColor,
+    fetchColorsOfProduct
 };

@@ -20,7 +20,7 @@ namespace API.Controllers
 
         [HttpGet]
         public ActionResult<PaginatedList<ProductVariant>> GetPaginatedProducts(
-            [FromQuery] string sortBy = "name_asc",
+            [FromQuery] string sortBy = "price_asc",
             [FromQuery] bool? status = true,
             [FromQuery] string colorId = "",
             [FromQuery] string sizeId = "",

@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Repositories;
 using Services.Helper;
+using Services.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,11 +14,33 @@ namespace Services
     public class SizeService
     {
         private readonly SizeRepository _sizeRepository;
+        private readonly ProductVariantRepository _productVariantRepository;
 
-        public SizeService(SizeRepository sizeRepository)
+        public SizeService(SizeRepository sizeRepository, ProductVariantRepository productVariantRepository)
         {
             _sizeRepository = sizeRepository;
+            _productVariantRepository = productVariantRepository;
         }
+
+        public List<SizeModel> GetSizesOfProduct(string productId)
+        {
+            var productVariants = _productVariantRepository.GetAll().Where(p => p.ProductId == productId).ToList();
+            var sizeIds = productVariants.Select(p => p.SizeId).ToList();
+            var sizes = GetAll().Where(p => sizeIds.Contains(p.SizeId)).ToList();
+            var sizeModels = new List<SizeModel>();
+            foreach (var size in sizes)
+            {
+                var sizeModel = new SizeModel
+                {
+                    SizeId = size.SizeId,
+                    SizeName = size.SizeName
+                };
+                sizeModels.Add(sizeModel);
+            }
+            return sizeModels;
+        }
+
+
 
         public Size Add(string sizeName)
         {

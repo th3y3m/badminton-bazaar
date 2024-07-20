@@ -1,6 +1,7 @@
 ﻿using BusinessObjects;
 using Microsoft.AspNetCore.Mvc;
 using Services;
+using Services.Helper;
 
 namespace API.Controllers
 {
@@ -9,10 +10,12 @@ namespace API.Controllers
     public class PaymentController : ControllerBase
     {
         private readonly PaymentService _paymentService;
+        private readonly TokenForPayment _tokenForPayment;
 
-        public PaymentController(PaymentService paymentService)
+        public PaymentController(PaymentService paymentService, TokenForPayment tokenForPayment)
         {
             _paymentService = paymentService;
+            _tokenForPayment = tokenForPayment;
         }
 
         [HttpGet]
@@ -54,6 +57,29 @@ namespace API.Controllers
         {
             _paymentService.DeletePayment(id);
             return Ok();
+        }
+
+        [HttpGet("GeneratePaymentToken/{bookingId}")]
+        public IActionResult GeneratePaymentToken(string bookingId)
+        {
+            var token = _tokenForPayment.GenerateToken(bookingId);
+            return Ok(new { token });
+        }
+
+        [HttpPost("ProcessPayment")]
+        public async Task<ActionResult> ProcessPayment(string role, string token)
+        {
+            //if (bookingId == null)
+            //{
+            //    return BadRequest(new ResponseModel
+            //    {
+            //        Status = "Error",
+            //        Message = "Booking information is required."
+            //    });
+            //}
+            var bookingId = _tokenForPayment.ValidateToken(token);
+            var response = await _paymentService.ProcessBookingPayment(role, bookingId);
+            return Ok(response);
         }
     }
 }

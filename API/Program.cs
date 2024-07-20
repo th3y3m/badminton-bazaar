@@ -1,4 +1,3 @@
-
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -27,28 +26,30 @@ namespace API
                 var connectionString = configuration.GetConnectionString("BadmintonBazaarDb");
                 options.UseSqlServer(connectionString);
             });
-            // Add services to the container.
 
-            builder.Services.AddHttpContextAccessor();
+            // Add services to the container
             builder.Services.AddDistributedMemoryCache();
+
             builder.Services.AddSession(options =>
             {
                 options.IdleTimeout = TimeSpan.FromMinutes(120);
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
+                options.Cookie.SameSite = SameSiteMode.None; // Allow cross-site cookies
             });
 
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddControllersWithViews();
 
+            // Identity Configuration
             builder.Services.AddIdentity<IdentityUser, IdentityRole>()
                 .AddEntityFrameworkStores<Repositories.DbContext>()
                 .AddDefaultTokenProviders();
+
             builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
-      options.TokenLifespan = TimeSpan.FromHours(24));
+                options.TokenLifespan = TimeSpan.FromHours(24));
 
-
-            builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-
+            // JWT Authentication Configuration
             builder.Services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -68,12 +69,11 @@ namespace API
                 };
             });
 
+            // Swagger Configuration
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
-
-                // Define security scheme for JWT
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     In = ParameterLocation.Header,
@@ -82,7 +82,6 @@ namespace API
                     Type = SecuritySchemeType.ApiKey,
                     Scheme = "Bearer"
                 });
-
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement
                 {
                     {
@@ -99,6 +98,7 @@ namespace API
                 });
             });
 
+            // Dependency Injection for Repositories and Services
             builder.Services.AddScoped<ProductRepository>();
             builder.Services.AddScoped<CategoryRepository>();
             builder.Services.AddScoped<ColorRepository>();
@@ -130,15 +130,16 @@ namespace API
 
             builder.Services.AddScoped<VnpayService>();
 
-            //builder.Services.AddTransient<IMailService, MailService>();
+            // Mail Settings Configuration
             builder.Services.Configure<MailSettings>(configuration.GetSection("MailSettings"));
 
+            // CORS Configuration
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowSpecificOrigin",
                     policy =>
                     {
-                        policy.WithOrigins("https://localhost:3000")
+                        policy.WithOrigins("https://localhost:3000", "http://localhost:3000")
                               .AllowAnyHeader()
                               .AllowAnyMethod()
                               .AllowCredentials();
@@ -147,31 +148,24 @@ namespace API
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
+            // Configure the HTTP request pipeline
             if (app.Environment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
 
             app.UseHttpsRedirection();
-            app.UseAuthentication();
-
-            app.UseCors("AllowSpecificOrigin");
-
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
             });
-
             app.UseRouting();
-            app.UseSession();
-
+            app.UseSession(); // Ensure session is used before authorization
+            app.UseAuthentication();
             app.UseAuthorization();
-
-
+            app.UseCors("AllowSpecificOrigin");
             app.MapControllers();
-
             app.Run();
         }
     }

@@ -16,28 +16,41 @@ const Login = () => {
 
     const handleLogin = async () => {
         if (!email || !password) {
-            alert('Email and password are required');
+            toast.error('Email and password are required', {
+                position: "top-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "colored",
+            });
             return;
         }
-        console.log('befoire res: ')
         let res = await loginApi({ email, password });
-        console.log('after res: ', res)
+        
         if (res && res.token) {
             localStorage.setItem("token", res.token);
             console.log('token: ', res.token)
             var decode = jwtDecode(res.token);
             localStorage.setItem("userRole", decode.role);
+            localStorage.setItem("userId", decode.Id);
             const userData = {
                 email: decode.email,
                 role: decode.role,
-                userId: decode.id,
+                userId: decode.Id,
             };
             login(userData); // Lưu thông tin người dùng vào context
             navigate(ROUTERS.USER.HOME);
-        } else if (res && res.status === 401) {
-            toast.error(res.error);
-        } else if (res && res.data.status === "Error" && res.data.message == "User is banned!") {
-            toast.error('This account is banned!', {
+        } 
+        // else if (res && res.status === 401) {
+        //     toast.error(res.error);
+        // } 
+        else 
+        // if (res && res.data.status === "Error" && res.data.message == "User is banned!") 
+            {
+            toast.error('Login failed', {
                 position: "top-right",
                 autoClose: 5000,
                 hideProgressBar: false,

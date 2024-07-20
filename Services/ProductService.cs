@@ -176,5 +176,11 @@ namespace Services
             }
             return total;
         }
+
+        public Product GetProductByProductVariantId(string productVariantId)
+        {
+            var productVariant = _productVariantRepository.GetById(productVariantId);
+            return _productRepository.GetById(productVariant.ProductId);
+        }
     }
 }

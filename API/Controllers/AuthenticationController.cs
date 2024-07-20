@@ -63,7 +63,6 @@ namespace API.Controllers
                         var userRole = roles.FirstOrDefault();
                         return Ok(new
                         {
-                            Id = user.Id,
                             Token = GenerateJWT.GenerateToken(user, userRole)
                         });
                     }

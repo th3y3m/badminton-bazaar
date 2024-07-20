@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faInfo } from '@fortawesome/free-solid-svg-icons';
 import { fetchColorsOfProduct } from "../../api/colorAxios";
 import { fetchSizesOfProduct } from "../../api/sizeAxios";
-import { addToCart } from "../../api/cartAxios";
+import { addToCart, numberOfItemsInCart, saveCartToCookie } from "../../api/cartAxios";
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../AuthContext";
 import { useNavigate, useParams } from "react-router-dom";
@@ -15,8 +15,7 @@ import { fetchProductById } from "../../api/productAxios";
 const ProductDetailsPage = () => {
 
     const { id: productId } = useParams();
-    console.log("Product ID: ", productId);
-    const { user } = useContext(AuthContext);
+    const { user, setCartCount, cartCount } = useContext(AuthContext);
     const navigate = useNavigate();
     const [category, setCategory] = useState({});
     const [supplier, setSupplier] = useState({});
@@ -38,34 +37,38 @@ const ProductDetailsPage = () => {
     };
 
     const handleAddCart = () => {
-        console.log("User: " + user);
         if (user) {
-            console.log("UserId: " + user.userId);
+          saveCartToCookie(productVariant.productVariantId, user.userId)
+            .then(() => {
+              // Update the cart count
+              setCartCount(cartCount + 1);
 
-            addToCart(productVariant.productVariantId, user.userId).then(() => {
-                toast.success("Add to cart successfully");
-            }).catch((error) => {
-                console.error("Error adding to cart:", error);
-                toast.error("Error adding to cart");
+              toast.success("Added to cart successfully");
+            })
+            .catch((error) => {
+              console.error("Error adding to cart:", error);
+              toast.error("Error adding to cart");
             });
         } else {
-            toast.error('Please login first', {
-                position: "top-right",
-                autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "colored",
-            });
-            navigate('/login');
+          toast.error('Please login first', {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "colored",
+          });
+          navigate('/login');
         }
-    };
+      };
+      
 
     const getColorsOfProduct = async () => {
         try {
             const data = await fetchColorsOfProduct(productId);
+            setSelectedColor(data[0]);
             setColorOfProduct(data);
         } catch (error) {
             console.error("Error fetching colors:", error);
@@ -75,6 +78,7 @@ const ProductDetailsPage = () => {
     const getSizeOfProduct = async () => {
         try {
             const data = await fetchSizesOfProduct(productId);
+            setSelectedSize(data[0]);
             setSizeOfProduct(data);
         } catch (error) {
             console.error("Error fetching sizes:", error);
@@ -118,7 +122,6 @@ const ProductDetailsPage = () => {
 
     useEffect(() => {
         getProductById();
-        console.log("Product ID: ", productId);
     }, [productId]);
 
     useEffect(() => {
@@ -128,6 +131,8 @@ const ProductDetailsPage = () => {
             fetchCategory();
             fetchSupplier();
         }
+        console.log("Product var: ", productVariant);
+
     }, [product]);
 
     useEffect(() => {

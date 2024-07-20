@@ -4,6 +4,7 @@ import { getTopSeller, numOfProductRemaining as fetchProductRemaining, fetchPagi
 import { fetchPaginatedNews } from '../../api/newsAxios';
 import Product from '../Product/Product';
 import News from '../News/News';
+import { useNavigate } from 'react-router-dom';
 
 const HomePage = () => {
     const [topSellers, setTopSellers] = useState([]);
@@ -11,6 +12,7 @@ const HomePage = () => {
     const [rackets, setRackets] = useState([]);
     const [news, setNews] = useState([]);
     const [productRemaining, setProductRemaining] = useState({});
+    const navigate = useNavigate();
 
     const getBanners = async () => {
         try {
@@ -107,12 +109,11 @@ const HomePage = () => {
                         <div className="bg-white p-4 shadow-md rounded-lg">
                             <h2 className="text-xl font-bold mb-4">HOT DEALS</h2>
                             {topSellers.length > 0 && (
-                                <div key={topSellers[0].productId} className="mb-4">
+                                <div key={topSellers[0].productId} className="mb-4 cursor-pointer" onClick={() => navigate(`/product-details/${topSellers[0].productId}`)}>
                                     <img src={topSellers[0].imageUrl} alt={topSellers[0].productName} className="w-full" />
                                     <h3 className="text-lg font-semibold mt-2">{topSellers[0].productName}</h3>
                                     <p className="text-red-600 font-bold text-2xl">{topSellers[0].basePrice} $</p>
                                     <p className="text-gray-600">Remain {productRemaining[topSellers[0].productId] || 0}</p>
-                                    <button className="bg-orange-500 text-white py-2 px-4 rounded mt-2">Xem thêm</button>
                                 </div>
                             )}
                         </div>
@@ -124,7 +125,7 @@ const HomePage = () => {
                             <h2 className="text-xl font-bold mb-4">TOP SELLERS</h2>
                             <ul>
                                 {topSellers.length > 0 && topSellers.slice(1, 4).map((product) => (
-                                    <li key={product.productId} className="flex items-center justify-between border-b border-gray-200 py-2">
+                                    <li key={product.productId} className="flex items-center justify-between border-b border-gray-200 py-2 cursor-pointer" onClick={() => navigate(`/product-details/${topSellers[0].productId}`)}>
                                         <div className="flex items-center">
                                             <img src={product.imageUrl} alt={product.productName} className="w-16" />
                                             <div className="ml-4">
@@ -134,7 +135,6 @@ const HomePage = () => {
                                         </div>
                                         <div>
                                             <p className="text-gray-600">Remain {productRemaining[product.productId] || 0}</p>
-                                            <button className="bg-orange-500 text-white py-2 px-4 rounded mt-2">Xem thêm</button>
                                         </div>
                                     </li>
                                 ))}

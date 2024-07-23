@@ -12,22 +12,16 @@ namespace Services.Helper
 {
     public class TokenForPayment
     {
-        private readonly string _secretKey;
-
-        public TokenForPayment(IOptions<TokenSettings> tokenSettings)
-        {
-            _secretKey = tokenSettings.Value.SecretKey;
-        }
 
         public string GenerateToken(string bookingId)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_secretKey);
+            var key = Encoding.ASCII.GetBytes("JFY6rIq/uHpNoAUQ9VSvBExfnqXosicZZIyWALbcaxs=");
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new Claim[]
                 {
-                new Claim("BookingId", bookingId)
+                new Claim("OrderId", bookingId)
                 }),
                 Expires = DateTime.UtcNow.AddMinutes(10),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
@@ -39,7 +33,7 @@ namespace Services.Helper
         public string ValidateToken(string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_secretKey);
+            var key = Encoding.ASCII.GetBytes("JFY6rIq/uHpNoAUQ9VSvBExfnqXosicZZIyWALbcaxs=");
             tokenHandler.ValidateToken(token, new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,

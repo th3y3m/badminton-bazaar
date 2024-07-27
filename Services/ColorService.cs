@@ -1,7 +1,9 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
 using Repositories;
+using Repositories.Interfaces;
 using Services.Helper;
+using Services.Interface;
 using Services.Models;
 using System;
 using System.Collections.Generic;
@@ -11,22 +13,24 @@ using System.Threading.Tasks;
 
 namespace Services
 {
-    public class ColorService
+    public class ColorService : IColorService
     {
-        private readonly ColorRepository _colorRepository;
-        private readonly ProductVariantRepository _productVariantRepository;
+        private readonly IColorRepository _colorRepository;
+        private readonly IProductVariantRepository _productVariantRepository;
 
-        public ColorService(ColorRepository colorRepository, ProductVariantRepository productVariantRepository)
+        public ColorService(IColorRepository colorRepository, IProductVariantRepository productVariantRepository)
         {
             _colorRepository = colorRepository;
             _productVariantRepository = productVariantRepository;
         }
 
-        public List<ColorModel> GetColorsOfProduct(string productId)
+        public async Task<List<ColorModel>> GetColorsOfProduct(string productId)
         {
-            var productVariants = _productVariantRepository.GetAll().Where(p => p.ProductId == productId).ToList();
+            var allProduct = await _productVariantRepository.GetAll();
+            var productVariants = allProduct.Where(p => p.ProductId == productId).ToList();
             var colorIds = productVariants.Select(p => p.ColorId).ToList();
-            var colors = GetAll().Where(p => colorIds.Contains(p.ColorId)).ToList();
+            var allColors = await GetAll();
+            var colors = allColors.Where(p => colorIds.Contains(p.ColorId)).ToList();
             var colorModels = new List<ColorModel>();
             foreach (var color in colors)
             {
@@ -40,7 +44,7 @@ namespace Services
             return colorModels;
         }
 
-        public Color Add(string colorName)
+        public async Task<Color> Add(string colorName)
         {
             var color = new Color
             {
@@ -48,40 +52,36 @@ namespace Services
                 ColorName = colorName
             };
 
-            _colorRepository.Add(color);
+            await _colorRepository.Add(color);
             return color;
         }
 
-        public void Update(Color color)
+        public async Task Update(Color color)
         {
-            _colorRepository.Update(color);
+            await _colorRepository.Update(color);
         }
 
-        public Color GetById(string id) => _colorRepository.GetById(id);
+        public async Task<Color> GetById(string id) => await _colorRepository.GetById(id);
 
-        public List<Color> GetAll()
+        public async Task<List<Color>> GetAll()
         {
-            return _colorRepository.GetAll();
+            return await _colorRepository.GetAll();
         }
 
-        public void Delete(string id)
+        public async Task Delete(string id)
         {
-            _colorRepository.Delete(id);
+            await _colorRepository.Delete(id);
         }
 
-        public void Delete(Color color)
-        {
-            _colorRepository.Delete(color.ColorId);
-        }
-
-        public PaginatedList<Color> GetPaginatedColors(
+        public async Task<PaginatedList<Color>> GetPaginatedColors(
             string searchQuery,
             string sortBy,
             int pageIndex,
             int pageSize)
         {
-            var source = _colorRepository.GetDbSet().AsNoTracking();
 
+            var dbSet = await _colorRepository.GetDbSet();
+            var source = dbSet.AsNoTracking();
             if (!string.IsNullOrEmpty(searchQuery))
             {
                 source = source.Where(p => p.ColorName.ToLower().Contains(searchQuery.ToLower()));

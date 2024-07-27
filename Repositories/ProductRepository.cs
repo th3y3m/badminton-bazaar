@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Repositories
 {
-    public class ProductRepository
+    public class ProductRepository : IProductRepository
     {
         private readonly DbContext _dbContext;
 
@@ -17,34 +18,34 @@ namespace Repositories
             _dbContext = dbContext;
         }
 
-        public void Add(Product product)
+        public async Task Add(Product product)
         {
             _dbContext.Products.Add(product);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Update(Product product)
+        public async Task Update(Product product)
         {
             _dbContext.Products.Update(product);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public Product GetById(string id) => _dbContext.Products.Find(id);
+        public async Task<Product> GetById(string id) => await _dbContext.Products.FindAsync(id);
 
-        public List<Product> GetAll()
+        public async Task<List<Product>> GetAll()
         {
-            return _dbContext.Products.ToList();
+            return await _dbContext.Products.ToListAsync();
         }
-        public DbSet<Product> GetDbSet()
+        public async Task<DbSet<Product>> GetDbSet()
         {
-            return _dbContext.Products;
+            return await Task.FromResult(_dbContext.Products);
         }
 
-        public void Delete(string id) {
-            var product = GetById(id);
+        public async Task Delete(string id) {
+            var product = await GetById(id);
             product.Status = false;
             _dbContext.Products.Update(product);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
     }
 }

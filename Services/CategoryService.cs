@@ -1,7 +1,9 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
 using Repositories;
+using Repositories.Interfaces;
 using Services.Helper;
+using Services.Interface;
 using Services.Models;
 using System;
 using System.Collections.Generic;
@@ -11,23 +13,24 @@ using System.Threading.Tasks;
 
 namespace Services
 {
-    public class CategoryService
+    public class CategoryService : ICategoryService
     {
-        private readonly CategoryRepository _categoryRepository;
+        private readonly ICategoryRepository _categoryRepository;
 
-        public CategoryService(CategoryRepository categoryRepository)
+        public CategoryService(ICategoryRepository categoryRepository)
         {
             _categoryRepository = categoryRepository;
         }
 
-        public PaginatedList<Category> GetPaginatedCategories(
+        public async Task<PaginatedList<Category>> GetPaginatedCategories(
             string searchQuery,
             string sortBy,
             bool? status,
             int pageIndex,
             int pageSize)
         {
-            var source = _categoryRepository.GetDbSet().AsNoTracking();
+            var dbSet = await _categoryRepository.GetDbSet();
+            var source = dbSet.AsNoTracking();
 
             if (!string.IsNullOrEmpty(searchQuery))
             {
@@ -46,15 +49,15 @@ namespace Services
                 _ => source
             };
 
-            var count = source.Count();
-            var items = source.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
+            var count = await source.CountAsync();
+            var items = await source.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync();
 
             return new PaginatedList<Category>(items, count, pageIndex, pageSize);
         }
 
-        public Category GetCategoryById(string id) => _categoryRepository.GetById(id);
+        public async Task<Category> GetCategoryById(string id) => await _categoryRepository.GetById(id);
 
-        public Category AddCategory(CategoryModel categoryModel)
+        public async Task<Category> AddCategory(CategoryModel categoryModel)
         {
             var category = new Category
             {
@@ -63,13 +66,13 @@ namespace Services
                 Description = categoryModel.Description,
                 Status = categoryModel.Status,
             };
-            _categoryRepository.Add(category);
+            await _categoryRepository.Add(category);
             return category;
         }
 
-        public Category UpdateCategory(CategoryModel categoryModel, string id)
+        public async Task<Category> UpdateCategory(CategoryModel categoryModel, string id)
         {
-            var category = _categoryRepository.GetById(id);
+            var category = await _categoryRepository.GetById(id);
             if (category == null)
             {
                 throw new Exception("Category not found");
@@ -77,12 +80,10 @@ namespace Services
             category.CategoryName = categoryModel.CategoryName;
             category.Description = categoryModel.Description;
             category.Status = categoryModel.Status;
-            _categoryRepository.Update(category);
+            await _categoryRepository.Update(category);
             return category;
         }
 
-        public void DeleteCategory(string id) => _categoryRepository.Delete(id);
-
-
+        public async Task DeleteCategory(string id) => await _categoryRepository.Delete(id);
     }
 }

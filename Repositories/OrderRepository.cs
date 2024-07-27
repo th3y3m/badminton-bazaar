@@ -1,14 +1,14 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Repositories
 {
-    public class OrderRepository
+    public class OrderRepository : IOrderRepository
     {
         private readonly DbContext _dbContext;
 
@@ -17,35 +17,94 @@ namespace Repositories
             _dbContext = dbContext;
         }
 
-        public void Add(Order order)
+        public async Task Add(Order order)
         {
-            _dbContext.Orders.Add(order);
-            _dbContext.SaveChanges();
+            try
+            {
+                _dbContext.Orders.Add(order);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Handle or log the exception as needed
+                throw new Exception("An error occurred while adding the order.", ex);
+            }
         }
 
-        public void Update(Order order)
+        public async Task Update(Order order)
         {
-            _dbContext.Orders.Update(order);
-            _dbContext.SaveChanges();
+            try
+            {
+                _dbContext.Orders.Update(order);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Handle or log the exception as needed
+                throw new Exception("An error occurred while updating the order.", ex);
+            }
         }
 
-        public Order GetById(string id) => _dbContext.Orders.Find(id);
-
-        public List<Order> GetAll()
+        public async Task<Order> GetById(string id)
         {
-            return _dbContext.Orders.ToList();
-        }
-        
-        public DbSet<Order> GetDbSet()
-        {
-            return _dbContext.Orders;
+            try
+            {
+                return await _dbContext.Orders.FindAsync(id);
+            }
+            catch (Exception ex)
+            {
+                // Handle or log the exception as needed
+                throw new Exception("An error occurred while retrieving the order by ID.", ex);
+            }
         }
 
-        public void Delete(string id) {
-            var order = GetById(id);
-            order.Status = "Inactive";
-            _dbContext.Orders.Update(order);
-            _dbContext.SaveChanges();
+        public async Task<List<Order>> GetAll()
+        {
+            try
+            {
+                return await _dbContext.Orders.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                // Handle or log the exception as needed
+                throw new Exception("An error occurred while retrieving all orders.", ex);
+            }
+        }
+
+        public async Task<DbSet<Order>> GetDbSet()
+        {
+            try
+            {
+                return await Task.FromResult(_dbContext.Orders);
+            }
+            catch (Exception ex)
+            {
+                // Handle or log the exception as needed
+                throw new Exception("An error occurred while retrieving the DbSet of orders.", ex);
+            }
+        }
+
+        public async Task Delete(string id)
+        {
+            try
+            {
+                var order = await GetById(id);
+                if (order != null)
+                {
+                    order.Status = "Inactive";
+                    _dbContext.Orders.Update(order);
+                    await _dbContext.SaveChangesAsync();
+                }
+                else
+                {
+                    throw new Exception("Order not found.");
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle or log the exception as needed
+                throw new Exception("An error occurred while deleting the order.", ex);
+            }
         }
     }
 }

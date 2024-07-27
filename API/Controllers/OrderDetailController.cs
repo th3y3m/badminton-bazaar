@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Services;
+using Services.Interface;
 
 namespace API.Controllers
 {
@@ -7,17 +8,17 @@ namespace API.Controllers
     [ApiController]
     public class OrderDetailController : ControllerBase
     {
-        private readonly OrderDetailService _orderDetailService;
+        private readonly IOrderDetailService _orderDetailService;
 
-        public OrderDetailController(OrderDetailService orderDetailService)
+        public OrderDetailController(IOrderDetailService orderDetailService)
         {
             _orderDetailService = orderDetailService;
         }
 
-        [HttpGet("l/{orderId}")]
-        public IActionResult GetOrderDetailByOrderId([FromQuery] string orderId)
+        [HttpGet("GetOrderDetailByOrderId/{orderId}")]
+        public async Task<IActionResult> GetOrderDetailByOrderId(string orderId)
         {
-            var orderDetail = _orderDetailService.GetOrderDetail(orderId);
+            var orderDetail = await _orderDetailService.GetOrderDetail(orderId);
             return Ok(orderDetail);
         }
     }

@@ -1,7 +1,9 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
 using Repositories;
+using Repositories.Interfaces;
 using Services.Helper;
+using Services.Interface;
 using Services.Models;
 using System;
 using System.Collections.Generic;
@@ -11,22 +13,22 @@ using System.Threading.Tasks;
 
 namespace Services
 {
-    public class PaymentService
+    public class PaymentService : IPaymentService
     {
-        private readonly PaymentRepository _paymentRepository;
-        private readonly OrderService _orderService;
-        private readonly VnpayService _vnpayService;
-        private readonly UserDetailService _userDetailService;
+        private readonly IPaymentRepository _paymentRepository;
+        private readonly IOrderService _orderService;
+        private readonly IVnpayService _vnpayService;
+        private readonly IUserDetailService _userDetailService;
 
-        public PaymentService(PaymentRepository paymentRepository, OrderService orderService, VnpayService vnpayService, UserDetailService userDetailService)
+        public PaymentService(IPaymentRepository paymentRepository, IVnpayService vnpayService, IUserDetailService userDetailService, IOrderService orderService)
         {
             _paymentRepository = paymentRepository;
-            _orderService = orderService;
             _vnpayService = vnpayService;
             _userDetailService = userDetailService;
+            _orderService = orderService;
         }
 
-        public PaginatedList<Payment> GetPaginatedPayments(
+        public async Task<PaginatedList<Payment>> GetPaginatedPayments(
             string searchQuery,
             string sortBy,
             string status,
@@ -34,7 +36,8 @@ namespace Services
             int pageIndex,
             int pageSize)
         {
-            var source = _paymentRepository.GetDbSet().AsNoTracking();
+            var dbSet = await _paymentRepository.GetDbSet();
+            var source = dbSet.AsNoTracking();
 
             if (!string.IsNullOrEmpty(searchQuery))
             {
@@ -67,18 +70,18 @@ namespace Services
             return new PaginatedList<Payment>(items, count, pageIndex, pageSize);
         }
 
-        public Payment GetPaymentById(string id) => _paymentRepository.GetById(id);
+        public async Task<Payment> GetPaymentById(string id) => await _paymentRepository.GetById(id);
 
-        public void AddPayment(Payment payment) => _paymentRepository.Add(payment);
+        public async Task AddPayment(Payment payment) => await _paymentRepository.Add(payment);
 
-        public void UpdatePayment(Payment payment) => _paymentRepository.Update(payment);
+        public async Task UpdatePayment(Payment payment) => await _paymentRepository.Update(payment);
 
-        public void DeletePayment(string id) => _paymentRepository.Delete(id);
+        public async Task DeletePayment(string id) => await _paymentRepository.Delete(id);
 
-        public async Task<string> ProcessBookingPayment(string role, string orderId)
+        public async Task<string?> ProcessBookingPayment(string role, string orderId)
         {
-            var order =  _orderService.GetOrderById(orderId);
-            var price = _orderService.TotalPrice(orderId);
+            var order = await  _orderService.GetOrderById(orderId);
+            var price = await _orderService.TotalPrice(orderId);
             if (order == null)
             {
                 return null;

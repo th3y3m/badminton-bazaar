@@ -1,7 +1,9 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
 using Repositories;
+using Repositories.Interfaces;
 using Services.Helper;
+using Services.Interface;
 using Services.Models;
 using System;
 using System.Collections.Generic;
@@ -11,16 +13,16 @@ using System.Threading.Tasks;
 
 namespace Services
 {
-    public class ProductVariantService
+    public class ProductVariantService : IProductVariantService
     {
-        private readonly ProductVariantRepository _productVariantRepository;
+        private readonly IProductVariantRepository _productVariantRepository;
 
-        public ProductVariantService(ProductVariantRepository productVariantRepository)
+        public ProductVariantService(IProductVariantRepository productVariantRepository)
         {
             _productVariantRepository = productVariantRepository;
         }
 
-        public ProductVariant Add(ProductVariantModel productVariantModel)
+        public async Task<ProductVariant> Add(ProductVariantModel productVariantModel)
         {
             var productVariant = new ProductVariant
             {
@@ -33,14 +35,14 @@ namespace Services
                 Status = productVariantModel.Status,
                 VariantImageURL = productVariantModel.ProductImageUrl != null ? productVariantModel.ProductImageUrl[0].FileName : null
             };
-            _productVariantRepository.Add(productVariant);
+            await _productVariantRepository.Add(productVariant);
             return productVariant;
         }
 
-        public void Update(ProductVariantModel productVariantModel, string id)
+        public async Task Update(ProductVariantModel productVariantModel, string id)
         {
 
-            var productVariant = GetById(id);
+            var productVariant = await GetById(id);
 
             if (productVariant == null)
             {
@@ -55,25 +57,25 @@ namespace Services
             productVariant.Status = productVariantModel.Status;
             productVariant.VariantImageURL = productVariantModel.ProductImageUrl != null ? productVariantModel.ProductImageUrl[0].FileName : null;
 
-            _productVariantRepository.Update(productVariant);
+           await _productVariantRepository.Update(productVariant);
         }
 
-        public ProductVariant GetById(string id)
+        public async Task<ProductVariant> GetById(string id)
         {
-            return _productVariantRepository.GetById(id);
+            return await _productVariantRepository.GetById(id);
         }
 
-        public List<ProductVariant> GetAll()
+        public async Task<List<ProductVariant>> GetAll()
         {
-            return _productVariantRepository.GetAll();
+            return await _productVariantRepository.GetAll();
         }
 
-        public void DeleteById(string id)
+        public async Task DeleteById(string id)
         {
-            _productVariantRepository.DeleteById(id);
+            await _productVariantRepository.Delete(id);
         }
 
-        public PaginatedList<ProductVariant> GetPaginatedProductVariants(
+        public async Task<PaginatedList<ProductVariant>> GetPaginatedProductVariants(
             //string searchQuery,
             string sortBy,
             bool? status,
@@ -83,7 +85,9 @@ namespace Services
             int pageIndex,
             int pageSize)
         {
-            var source = _productVariantRepository.GetDbSet().AsNoTracking();
+            
+            var dbSet = await _productVariantRepository.GetDbSet();
+            var source = dbSet.AsNoTracking();
 
             // Apply search filter
             //if (!string.IsNullOrEmpty(searchQuery))

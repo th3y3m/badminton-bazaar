@@ -1,7 +1,9 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
 using Repositories;
+using Repositories.Interfaces;
 using Services.Helper;
+using Services.Interface;
 using Services.Models;
 using System;
 using System.Collections.Generic;
@@ -11,22 +13,24 @@ using System.Threading.Tasks;
 
 namespace Services
 {
-    public class SizeService
+    public class SizeService : ISizeService
     {
-        private readonly SizeRepository _sizeRepository;
-        private readonly ProductVariantRepository _productVariantRepository;
+        private readonly ISizeRepository _sizeRepository;
+        private readonly IProductVariantRepository _productVariantRepository;
 
-        public SizeService(SizeRepository sizeRepository, ProductVariantRepository productVariantRepository)
+        public SizeService(ISizeRepository sizeRepository, IProductVariantRepository productVariantRepository)
         {
             _sizeRepository = sizeRepository;
             _productVariantRepository = productVariantRepository;
         }
 
-        public List<SizeModel> GetSizesOfProduct(string productId)
+        public async Task<List<SizeModel>> GetSizesOfProduct(string productId)
         {
-            var productVariants = _productVariantRepository.GetAll().Where(p => p.ProductId == productId).ToList();
+            var allProduct = await _productVariantRepository.GetAll();
+            var productVariants = allProduct.Where(p => p.ProductId == productId).ToList();
             var sizeIds = productVariants.Select(p => p.SizeId).ToList();
-            var sizes = GetAll().Where(p => sizeIds.Contains(p.SizeId)).ToList();
+            var allSizes = await GetAll();
+            var sizes = allSizes.Where(p => sizeIds.Contains(p.SizeId)).ToList();
             var sizeModels = new List<SizeModel>();
             foreach (var size in sizes)
             {
@@ -40,46 +44,45 @@ namespace Services
             return sizeModels;
         }
 
-
-
-        public Size Add(string sizeName)
+        public async Task<Size> Add(string sizeName)
         {
             var size = new Size
             {
                 SizeId = "SZ" + GenerateId.GenerateRandomId(5),
                 SizeName = sizeName
             };
-            _sizeRepository.Add(size);
+            await _sizeRepository.Add(size);
             return size;
         }
 
-        public void Update(Size size)
+        public async Task Update(Size size)
         {
-            _sizeRepository.Update(size);
+            await _sizeRepository.Update(size);
         }
 
-        public Size GetById(string id)
+        public async Task<Size> GetById(string id)
         {
-            return _sizeRepository.GetById(id);
+            return await _sizeRepository.GetById(id);
         }
 
-        public List<Size> GetAll()
+        public async Task<List<Size>> GetAll()
         {
-            return _sizeRepository.GetAll();
+            return await _sizeRepository.GetAll();
         }
 
-        public void Delete(string id)
+        public async Task Delete(string id)
         {
-            _sizeRepository.Delete(id);
+            await _sizeRepository.Delete(id);
         }
 
-        public PaginatedList<Size> GetPaginatedSizes(
+        public async Task<PaginatedList<Size>> GetPaginatedSizes(
             string searchQuery,
             string sortBy,
             int pageIndex,
             int pageSize)
         {
-            var source = _sizeRepository.GetDbSet().AsNoTracking();
+            var dbSet = await _sizeRepository.GetDbSet();
+            var source = dbSet.AsNoTracking();
 
             if (!string.IsNullOrEmpty(searchQuery))
             {

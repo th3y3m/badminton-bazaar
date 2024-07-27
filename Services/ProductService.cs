@@ -1,7 +1,9 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
 using Repositories;
+using Repositories.Interfaces;
 using Services.Helper;
+using Services.Interface;
 using Services.Models;
 using System;
 using System.Collections.Generic;
@@ -11,20 +13,20 @@ using System.Threading.Tasks;
 
 namespace Services
 {
-    public class ProductService
+    public class ProductService : IProductService
     {
-        private readonly ProductRepository _productRepository;
-        private readonly ProductVariantRepository _productVariantRepository;
-        private readonly OrderDetailRepository _orderDetailRepository;
+        private readonly IProductRepository _productRepository;
+        private readonly IProductVariantRepository _productVariantRepository;
+        private readonly IOrderDetailRepository _orderDetailRepository;
 
-        public ProductService(ProductRepository productRepository, ProductVariantRepository productVariantRepository, OrderDetailRepository orderDetailRepository)
+        public ProductService(IProductRepository productRepository, IProductVariantRepository productVariantRepository, IOrderDetailRepository orderDetailRepository)
         {
             _productRepository = productRepository;
             _productVariantRepository = productVariantRepository;
             _orderDetailRepository = orderDetailRepository;
         }
 
-        public PaginatedList<Product> GetPaginatedProducts(
+        public async Task<PaginatedList<Product>> GetPaginatedProducts(
             string searchQuery,
             decimal? start,
             decimal? end,
@@ -35,8 +37,9 @@ namespace Services
             int pageIndex,
             int pageSize)
         {
-            var source = _productRepository.GetDbSet().AsNoTracking();
 
+            var dbSet = await _productRepository.GetDbSet();
+            var source = dbSet.AsNoTracking();
             // Apply search filter
             if (!string.IsNullOrEmpty(searchQuery))
             {
@@ -85,7 +88,7 @@ namespace Services
             return new PaginatedList<Product>(items, count, pageIndex, pageSize);
         }
 
-        public Product AddProduct(ProductModel productModel)
+        public async Task<Product> AddProduct(ProductModel productModel)
         {
             var product = new Product
             {
@@ -98,13 +101,13 @@ namespace Services
                 ImageUrl = productModel.ImageUrl,
                 Status = productModel.Status
             };
-            _productRepository.Add(product);
+            await _productRepository.Add(product);
             return product;
         }
 
-        public Product UpdateProduct(ProductModel productModel, string productId)
+        public async Task<Product> UpdateProduct(ProductModel productModel, string productId)
         {
-            var product = GetProductById(productId);
+            var product = await GetProductById(productId);
 
             product.ProductName = productModel.ProductName;
             product.CategoryId = productModel.CategoryId;
@@ -114,13 +117,13 @@ namespace Services
             product.ImageUrl = productModel.ImageUrl;
             product.Status = productModel.Status;
 
-            _productRepository.Update(product);
+            await _productRepository.Update(product);
             return product;
         }
 
-        public void DeleteProduct(string productId) => _productRepository.Delete(productId);
+        public async Task DeleteProduct(string productId) => await _productRepository.Delete(productId);
 
-        public Product GetProductById(string productId) => _productRepository.GetById(productId);
+        public async Task<Product> GetProductById(string productId) => await _productRepository.GetById(productId);
         //public int GetSelledProduct(string productId)
         //{
         //    int total = 0;
@@ -143,18 +146,18 @@ namespace Services
         //    return products.GetRange(0, n);
         //}
 
-        public int GetSelledProduct(string productId)
+        public async Task<int> GetSelledProduct(string productId)
         {
-            return _orderDetailRepository.GetAll()
-                                         .Where(od => _productVariantRepository.GetAll()
-                                                                               .Any(pv => pv.ProductId == productId && pv.ProductVariantId == od.ProductVariantId))
-                                         .Sum(od => od.Quantity);
+            List<OrderDetail> orderDetails = await _orderDetailRepository.GetAll();
+            List<ProductVariant> products = await _productVariantRepository.GetAll();
+            return orderDetails.Where(od => products.Any(pv => pv.ProductId == productId && pv.ProductVariantId == od.ProductVariantId))
+                                        .Sum(od => od.Quantity);
         }
 
-        public List<Product> GetTopSeller(int n)
+        public async Task<List<Product>> GetTopSeller(int n)
         {
-            var productSales = _productRepository.GetAll()
-                                                 .Select(p => new
+            var product = await _productRepository.GetAll();
+            var productSales = product.Select(p => new
                                                  {
                                                      Product = p,
                                                      TotalSales = GetSelledProduct(p.ProductId)
@@ -166,9 +169,10 @@ namespace Services
             return productSales;
         }
 
-        public int ProductRemaining(string productId)
+        public async Task<int> ProductRemaining(string productId)
         {
-            var productVariants = _productVariantRepository.GetAll().Where(p => p.ProductId == productId).ToList();
+            var allProduct = await _productVariantRepository.GetAll();
+            var productVariants = allProduct.Where(p => p.ProductId == productId).ToList();
             int total = 0;
             foreach (var productVariant in productVariants)
             {
@@ -177,10 +181,10 @@ namespace Services
             return total;
         }
 
-        public Product GetProductByProductVariantId(string productVariantId)
+        public async Task<Product> GetProductByProductVariantId(string productVariantId)
         {
-            var productVariant = _productVariantRepository.GetById(productVariantId);
-            return _productRepository.GetById(productVariant.ProductId);
+            var productVariant = await _productVariantRepository.GetById(productVariantId);
+            return await _productRepository.GetById(productVariant.ProductId);
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Services;
+using Services.Interface;
 using Services.Models;
 
 namespace API.Controllers
@@ -8,15 +9,15 @@ namespace API.Controllers
     [ApiController]
     public class ReviewController : ControllerBase
     {
-        private readonly ReviewService _reviewService;
+        private readonly IReviewService _reviewService;
 
-        public ReviewController(ReviewService reviewService)
+        public ReviewController(IReviewService reviewService)
         {
             _reviewService = reviewService;
         }
 
         [HttpGet]
-        public ActionResult GetPaginatedReviews(
+        public async Task<IActionResult> GetPaginatedReviews(
             [FromQuery] string? userId,
             [FromQuery] string? productId,
             [FromQuery] int? rating,
@@ -25,35 +26,35 @@ namespace API.Controllers
             [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 10)
         {
-            var paginatedReviews = _reviewService.GetPaginatedReviews(searchQuery, sortBy, userId, productId, rating, pageIndex, pageSize);
+            var paginatedReviews = await _reviewService.GetPaginatedReviews(searchQuery, sortBy, userId, productId, rating, pageIndex, pageSize);
             return Ok(paginatedReviews);
         }
 
         [HttpGet("{id}")]
-        public ActionResult GetReviewById(string id)
+        public async Task<IActionResult> GetReviewById(string id)
         {
-            var review = _reviewService.GetReviewById(id);
+            var review = await _reviewService.GetReviewById(id);
             return Ok(review);
         }
 
         [HttpPost]
-        public ActionResult AddReview([FromBody] ReviewModel reviewModel)
+        public async Task<IActionResult> AddReview([FromBody] ReviewModel reviewModel)
         {
-            var review = _reviewService.AddReview(reviewModel);
+            var review = await _reviewService.AddReview(reviewModel);
             return Ok(review);
         }
 
         [HttpPut]
-        public ActionResult UpdateReview([FromBody] ReviewModel reviewModel, [FromQuery] string id)
+        public async Task<IActionResult> UpdateReview([FromBody] ReviewModel reviewModel, [FromQuery] string id)
         {
-            var review = _reviewService.UpdateReview(reviewModel, id);
+            var review = await _reviewService.UpdateReview(reviewModel, id);
             return Ok(review);
         }
 
         [HttpDelete("{id}")]
-        public ActionResult DeleteReviewById(string id)
+        public async Task<IActionResult> DeleteReviewById(string id)
         {
-            _reviewService.DeleteReview(id);
+            await _reviewService.DeleteReview(id);
             return Ok();
         }
     }

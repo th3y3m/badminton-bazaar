@@ -2,7 +2,9 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Repositories;
+using Repositories.Interfaces;
 using Services.Helper;
+using Services.Interface;
 using Services.Models;
 using System;
 using System.Collections.Generic;
@@ -12,23 +14,24 @@ using System.Threading.Tasks;
 
 namespace Services
 {
-    public class SupplierService
+    public class SupplierService : ISupplierService
     {
-        private readonly SupplierRepository _supplierRepository;
+        private readonly ISupplierRepository _supplierRepository;
 
-        public SupplierService(SupplierRepository supplierRepository)
+        public SupplierService(ISupplierRepository supplierRepository)
         {
             _supplierRepository = supplierRepository;
         }
 
-        public PaginatedList<Supplier> GetPaginatedSuppliers(
+        public async Task<PaginatedList<Supplier>> GetPaginatedSuppliers(
             string searchQuery,
             string sortBy,
             bool? status,
             int pageIndex,
             int pageSize)
         {
-            var source = _supplierRepository.GetDbSet().AsNoTracking();
+            var dbSet = await _supplierRepository.GetDbSet();
+            var source = dbSet.AsNoTracking();
 
             // Apply search filter
             if (!string.IsNullOrEmpty(searchQuery))
@@ -57,9 +60,9 @@ namespace Services
             return new PaginatedList<Supplier>(items, count, pageIndex, pageSize);
         }
 
-        public Supplier GetSupplierById(string id) => _supplierRepository.GetById(id);
+        public async Task<Supplier> GetSupplierById(string id) => await _supplierRepository.GetById(id);
 
-        public Supplier AddSupplier(SupplierModel supplierModel)
+        public async Task<Supplier> AddSupplier(SupplierModel supplierModel)
         {
             var supplier = new Supplier
             {
@@ -68,13 +71,13 @@ namespace Services
                 Address = supplierModel.Address,
                 Status = supplierModel.Status
             };
-            _supplierRepository.Add(supplier);
+            await _supplierRepository.Add(supplier);
             return supplier;
         }
 
-        public Supplier UpdateSupplier(SupplierModel supplierModel, string id)
+        public async Task<Supplier?> UpdateSupplier(SupplierModel supplierModel, string id)
         {
-            var supplier = _supplierRepository.GetById(id);
+            var supplier = await _supplierRepository.GetById(id);
 
             if (supplier == null)
             {
@@ -83,13 +86,13 @@ namespace Services
             supplier.CompanyName = supplierModel.CompanyName;
             supplier.Address = supplierModel.Address;
             supplier.Status = supplierModel.Status;
-            _supplierRepository.Update(supplier);
+            await _supplierRepository.Update(supplier);
             return supplier;
         }
 
-        public void DeleteSupplier(string id)
+        public async Task DeleteSupplier(string id)
         {
-            _supplierRepository.Delete(id);
+            await _supplierRepository.Delete(id);
         }
     }
 }

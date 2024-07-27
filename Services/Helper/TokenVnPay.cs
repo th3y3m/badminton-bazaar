@@ -12,8 +12,7 @@ namespace Services.Helper
 {
     public class TokenForPayment
     {
-
-        public string GenerateToken(string bookingId)
+        public static string GenerateToken(string bookingId)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes("JFY6rIq/uHpNoAUQ9VSvBExfnqXosicZZIyWALbcaxs=");
@@ -30,7 +29,7 @@ namespace Services.Helper
             return tokenHandler.WriteToken(token);
         }
 
-        public string ValidateToken(string token)
+        public static string ValidateToken(string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes("JFY6rIq/uHpNoAUQ9VSvBExfnqXosicZZIyWALbcaxs=");

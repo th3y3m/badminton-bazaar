@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Repositories;
+using Repositories.Interfaces;
 using Services;
 using Services.Helper;
 using Services.Interface;
@@ -99,36 +100,36 @@ namespace API
             });
 
             // Dependency Injection for Repositories and Services
-            builder.Services.AddScoped<ProductRepository>();
-            builder.Services.AddScoped<CategoryRepository>();
-            builder.Services.AddScoped<ColorRepository>();
-            builder.Services.AddScoped<NewsRepository>();
-            builder.Services.AddScoped<OrderRepository>();
-            builder.Services.AddScoped<OrderDetailRepository>();
-            builder.Services.AddScoped<PaymentRepository>();
-            builder.Services.AddScoped<ProductVariantRepository>();
-            builder.Services.AddScoped<ReviewRepository>();
-            builder.Services.AddScoped<SizeRepository>();
-            builder.Services.AddScoped<SupplierRepository>();
-            builder.Services.AddScoped<UserDetailRepository>();
-            builder.Services.AddScoped<UserRepository>();
+            builder.Services.AddScoped<IProductRepository, ProductRepository>();
+            builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+            builder.Services.AddScoped<IColorRepository, ColorRepository>();
+            builder.Services.AddScoped<INewsRepository, NewsRepository>();
+            builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+            builder.Services.AddScoped<IOrderDetailRepository, OrderDetailRepository>();
+            builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+            builder.Services.AddScoped<IProductVariantRepository, ProductVariantRepository>();
+            builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+            builder.Services.AddScoped<ISizeRepository, SizeRepository>();
+            builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
+            builder.Services.AddScoped<IUserDetailRepository, UserDetailRepository>();
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
 
-            builder.Services.AddScoped<ProductService>();
-            builder.Services.AddScoped<CategoryService>();
-            builder.Services.AddScoped<ColorService>();
-            builder.Services.AddScoped<NewsService>();
-            builder.Services.AddScoped<OrderService>();
-            builder.Services.AddScoped<OrderDetailService>();
-            builder.Services.AddScoped<PaymentService>();
-            builder.Services.AddScoped<ProductVariantService>();
-            builder.Services.AddScoped<ReviewService>();
-            builder.Services.AddScoped<SizeService>();
-            builder.Services.AddScoped<SupplierService>();
-            builder.Services.AddScoped<UserDetailService>();
-            builder.Services.AddScoped<UserService>();
-            builder.Services.AddScoped<CartService>();
+            builder.Services.AddScoped<IProductService, ProductService>();
+            builder.Services.AddScoped<ICategoryService, CategoryService>();
+            builder.Services.AddScoped<IColorService, ColorService>();
+            builder.Services.AddScoped<INewsService, NewsService>();
+            builder.Services.AddScoped<IOrderService, OrderService>();
+            builder.Services.AddScoped<IOrderDetailService, OrderDetailService>();
+            builder.Services.AddScoped<IPaymentService, PaymentService>();
+            builder.Services.AddScoped<IProductVariantService, ProductVariantService>();
+            builder.Services.AddScoped<IReviewService, ReviewService>();
+            builder.Services.AddScoped<ISizeService, SizeService>();
+            builder.Services.AddScoped<ISupplierService, SupplierService>();
+            builder.Services.AddScoped<IUserDetailService, UserDetailService>();
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<ICartService, CartService>();
 
-            builder.Services.AddScoped<VnpayService>();
+            builder.Services.AddScoped<IVnpayService, VnpayService>();
 
             // Mail Settings Configuration
             builder.Services.Configure<MailSettings>(configuration.GetSection("MailSettings"));

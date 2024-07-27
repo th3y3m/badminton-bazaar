@@ -1,7 +1,9 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
 using Repositories;
+using Repositories.Interfaces;
 using Services.Helper;
+using Services.Interface;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,16 +12,16 @@ using System.Threading.Tasks;
 
 namespace Services
 {
-    public class OrderDetailService
+    public class OrderDetailService : IOrderDetailService
     {
-        private readonly OrderDetailRepository _orderDetailRepository;
+        private readonly IOrderDetailRepository _orderDetailRepository;
 
-        public OrderDetailService(OrderDetailRepository orderDetailRepository)
+        public OrderDetailService(IOrderDetailRepository orderDetailRepository)
         {
             _orderDetailRepository = orderDetailRepository;
         }
 
-        public PaginatedList<OrderDetail> GetPaginatedOrderDetails(
+        public async Task<PaginatedList<OrderDetail>> GetPaginatedOrderDetails(
             string productVariantId,
             string orderId,
             string sortBy,
@@ -27,7 +29,8 @@ namespace Services
             int pageIndex,
             int pageSize)
         {
-            var source = _orderDetailRepository.GetDbSet().AsNoTracking();
+            var dbSet = await _orderDetailRepository.GetDbSet();
+            var source = dbSet.AsNoTracking();
 
             if (!string.IsNullOrEmpty(productVariantId))
             {
@@ -51,9 +54,14 @@ namespace Services
             return new PaginatedList<OrderDetail>(items, count, pageIndex, pageSize);
         }
 
-        public List<OrderDetail> GetOrderDetail(string orderId)
+        public async Task<List<OrderDetail>> GetOrderDetail(string orderId)
         {
-            return _orderDetailRepository.GetAll().Where(p => p.OrderId == orderId).ToList();
+            var dbSet = await _orderDetailRepository.GetDbSet();
+            var source = dbSet.AsNoTracking();
+
+            source = source.Where(p => p.OrderId == orderId);
+
+            return await source.ToListAsync();
         }
     }
 }

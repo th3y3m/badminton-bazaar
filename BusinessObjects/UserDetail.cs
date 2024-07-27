@@ -16,7 +16,7 @@ namespace BusinessObjects
         public decimal? Point { get; set; }
 
         [StringLength(50)]
-        public string? FullName { get; set; }
+        public string FullName { get; set; }
 
         [StringLength(500)]
         public string? Address { get; set; }

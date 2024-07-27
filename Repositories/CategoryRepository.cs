@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Repositories
 {
-    public class CategoryRepository
+    public class CategoryRepository : ICategoryRepository
     {
         private readonly DbContext _dbContext;
 
@@ -17,34 +18,34 @@ namespace Repositories
             _dbContext = dbContext;
         }
 
-        public void Add(Category category)
+        public async Task Add(Category category)
         {
             _dbContext.Categories.Add(category);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Update(Category category)
+        public async Task Update(Category category)
         {
             _dbContext.Categories.Update(category);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public Category GetById(string id) => _dbContext.Categories.Find(id);
+        public async Task<Category> GetById(string id) => await _dbContext.Categories.FindAsync(id);
 
-        public List<Category> GetAll()
+        public async Task<List<Category>> GetAll()
         {
-            return _dbContext.Categories.ToList();
+            return await _dbContext.Categories.ToListAsync();
         }
-        public DbSet<Category> GetDbSet()
+        public async Task<DbSet<Category>> GetDbSet()
         {
-            return _dbContext.Categories;
+            return await Task.FromResult(_dbContext.Categories);
         }
-
-        public void Delete(string id) {
-            var category = GetById(id);
+        public async Task Delete(string id)
+        {
+            var category = await GetById(id);
             category.Status = false;
             _dbContext.Categories.Update(category);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
     }
 }

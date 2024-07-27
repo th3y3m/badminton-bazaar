@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Repositories
 {
-    public class NewsRepository
+    public class NewsRepository : INewsRepository
     {
         private readonly DbContext _dbContext;
 
@@ -17,34 +18,35 @@ namespace Repositories
             _dbContext = dbContext;
         }
 
-        public void Add(News news)
+        public async Task Add(News news)
         {
             _dbContext.News.Add(news);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Update(News news)
+        public async Task Update(News news)
         {
             _dbContext.News.Update(news);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public News GetById(string id) => _dbContext.News.Find(id);
+        public async Task<News> GetById(string id) => await _dbContext.News.FindAsync(id);
 
-        public List<News> GetAll()
+        public async Task<List<News>> GetAll()
         {
-            return _dbContext.News.ToList();
+            return await _dbContext.News.ToListAsync();
         }
-        public DbSet<News> GetDbSet()
+        public async Task<DbSet<News>> GetDbSet()
         {
-            return _dbContext.News;
+            return await Task.FromResult(_dbContext.News);
         }
 
-        public void Delete(string id) {
-            var news = GetById(id);
+        public async Task Delete(string id)
+        {
+            var news = await GetById(id);
             news.Status = false;
             _dbContext.News.Update(news);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
     }
 }

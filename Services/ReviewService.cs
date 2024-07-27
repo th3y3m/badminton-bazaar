@@ -1,7 +1,9 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
 using Repositories;
+using Repositories.Interfaces;
 using Services.Helper;
+using Services.Interface;
 using Services.Models;
 using System;
 using System.Collections.Generic;
@@ -11,16 +13,16 @@ using System.Threading.Tasks;
 
 namespace Services
 {
-    public class ReviewService
+    public class ReviewService : IReviewService
     {
-        private readonly ReviewRepository _reviewRepository;
+        private readonly IReviewRepository _reviewRepository;
 
-        public ReviewService(ReviewRepository reviewRepository)
+        public ReviewService(IReviewRepository reviewRepository)
         {
             _reviewRepository = reviewRepository;
         }
 
-        public PaginatedList<Review> GetPaginatedReviews(
+        public async Task<PaginatedList<Review>> GetPaginatedReviews(
             string searchQuery,
             string sortBy,
             string userId,
@@ -29,7 +31,8 @@ namespace Services
             int pageIndex,
             int pageSize)
         {
-            var source = _reviewRepository.GetDbSet().AsNoTracking();
+            var dbSet = await _reviewRepository.GetDbSet();
+            var source = dbSet.AsNoTracking();
 
             if (!string.IsNullOrEmpty(searchQuery))
             {
@@ -68,12 +71,12 @@ namespace Services
             return new PaginatedList<Review>(items, count, pageIndex, pageSize);
         }
 
-        public Review GetReviewById(string id)
+        public async Task<Review> GetReviewById(string id)
         {
-            return _reviewRepository.GetById(id);
+            return await _reviewRepository.GetById(id);
         }
 
-        public Review AddReview(ReviewModel reviewModel)
+        public async Task<Review> AddReview(ReviewModel reviewModel)
         {
             
             var review = new Review
@@ -86,14 +89,14 @@ namespace Services
                 ReviewDate = DateTime.Now
             };
 
-            _reviewRepository.Add(review);
+            await _reviewRepository.Add(review);
 
             return review;
         }
 
-        public Review UpdateReview(ReviewModel reviewModel, string reviewId)
+        public async Task<Review?> UpdateReview(ReviewModel reviewModel, string reviewId)
         {
-            var review = GetReviewById(reviewId);
+            var review = await GetReviewById(reviewId);
 
             if (review == null)
             {
@@ -106,14 +109,14 @@ namespace Services
             review.ReviewText = reviewModel.ReviewText;
             review.ReviewDate = DateTime.Now;
 
-            _reviewRepository.Update(review);
+            await _reviewRepository.Update(review);
 
             return review;
         }
 
-        public void DeleteReview(string id)
+        public async Task DeleteReview(string id)
         {
-            _reviewRepository.Delete(id);
+            await _reviewRepository.Delete(id);
         }
 
     }

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Services;
 using Services.Helper;
+using Services.Interface;
 
 namespace API.Controllers
 {
@@ -9,17 +10,15 @@ namespace API.Controllers
     [ApiController]
     public class PaymentController : ControllerBase
     {
-        private readonly PaymentService _paymentService;
-        private readonly TokenForPayment _tokenForPayment;
+        private readonly IPaymentService _paymentService;
 
-        public PaymentController(PaymentService paymentService, TokenForPayment tokenForPayment)
+        public PaymentController(IPaymentService paymentService)
         {
             _paymentService = paymentService;
-            _tokenForPayment = tokenForPayment;
         }
 
         [HttpGet]
-        public ActionResult GetPaginatedSizePayments(
+        public async Task<IActionResult> GetPaginatedSizePayments(
             [FromQuery] string? searchQuery = "",
             [FromQuery] string? sortBy = "size_asc",
             [FromQuery] string? status = "",
@@ -27,47 +26,47 @@ namespace API.Controllers
             [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 10)
         {
-            var paginatedPayments = _paymentService.GetPaginatedPayments(searchQuery, sortBy, status, orderId, pageIndex, pageSize);
+            var paginatedPayments = await _paymentService.GetPaginatedPayments(searchQuery, sortBy, status, orderId, pageIndex, pageSize);
             return Ok(paginatedPayments);
         }
 
         [HttpGet("{id}")]
-        public ActionResult GetPaymentById(string id)
+        public async Task<IActionResult> GetPaymentById(string id)
         {
-            var payment = _paymentService.GetPaymentById(id);
+            var payment = await _paymentService.GetPaymentById(id);
             return Ok(payment);
         }
 
         [HttpPost]
-        public ActionResult AddPayment(Payment payment)
+        public async Task<IActionResult> AddPayment(Payment payment)
         {
-            _paymentService.AddPayment(payment);
+            await _paymentService.AddPayment(payment);
             return Ok(payment);
         }
 
         [HttpPut]
-        public ActionResult UpdatePayment(Payment payment)
+        public async Task<IActionResult> UpdatePayment(Payment payment)
         {
-            _paymentService.UpdatePayment(payment);
+            await _paymentService.UpdatePayment(payment);
             return Ok(payment);
         }
 
         [HttpDelete("{id}")]
-        public ActionResult DeletePaymentById(string id)
+        public async Task<IActionResult> DeletePaymentById(string id)
         {
-            _paymentService.DeletePayment(id);
+            await _paymentService.DeletePayment(id);
             return Ok();
         }
 
         [HttpGet("GeneratePaymentToken/{bookingId}")]
-        public IActionResult GeneratePaymentToken(string bookingId)
+        public async Task<IActionResult> GeneratePaymentToken(string bookingId)
         {
-            var token = _tokenForPayment.GenerateToken(bookingId);
+            var token = TokenForPayment.GenerateToken(bookingId);
             return Ok(new { token });
         }
 
         [HttpPost("ProcessPayment")]
-        public async Task<ActionResult> ProcessPayment(string role, string token)
+        public async Task<IActionResult> ProcessPayment(string role, string token)
         {
             //if (bookingId == null)
             //{
@@ -77,7 +76,7 @@ namespace API.Controllers
             //        Message = "Booking information is required."
             //    });
             //}
-            var bookingId = _tokenForPayment.ValidateToken(token);
+            var bookingId = TokenForPayment.ValidateToken(token);
             var response = await _paymentService.ProcessBookingPayment(role, bookingId);
             return Ok(response);
         }

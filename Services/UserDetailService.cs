@@ -2,7 +2,9 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Repositories;
+using Repositories.Interfaces;
 using Services.Helper;
+using Services.Interface;
 using Services.Models;
 using System;
 using System.Collections.Generic;
@@ -12,22 +14,23 @@ using System.Threading.Tasks;
 
 namespace Services
 {
-    public class UserDetailService
+    public class UserDetailService : IUserDetailService
     {
-        private readonly UserDetailRepository _userDetailRepository;
+        private readonly IUserDetailRepository _userDetailRepository;
 
-        public UserDetailService(UserDetailRepository userDetailRepository)
+        public UserDetailService(IUserDetailRepository userDetailRepository)
         {
             _userDetailRepository = userDetailRepository;
         }
 
-        public PaginatedList<UserDetail> GetPaginatedUsers(
+        public async Task<PaginatedList<UserDetail>> GetPaginatedUsers(
             string searchQuery,
             string sortBy,
             int pageIndex,
             int pageSize)
         {
-            var source = _userDetailRepository.GetDbSet().AsNoTracking();
+            var dbSet = await _userDetailRepository.GetDbSet();
+            var source = dbSet.AsNoTracking();
 
             // Apply search filter
             if (!string.IsNullOrEmpty(searchQuery))
@@ -50,14 +53,14 @@ namespace Services
             return new PaginatedList<UserDetail>(items, count, pageIndex, pageSize);
         }
 
-        public UserDetail GetUserById(string id) => _userDetailRepository.GetById(id);
+        public async Task<UserDetail> GetUserById(string id) => await _userDetailRepository.GetById(id);
 
-        public void AddUserDetail(UserDetail userDetail) => _userDetailRepository.Add(userDetail);
+        public async Task AddUserDetail(UserDetail userDetail) => await _userDetailRepository.Add(userDetail);
 
-        public void UpdateUserDetail(UserDetailModel userDetail, string id) 
+        public async Task UpdateUserDetail(UserDetailModel userDetail, string id) 
         {
             
-            var user = _userDetailRepository.GetById(id);
+            var user = await _userDetailRepository.GetById(id);
 
             if (user == null)
             {
@@ -67,7 +70,7 @@ namespace Services
             user.FullName = userDetail.FullName;
             user.Address = userDetail.Address;
             user.ProfilePicture = userDetail.ProfilePicture;
-            _userDetailRepository.Update(user);
+            await _userDetailRepository.Update(user);
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Repositories
 {
-    public class OrderDetailRepository
+    public class OrderDetailRepository : IOrderDetailRepository
     {
         private readonly DbContext _dbContext;
 
@@ -17,33 +18,37 @@ namespace Repositories
             _dbContext = dbContext;
         }
 
-        public void Add(OrderDetail orderDetail)
+        public async Task Add(OrderDetail orderDetail)
         {
             _dbContext.OrderDetails.Add(orderDetail);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Update(OrderDetail orderDetail)
+        public async Task Update(OrderDetail orderDetail)
         {
             _dbContext.OrderDetails.Update(orderDetail);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public OrderDetail GetById(string id) => _dbContext.OrderDetails.Find(id);
-        public OrderDetail GetByOrderId(string id) => _dbContext.OrderDetails.FirstOrDefault(x => x.OrderId == id);
-        public OrderDetail GetByProductId(string id) => _dbContext.OrderDetails.FirstOrDefault(x => x.ProductVariantId == id);
+        public async Task<OrderDetail> GetById(string id) => await _dbContext.OrderDetails.FindAsync(id);
 
-        public List<OrderDetail> GetAll()
+        public async Task <OrderDetail> GetByOrderId(string id) => 
+            await Task.FromResult(_dbContext.OrderDetails.FirstOrDefault(x => x.OrderId == id));
+
+        public async Task<OrderDetail> GetByProductId(string id) =>
+            await Task.FromResult(_dbContext.OrderDetails.FirstOrDefault(x => x.ProductVariantId == id));
+
+        public async Task<List<OrderDetail>> GetAll()
         {
-            return _dbContext.OrderDetails.ToList();
+            return await _dbContext.OrderDetails.ToListAsync();
         }
-        public DbSet<OrderDetail> GetDbSet()
+        public async Task<DbSet<OrderDetail>> GetDbSet()
         {
-            return _dbContext.OrderDetails;
+            return await Task.FromResult(_dbContext.OrderDetails);
         }
 
-        public void Delete(string id) {
-            var orderDetail = GetById(id);
+        public async Task Delete(string id) {
+            var orderDetail = await GetById(id);
             _dbContext.OrderDetails.Remove(orderDetail);
             _dbContext.SaveChanges();
         }

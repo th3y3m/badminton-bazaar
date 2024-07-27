@@ -1,7 +1,9 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
 using Repositories;
+using Repositories.Interfaces;
 using Services.Helper;
+using Services.Interface;
 using Services.Models;
 using System;
 using System.Collections.Generic;
@@ -11,23 +13,24 @@ using System.Threading.Tasks;
 
 namespace Services
 {
-    public class OrderService
+    public class OrderService : IOrderService
     {
-        private readonly OrderRepository _orderRepository;
-        private readonly OrderDetailRepository _orderDetailRepository;
-        private readonly CartService _cartService;
-        private readonly UserDetailService _userDetailService;
+        private readonly IOrderRepository _orderRepository;
+        private readonly IOrderDetailRepository _orderDetailRepository;
+        private readonly ICartService _cartService;
+        private readonly IUserDetailService _userDetailService;
 
-        public OrderService(OrderRepository orderRepository, OrderDetailRepository orderDetailRepository, CartService cartService)
+        public OrderService(IOrderRepository orderRepository, IOrderDetailRepository orderDetailRepository, ICartService cartService)
         {
             _orderRepository = orderRepository;
             _orderDetailRepository = orderDetailRepository;
             _cartService = cartService;
         }
 
-        public decimal TotalPrice(string orderId)
+        public async Task<decimal> TotalPrice(string orderId)
         {
-            var orderDetails = _orderDetailRepository.GetAll().Where(p => p.OrderId == orderId).ToList();
+            var getAll = await _orderDetailRepository.GetAll();
+            var orderDetails = getAll.Where(p => p.OrderId == orderId).ToList();
             decimal totalPrice = 0;
 
             foreach (var orderDetail in orderDetails)
@@ -38,7 +41,7 @@ namespace Services
             return totalPrice;
         }
 
-        public PaginatedList<Order> GetPaginatedOrders(
+        public async Task<PaginatedList<Order>> GetPaginatedOrders(
             DateOnly? start,
             DateOnly? end,
             string sortBy,
@@ -46,7 +49,8 @@ namespace Services
             int pageIndex,
             int pageSize)
         {
-            var source = _orderRepository.GetDbSet().AsNoTracking();
+            var dbSet = await _orderRepository.GetDbSet();
+            var source = dbSet.AsNoTracking();
 
             // Apply search filter
 
@@ -81,15 +85,15 @@ namespace Services
             return new PaginatedList<Order>(items, count, pageIndex, pageSize);
         }
 
-        public Order GetOrderById(string id)
+        public async Task<Order> GetOrderById(string id)
         {
-            return _orderRepository.GetById(id);
+            return await _orderRepository.GetById(id);
         }
 
-        public Order AddOrder(string userId)
+        public async Task<Order?> AddOrder(string userId)
         {
             List<CartItem> itemsInCart = _cartService.GetCart(userId);
-            UserDetail userDetail = _userDetailService.GetUserById(userId);
+            UserDetail userDetail = await _userDetailService.GetUserById(userId);
 
             if (itemsInCart == null || userDetail.Address == null)
             {
@@ -107,7 +111,7 @@ namespace Services
                 Freight = 0,
                 ShipAddress = userDetail.Address
             };
-            _orderRepository.Add(order);
+            await _orderRepository.Add(order);
 
             foreach (var item in itemsInCart)
             {
@@ -120,21 +124,19 @@ namespace Services
                     UnitPrice = item.UnitPrice
                 };
                 totalPrice += orderDetail.TotalPrice();
-                _orderDetailRepository.Add(orderDetail);
+                await _orderDetailRepository.Add(orderDetail);
             }
             return order;
         }
 
-        public void CancelOrder(string orderId)
+        public async Task CancelOrder(string orderId)
         {
-            Order order = _orderRepository.GetById(orderId);
+            Order order = await _orderRepository.GetById(orderId);
             if (order != null)
             {
                 order.Status = "Cancelled";
-                _orderRepository.Update(order);
+                await _orderRepository.Update(order);
             }
         }
-
-
     }
 }

@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Repositories
 {
-    public class PaymentRepository
+    public class PaymentRepository : IPaymentRepository
     {
         private readonly DbContext _dbContext;
 
@@ -17,34 +18,35 @@ namespace Repositories
             _dbContext = dbContext;
         }
 
-        public void Add(Payment payment)
+        public async Task Add(Payment payment)
         {
             _dbContext.Payments.Add(payment);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Update(Payment payment)
+        public async Task Update(Payment payment)
         {
             _dbContext.Payments.Update(payment);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public Payment GetById(string id) => _dbContext.Payments.Find(id);
+        public async Task<Payment> GetById(string id) => await _dbContext.Payments.FindAsync(id);
 
-        public List<Payment> GetAll()
+        public async Task<List<Payment>> GetAll()
         {
-            return _dbContext.Payments.ToList();
+            return await _dbContext.Payments.ToListAsync();
         }
-        public DbSet<Payment> GetDbSet()
+        public async Task<DbSet<Payment>> GetDbSet()
         {
-            return _dbContext.Payments;
+            return await Task.FromResult(_dbContext.Payments);
         }
 
-        public void Delete(string id) {
-            var payment = GetById(id);
+        public async Task Delete(string id)
+        {
+            var payment = await GetById(id);
             payment.PaymentStatus = "Cancelled";
             _dbContext.Payments.Update(payment);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
     }
 }

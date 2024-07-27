@@ -2,27 +2,30 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Repositories;
+using Repositories.Interfaces;
 using Services.Helper;
+using Services.Interface;
 
 namespace Services
 {
-    public class UserService
+    public class UserService : IUserService
     {
-        private readonly UserRepository _userRepository;
+        private readonly IUserRepository _userRepository;
 
-        public UserService(UserRepository userRepository)
+        public UserService(IUserRepository userRepository)
         {
             _userRepository = userRepository;
         }
 
-        public PaginatedList<IdentityUser> GetPaginatedUsers(
+        public async Task<PaginatedList<IdentityUser>> GetPaginatedUsers(
             string searchQuery,
             string sortBy,
             bool? status,
             int pageIndex,
             int pageSize)
         {
-            var source = _userRepository.GetDbSet().AsNoTracking();
+            var dbSet = await _userRepository.GetDbSet();
+            var source = dbSet.AsNoTracking();
 
             // Apply search filter
             if (!string.IsNullOrEmpty(searchQuery))
@@ -51,17 +54,17 @@ namespace Services
             return new PaginatedList<IdentityUser>(items, count, pageIndex, pageSize);
         }
 
-        public IdentityUser GetUserById(string id) => _userRepository.GetById(id);
+        public async Task<IdentityUser> GetUserById(string id) => await _userRepository.GetById(id);
 
-        public IdentityUser AddUser(IdentityUser user)
+        public async Task<IdentityUser> AddUser(IdentityUser user)
         {
-            _userRepository.Add(user);
+            await _userRepository.Add(user);
             return user;
         }
 
-        public IdentityUser UpdateUser(IdentityUser user, string userId)
+        public async Task<IdentityUser?> UpdateUser(IdentityUser user, string userId)
         {
-            var existingUser = _userRepository.GetById(userId);
+            var existingUser = await _userRepository.GetById(userId);
             if (existingUser == null)
             {
                 return null;
@@ -71,16 +74,16 @@ namespace Services
             existingUser.UserName = user.UserName;
             existingUser.PhoneNumber = user.PhoneNumber;
 
-            _userRepository.Update(existingUser);
+            await _userRepository.Update(existingUser);
             return existingUser;
         }
 
-        public void DeleteUser(string id) => _userRepository.Delete(id);
+        public async Task DeleteUser(string id) => await _userRepository.Delete(id);
 
-        public void GetAllUsers() => _userRepository.GetAll();
+        public async Task GetAllUsers() => await _userRepository.GetAll();
 
-        public void BanUser(string id) => _userRepository.Ban(id);
+        public async Task BanUser(string id) => await _userRepository.Ban(id);
 
-        public void UnbanUser(string id) => _userRepository.Unban(id);
+        public async Task UnbanUser(string id) => await _userRepository.Unban(id);
     }
 }

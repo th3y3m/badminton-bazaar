@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Services;
 using Services.Helper;
+using Services.Interface;
 using Services.Models;
 
 namespace API.Controllers
@@ -10,35 +11,35 @@ namespace API.Controllers
     [ApiController]
     public class UserDetailController : ControllerBase
     {
-        private readonly UserDetailService _userDetailService;
+        private readonly IUserDetailService _userDetailService;
 
-        public UserDetailController(UserDetailService userDetailService)
+        public UserDetailController(IUserDetailService userDetailService)
         {
             _userDetailService = userDetailService;
         }
 
         [HttpGet]
-        public ActionResult<PaginatedList<UserDetail>> GetPaginatedUserDetails(
+        public async Task<IActionResult> GetPaginatedUserDetails(
             [FromQuery] string searchQuery = "",
             [FromQuery] string sortBy = "name_asc",
             [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 10)
         {
-            var paginatedUserDetails = _userDetailService.GetPaginatedUsers(searchQuery, sortBy, pageIndex, pageSize);
+            var paginatedUserDetails = await _userDetailService.GetPaginatedUsers(searchQuery, sortBy, pageIndex, pageSize);
             return Ok(paginatedUserDetails);
         }
 
         [HttpGet("{id}")]
-        public ActionResult<UserDetail> GetUserDetailById(string id)
+        public async Task<IActionResult> GetUserDetailById(string id)
         {
-            var userDetail = _userDetailService.GetUserById(id);
+            var userDetail = await _userDetailService.GetUserById(id);
             return Ok(userDetail);
         }
 
         [HttpPut("{id}")]
-        public ActionResult UpdateUserDetail([FromBody] UserDetailModel userDetail, string id)
+        public async Task<IActionResult> UpdateUserDetail([FromBody] UserDetailModel userDetail, string id)
         {
-            _userDetailService.UpdateUserDetail(userDetail, id);
+            await _userDetailService.UpdateUserDetail(userDetail, id);
             return Ok();
         }
     }

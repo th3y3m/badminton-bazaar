@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Services;
+using Services.Interface;
 using Services.Models;
 using System.Text;
 
@@ -9,10 +10,10 @@ namespace API.Controllers
     [ApiController]
     public class CartController : ControllerBase
     {
-        private readonly CartService _cartService;
+        private readonly ICartService _cartService;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public CartController(CartService cartService, IHttpContextAccessor httpContextAccessor)
+        public CartController(ICartService cartService, IHttpContextAccessor httpContextAccessor)
         {
             _cartService = cartService;
             _httpContextAccessor = httpContextAccessor;
@@ -27,9 +28,9 @@ namespace API.Controllers
         //    return Ok(new { message = "Item added to cart" });
         //}
         [HttpPost("AddToCookie")]
-        public IActionResult SaveCartToCookie([FromQuery] string productId, [FromQuery] string userId)
+        public async Task<IActionResult> SaveCartToCookie([FromQuery] string productId, [FromQuery] string userId)
         {
-            _cartService.SaveCartToCookie(productId, userId);
+            await _cartService.SaveCartToCookie(productId, userId);
             //var session = _httpContextAccessor.HttpContext.Session;
             //session.SetObjectAsJson("Cart", _cartService.GetCart(userId));
             return Ok(new { message = "Item added to cart" });

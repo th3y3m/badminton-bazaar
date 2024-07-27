@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Repositories
 {
-    public class ReviewRepository
+    public class ReviewRepository : IReviewRepository
     {
         private readonly DbContext _dbContext;
 
@@ -17,34 +18,34 @@ namespace Repositories
             _dbContext = dbContext;
         }
 
-        public void Add(Review review)
+        public async Task Add(Review review)
         {
             _dbContext.Reviews.Add(review);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Update(Review review)
+        public async Task Update(Review review)
         {
             _dbContext.Reviews.Update(review);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public Review GetById(string id) => _dbContext.Reviews.Find(id);
+        public async Task<Review> GetById(string id) => await _dbContext.Reviews.FindAsync(id);
 
-        public List<Review> GetAll()
+        public async Task<List<Review>> GetAll()
         {
-            return _dbContext.Reviews.ToList();
+            return await _dbContext.Reviews.ToListAsync();
         }
         
-        public DbSet<Review> GetDbSet()
+        public async Task<DbSet<Review>> GetDbSet()
         {
-            return _dbContext.Reviews;
+            return await Task.FromResult(_dbContext.Reviews);
         }
 
-        public void Delete(string id) {
-            var review = GetById(id);
+        public async Task Delete(string id) {
+            var review = await GetById(id);
             _dbContext.Reviews.Remove(review);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
     }
 }

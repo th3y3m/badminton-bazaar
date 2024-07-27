@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Repositories
 {
-    public class ProductVariantRepository
+    public class ProductVariantRepository : IProductVariantRepository
     {
         private readonly DbContext _dbContext;
 
@@ -17,35 +18,35 @@ namespace Repositories
             _dbContext = dbContext;
         }
 
-        public void Add(ProductVariant productVariant)
+        public async Task Add(ProductVariant productVariant)
         {
             _dbContext.ProductVariants.Add(productVariant);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Update(ProductVariant productVariant)
+        public async Task Update(ProductVariant productVariant)
         {
             _dbContext.ProductVariants.Update(productVariant);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public ProductVariant GetById(string id) => _dbContext.ProductVariants.Find(id);
+        public async Task<ProductVariant> GetById(string id) => await _dbContext.ProductVariants.FindAsync(id);
 
-        public List<ProductVariant> GetAll()
+        public async Task<List<ProductVariant>> GetAll()
         {
-            return _dbContext.ProductVariants.ToList();
+            return await _dbContext.ProductVariants.ToListAsync();
         }
 
-        public void DeleteById(string id)
+        public async Task Delete(string id)
         {
-            var productVariant = GetById(id);
+            var productVariant = await GetById(id);
             _dbContext.ProductVariants.Remove(productVariant);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public DbSet<ProductVariant> GetDbSet()
+        public async Task<DbSet<ProductVariant>> GetDbSet()
         {
-            return _dbContext.ProductVariants;
+            return await Task.FromResult(_dbContext.ProductVariants);
         }
     }
 }

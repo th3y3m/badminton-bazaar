@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Repositories
 {
-    public class ColorRepository
+    public class ColorRepository : IColorRepository
     {
         private readonly DbContext _dbContext;
 
@@ -17,37 +18,35 @@ namespace Repositories
             _dbContext = dbContext;
         }
 
-        public void Add(Color color)
+        public async Task Add(Color color)
         {
             _dbContext.Colors.Add(color);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Update(Color color)
+        public async Task Update(Color color)
         {
             _dbContext.Colors.Update(color);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public Color GetById(string id) => _dbContext.Colors.Find(id);
+        public async Task<Color> GetById(string id) => await _dbContext.Colors.FindAsync(id);
 
-        public List<Color> GetAll()
+        public async Task<List<Color>> GetAll()
         {
-            return _dbContext.Colors.ToList();
+            return await _dbContext.Colors.ToListAsync();
         }
 
-        public DbSet<Color> GetDbSet()
+        public async Task<DbSet<Color>> GetDbSet()
         {
-            return _dbContext.Colors;
+            return await Task.FromResult(_dbContext.Colors);
         }
 
-        public void Delete(string id)
+        public async Task Delete(string id)
         {
-            var color = GetById(id);
+            var color = await GetById(id);
             _dbContext.Colors.Remove(color);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
-
-
     }
 }

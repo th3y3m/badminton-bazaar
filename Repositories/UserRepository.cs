@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Repositories.Interfaces;
 
 namespace Repositories
 {
-    public class UserRepository
+    public class UserRepository : IUserRepository
     {
         private readonly DbContext _dbContext;
 
@@ -12,48 +13,48 @@ namespace Repositories
             _dbContext = context;
         }
 
-        public List<IdentityUser> GetAll() {
-            return _dbContext.Users.ToList();
+        public async Task<List<IdentityUser>> GetAll() {
+            return await _dbContext.Users.ToListAsync();
         }
 
-        public DbSet<IdentityUser> GetDbSet()
+        public async Task<DbSet<IdentityUser>> GetDbSet()
         {
-           return _dbContext.Users;
+            return await Task.FromResult(_dbContext.Users);
         }
 
-        public IdentityUser GetById(string id) {
-            return _dbContext.Users.Find(id);
+        public async Task<IdentityUser?> GetById(string id) {
+            return await _dbContext.Users.FindAsync(id);
         }
 
-        public void Add(IdentityUser user) {
+        public async Task Add(IdentityUser user) {
             _dbContext.Users.Add(user);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Update(IdentityUser user) {
+        public async Task Update(IdentityUser user) {
             _dbContext.Users.Update(user);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Delete(string id) {
-            var user = GetById(id);
+        public async Task Delete(string id) {
+            var user = await GetById(id);
             user.LockoutEnabled = false;
             _dbContext.Users.Update(user);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Ban(string id) {
-            var user = GetById(id);
+        public async Task Ban(string id) {
+            var user = await GetById(id);
             user.LockoutEnabled = false;
             _dbContext.Users.Update(user);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Unban(string id) {
-            var user = GetById(id);
+        public async Task Unban(string id) {
+            var user = await GetById(id);
             user.LockoutEnabled = true;
             _dbContext.Users.Update(user);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
     }
 }

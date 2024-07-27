@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Repositories
 {
-    public class SupplierRepository
+    public class SupplierRepository : ISupplierRepository
     {
         private readonly DbContext _dbContext;
 
@@ -17,35 +18,35 @@ namespace Repositories
             _dbContext = dbContext;
         }
 
-        public void Add(Supplier supplier)
+        public async Task Add(Supplier supplier)
         {
             _dbContext.Suppliers.Add(supplier);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Update(Supplier supplier)
+        public async Task Update(Supplier supplier)
         {
             _dbContext.Suppliers.Update(supplier);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public Supplier GetById(string id) => _dbContext.Suppliers.Find(id);
+        public async Task<Supplier> GetById(string id) => await _dbContext.Suppliers.FindAsync(id);
 
-        public List<Supplier> GetAll()
+        public async Task<List<Supplier>> GetAll()
         {
-            return _dbContext.Suppliers.ToList();
+            return await _dbContext.Suppliers.ToListAsync();
         }
         
-        public DbSet<Supplier> GetDbSet()
+        public async Task<DbSet<Supplier>> GetDbSet()
         {
-            return _dbContext.Suppliers;
+            return await Task.FromResult(_dbContext.Suppliers);
         }
 
-        public void Delete(string id) {
-            var supplier = GetById(id);
+        public async Task Delete(string id) {
+            var supplier = await GetById(id);
             supplier.Status = false;
             _dbContext.Suppliers.Update(supplier);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
     }
 }

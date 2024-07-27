@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Services;
 using Services.Helper;
+using Services.Interface;
 using Services.Models;
 
 namespace API.Controllers
@@ -11,50 +12,50 @@ namespace API.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
-        private readonly UserService _userService;
+        private readonly IUserService _userService;
 
-        public UserController(UserService userService)
+        public UserController(IUserService userService)
         {
             _userService = userService;
         }
 
         [HttpGet]
-        public ActionResult<PaginatedList<IdentityUser>> GetPaginatedProducts(
+        public async Task<IActionResult> GetPaginatedProducts(
             [FromQuery] string searchQuery = "",
             [FromQuery] string sortBy = "name_asc",
             [FromQuery] bool status = true,
             [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 10)
         {
-            var paginatedProducts = _userService.GetPaginatedUsers(searchQuery, sortBy, status, pageIndex, pageSize);
+            var paginatedProducts = await _userService.GetPaginatedUsers(searchQuery, sortBy, status, pageIndex, pageSize);
             return Ok(paginatedProducts);
         }
 
         [HttpGet("{id}")]
-        public ActionResult<IdentityUser> GetUserById(string id)
+        public async Task<IActionResult> GetUserById(string id)
         {
-            var IdentityUser = _userService.GetUserById(id);
+            var IdentityUser = await _userService.GetUserById(id);
             return Ok(IdentityUser);
         }
 
         [HttpDelete("{id}")]
-        public ActionResult DeleteUserById(string id)
+        public async Task<IActionResult> DeleteUserById(string id)
         {
-            _userService.DeleteUser(id);
+            await _userService.DeleteUser(id);
             return Ok();
         }
 
         [HttpPut("ban/{id}")]
-        public ActionResult BanUser(string id)
+        public async Task<IActionResult> BanUser(string id)
         {
-            _userService.BanUser(id);
+            await _userService.BanUser(id);
             return Ok();
         }
 
         [HttpPut("unban/{id}")]
-        public ActionResult UnbanUser(string id)
+        public async Task<IActionResult> UnbanUser(string id)
         {
-            _userService.UnbanUser(id);
+            await _userService.UnbanUser(id);
             return Ok();
         }
     }

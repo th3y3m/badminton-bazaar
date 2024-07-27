@@ -10,19 +10,21 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
+using Repositories.Interfaces;
+using Services.Interface;
 
 namespace Services
 {
-    public class VnpayService
+    public class VnpayService : IVnpayService
     {
         private readonly ILogger<VnpayService> _logger;
         public string url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"; // HTTPS
         public string returnUrl = $"https://courtcaller.azurewebsites.net/VNpayAPI/paymentconfirm";
         public string tmnCode = "FKUXJX95";
         public string hashSecret = "0D3EAMNJYSY9INENB5JYP8XW2U8MD8WE";
-        private readonly OrderRepository _orderRepository;
-        private readonly PaymentRepository _paymentRepository;
-        public VnpayService(ILogger<VnpayService> logger, OrderRepository OrderRepository, PaymentRepository payment)
+        private readonly IOrderRepository _orderRepository;
+        private readonly IPaymentRepository _paymentRepository;
+        public VnpayService(ILogger<VnpayService> logger, IOrderRepository OrderRepository, IPaymentRepository payment)
         {
             _logger = logger;
             _orderRepository = OrderRepository;
@@ -68,7 +70,7 @@ namespace Services
             try
             {
                 var json = HttpUtility.ParseQueryString(queryString);
-                var booking = _orderRepository.GetById((json["vnp_TxnRef"]).ToString());
+                var booking = await _orderRepository.GetById((json["vnp_TxnRef"]).ToString());
                 string vnp_ResponseCode = json["vnp_ResponseCode"].ToString();
                 string vnp_SecureHash = json["vnp_SecureHash"].ToString();
                 var pos = queryString.IndexOf("&vnp_SecureHash");
@@ -102,11 +104,11 @@ namespace Services
                             PaymentStatus = "True",
                             PaymentSignature = json["vnp_BankTranNo"].ToString(),
                         };
-                        _paymentRepository.Add(payment);
+                        await _paymentRepository.Add(payment);
 
 
                         booking.Status = "complete";
-                        _orderRepository.Update(booking);
+                        await _orderRepository.Update(booking);
 
 
 
@@ -122,7 +124,7 @@ namespace Services
                         if (json["vnp_BankTranNo"]?.ToString() != null || json["vnp_TxnRef"]?.ToString() != null)
                         {
                             booking.Status = "cancel";
-                            _orderRepository.Update(booking);
+                            await _orderRepository.Update(booking);
 
                             var payment = new Payment
                             {
@@ -134,7 +136,7 @@ namespace Services
                                 PaymentStatus = "False",
 
                             };
-                            _paymentRepository.Add(payment);
+                            await _paymentRepository.Add(payment);
                         }
                         return new PaymentStatusModel
                         {
@@ -166,7 +168,7 @@ namespace Services
 
 
 
-        private bool ValidateSignature(string rspraw, string inputHash, string secretKey)
+        public bool ValidateSignature(string rspraw, string inputHash, string secretKey)
         {
             string myChecksum = Utils.HmacSHA512(secretKey, rspraw);
             return myChecksum.Equals(inputHash, StringComparison.InvariantCultureIgnoreCase);

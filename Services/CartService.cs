@@ -1,6 +1,7 @@
 ﻿using BusinessObjects;
 using Microsoft.AspNetCore.Http;
 using Services.Helper;
+using Services.Interface;
 using Services.Models;
 using System;
 using System.Collections.Generic;
@@ -11,15 +12,15 @@ using System.Threading.Tasks;
 
 namespace Services
 {
-    public class CartService
+    public class CartService : ICartService
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
         //private string GetCartSessionKey(string userId) => $"Cart_{userId}";
         //private ISession Session => _httpContextAccessor.HttpContext.Session;
-        private readonly ProductVariantService _productVariantService;
-        private readonly ProductService _productService;
+        private readonly IProductVariantService _productVariantService;
+        private readonly IProductService _productService;
 
-        public CartService(IHttpContextAccessor httpContextAccessor, ProductVariantService productVariantService, ProductService productService)
+        public CartService(IHttpContextAccessor httpContextAccessor, IProductVariantService productVariantService, IProductService productService)
         {
             _httpContextAccessor = httpContextAccessor;
             _productVariantService = productVariantService;
@@ -250,12 +251,12 @@ namespace Services
         }
 
 
-        public void SaveCartToCookie(string productId, string userId)
+        public async Task SaveCartToCookie(string productId, string userId)
         {
             Dictionary<string, CartItem> cartItems = new Dictionary<string, CartItem>();
             CartItem? item; // Declare item as nullable
-            var selectedProduct = _productVariantService.GetById(productId);
-            var product = _productService.GetProductByProductVariantId(productId);
+            var selectedProduct = await _productVariantService.GetById(productId);
+            var product = await _productService.GetProductByProductVariantId(productId);
 
             var savedCart = _httpContextAccessor.HttpContext?.Request.Cookies[$"Cart_{userId}"] ?? string.Empty;
 
@@ -285,8 +286,6 @@ namespace Services
             var strItemsInCart = CartUtil.ConvertCartToString(cartItems.Values.ToList());
             CartUtil.SaveCartToCookie(_httpContextAccessor.HttpContext.Request, _httpContextAccessor.HttpContext.Response, strItemsInCart, userId);
         }
-
-
     }
 }
 

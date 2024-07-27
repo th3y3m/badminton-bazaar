@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Repositories
 {
-    public class UserDetailRepository
+    public class UserDetailRepository : IUserDetailRepository
     {
         private readonly DbContext _dbContext;
 
@@ -17,29 +18,33 @@ namespace Repositories
             _dbContext = dbContext;
         }
 
-        public void Add(UserDetail userDetail)
+        public async Task Add(UserDetail userDetail)
         {
             _dbContext.UserDetails.Add(userDetail);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Update(UserDetail userDetail)
+        public async Task Update(UserDetail userDetail)
         {
             _dbContext.UserDetails.Update(userDetail);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public UserDetail GetById(string id) => _dbContext.UserDetails.Find(id);
+        public async Task<UserDetail> GetById(string id) => await _dbContext.UserDetails.FindAsync(id);
 
-        public List<UserDetail> GetAll()
+        public async Task<List<UserDetail>> GetAll()
         {
-            return _dbContext.UserDetails.ToList();
+            return await _dbContext.UserDetails.ToListAsync();
         }
         
-        public DbSet<UserDetail> GetDbSet()
+        public async Task<DbSet<UserDetail>> GetDbSet()
         {
-            return _dbContext.UserDetails;
+            return await Task.FromResult(_dbContext.UserDetails);
         }
 
+        public Task Delete(string id)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

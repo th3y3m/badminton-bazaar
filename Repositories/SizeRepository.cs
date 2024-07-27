@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Repositories
 {
-    public class SizeRepository
+    public class SizeRepository : ISizeRepository
     {
         private readonly DbContext _dbContext;
 
@@ -17,36 +18,35 @@ namespace Repositories
             _dbContext = dbContext;
         }
 
-
-        public void Add(Size size)
+        public async Task Add(Size size)
         {
             _dbContext.Sizes.Add(size);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public void Update(Size size)
+        public async Task Update(Size size)
         {
             _dbContext.Sizes.Update(size);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
 
-        public Size GetById(string id) => _dbContext.Sizes.Find(id);
+        public async Task<Size> GetById(string id) => await _dbContext.Sizes.FindAsync(id);
 
-        public List<Size> GetAll()
+        public async Task<List<Size>> GetAll()
         {
-            return _dbContext.Sizes.ToList();
+            return await _dbContext.Sizes.ToListAsync();
         }
 
-        public DbSet<Size> GetDbSet()
+        public async Task<DbSet<Size>> GetDbSet()
         {
-            return _dbContext.Sizes;
+            return await Task.FromResult(_dbContext.Sizes);
         }
 
-        public void Delete(string id)
+        public async Task Delete(string id)
         {
-            var size = GetById(id);
+            var size = await GetById(id);
             _dbContext.Sizes.Remove(size);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
         }
     }
 }

@@ -12,5 +12,6 @@ export const ROUTERS = {
         CART: "/cart",
         ORDERS: "/orders",
         REGISTER: "/register",
+        ERROR: "/*",
     }
 }

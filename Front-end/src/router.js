@@ -7,6 +7,7 @@ import Login from "./components/Login/Login";
 import CartPage from "./components/Cart/CartPage";
 import Register from "./components/Register/Register";
 import ProductDetailsPage from "./components/Product/ProductDetailsPage";
+import NewsPage from "./components/News/NewsPage";
 
 const ProtectedRoute = ({ component: Component, allowedRoles, ...rest }) => {
     const userRole = localStorage.getItem('userRole');
@@ -21,7 +22,7 @@ const renderUserRouter = () => {
     const userRouters = [
         { path: ROUTERS.USER.HOME, component: HomePage },
         // { path: ROUTERS.USER.PROFILE, component: ProfilePage },
-        // { path: ROUTERS.USER.NEWS, component: NewsPage },
+        { path: ROUTERS.USER.NEWS + "/:id", component: NewsPage },
         // { path: ROUTERS.USER.PAYMENTDETAIL, component: PaymentDetail },
         // { path: ROUTERS.USER.PAYMENTFAILED, component: PaymentFailed },
         // { path: ROUTERS.USER.PAYMENTSUCCESSFUL, component: PaymentSuccessful },

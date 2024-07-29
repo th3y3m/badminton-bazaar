@@ -60,6 +60,8 @@ namespace Services
                 "publicationdate_desc" => source.OrderByDescending(p => p.PublicationDate),
                 "title_asc" => source.OrderBy(p => p.Title),
                 "title_desc" => source.OrderByDescending(p => p.Title),
+                "views_asc" => source.OrderBy(p => p.Views),
+                "views_desc" => source.OrderByDescending(p => p.Views),
                 _ => source
             };
 
@@ -83,6 +85,7 @@ namespace Services
                 Content = newsModel.Content,
                 Image = newsModel.Image,
                 PublicationDate = DateTime.Now,
+                Views = 0,
                 IsHomepageSlideshow = newsModel.IsHomepageSlideshow,
                 IsHomepageBanner = newsModel.IsHomepageBanner,
                 Status = newsModel.Status
@@ -118,6 +121,12 @@ namespace Services
             }
             await _newsRepository.Delete(id);
             return news;
+        }
+
+        public async Task AddAViewUnit(string id) {
+            var news = await _newsRepository.GetById(id);
+            news.Views++;
+            await _newsRepository.Update(news);
         }
 
         public async Task<List<News>> GetSlideshowNews() {

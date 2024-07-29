@@ -58,6 +58,12 @@ namespace API.Controllers
             await _newsService.DeleteNews(id);
             return Ok();
         }
-
+        
+        [HttpPut("AddAViewUnit/{id}")]
+        public async Task<IActionResult> AddAViewUnit(string id)
+        {
+            await _newsService.AddAViewUnit(id);
+            return Ok();
+        }
     }
 }

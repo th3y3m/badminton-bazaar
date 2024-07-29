@@ -26,5 +26,6 @@ namespace Services.Interface
         Task<News?> DeleteNews(string id);
         Task<List<News>> GetBannerNews();
         Task<List<News>> GetSlideshowNews();
+        Task AddAViewUnit(string id);
     }
 }

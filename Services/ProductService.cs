@@ -156,18 +156,24 @@ namespace Services
 
         public async Task<List<Product>> GetTopSeller(int n)
         {
-            var product = await _productRepository.GetAll();
-            var productSales = product.Select(p => new
-                                                 {
-                                                     Product = p,
-                                                     TotalSales = GetSelledProduct(p.ProductId)
-                                                 })
-                                                 .OrderByDescending(ps => ps.TotalSales)
-                                                 .Take(n)
-                                                 .Select(ps => ps.Product)
-                                                 .ToList();
-            return productSales;
+            var products = await _productRepository.GetAll();
+            var productSales = new List<(Product Product, int TotalSales)>();
+
+            foreach (var product in products)
+            {
+                var totalSales = await GetSelledProduct(product.ProductId);
+                product.ProductVariants = null;
+                productSales.Add((product, totalSales));
+            }
+
+            var topSellers = productSales.OrderByDescending(ps => ps.TotalSales)
+                                         .Take(n)
+                                         .Select(ps => ps.Product)
+                                         .ToList();
+
+            return topSellers;
         }
+
 
         public async Task<int> ProductRemaining(string productId)
         {

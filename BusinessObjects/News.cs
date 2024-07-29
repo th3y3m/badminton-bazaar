@@ -28,10 +28,13 @@ namespace BusinessObjects
         public string Image { get; set; }
 
         [Required]
+        public int Views { get; set; }
+        [Required]
         public bool IsHomepageSlideshow { get; set; }
 
         [Required]
         public bool IsHomepageBanner { get; set; }
+
 
         [Required]
         public bool Status { get; set; }

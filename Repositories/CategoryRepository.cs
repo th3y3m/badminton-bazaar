@@ -3,8 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Repositories
@@ -20,32 +18,92 @@ namespace Repositories
 
         public async Task Add(Category category)
         {
-            _dbContext.Categories.Add(category);
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                _dbContext.Categories.Add(category);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Handle or log the exception as needed
+                throw new Exception("An error occurred while adding the category.", ex);
+            }
         }
 
         public async Task Update(Category category)
         {
-            _dbContext.Categories.Update(category);
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                _dbContext.Categories.Update(category);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Handle or log the exception as needed
+                throw new Exception("An error occurred while updating the category.", ex);
+            }
         }
 
-        public async Task<Category> GetById(string id) => await _dbContext.Categories.FindAsync(id);
+        public async Task<Category> GetById(string id)
+        {
+            try
+            {
+                return await _dbContext.Categories.FindAsync(id);
+            }
+            catch (Exception ex)
+            {
+                // Handle or log the exception as needed
+                throw new Exception("An error occurred while retrieving the category by ID.", ex);
+            }
+        }
 
         public async Task<List<Category>> GetAll()
         {
-            return await _dbContext.Categories.ToListAsync();
+            try
+            {
+                return await _dbContext.Categories.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                // Handle or log the exception as needed
+                throw new Exception("An error occurred while retrieving all categories.", ex);
+            }
         }
+
         public async Task<DbSet<Category>> GetDbSet()
         {
-            return await Task.FromResult(_dbContext.Categories);
+            try
+            {
+                return await Task.FromResult(_dbContext.Categories);
+            }
+            catch (Exception ex)
+            {
+                // Handle or log the exception as needed
+                throw new Exception("An error occurred while retrieving the DbSet of categories.", ex);
+            }
         }
+
         public async Task Delete(string id)
         {
-            var category = await GetById(id);
-            category.Status = false;
-            _dbContext.Categories.Update(category);
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                var category = await GetById(id);
+                if (category != null)
+                {
+                    category.Status = false;
+                    _dbContext.Categories.Update(category);
+                    await _dbContext.SaveChangesAsync();
+                }
+                else
+                {
+                    throw new Exception("Category not found.");
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle or log the exception as needed
+                throw new Exception("An error occurred while deleting the category.", ex);
+            }
         }
     }
 }

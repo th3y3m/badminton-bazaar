@@ -26,7 +26,6 @@ namespace Repositories
             }
             catch (Exception ex)
             {
-                // Handle or log the exception as needed
                 throw new Exception("An error occurred while adding the order.", ex);
             }
         }
@@ -40,7 +39,6 @@ namespace Repositories
             }
             catch (Exception ex)
             {
-                // Handle or log the exception as needed
                 throw new Exception("An error occurred while updating the order.", ex);
             }
         }
@@ -53,7 +51,6 @@ namespace Repositories
             }
             catch (Exception ex)
             {
-                // Handle or log the exception as needed
                 throw new Exception("An error occurred while retrieving the order by ID.", ex);
             }
         }
@@ -66,7 +63,6 @@ namespace Repositories
             }
             catch (Exception ex)
             {
-                // Handle or log the exception as needed
                 throw new Exception("An error occurred while retrieving all orders.", ex);
             }
         }
@@ -79,7 +75,6 @@ namespace Repositories
             }
             catch (Exception ex)
             {
-                // Handle or log the exception as needed
                 throw new Exception("An error occurred while retrieving the DbSet of orders.", ex);
             }
         }
@@ -102,7 +97,6 @@ namespace Repositories
             }
             catch (Exception ex)
             {
-                // Handle or log the exception as needed
                 throw new Exception("An error occurred while deleting the order.", ex);
             }
         }

@@ -1,6 +1,5 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
-using Repositories;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
@@ -8,7 +7,6 @@ using Services.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Services
@@ -31,112 +29,171 @@ namespace Services
             int pageIndex,
             int pageSize)
         {
-            var dbSet = await _newsRepository.GetDbSet();
-            var source = dbSet.AsNoTracking();
-
-            if (IsHomepageBanner.HasValue)
+            try
             {
-                source = source.Where(p => p.IsHomepageBanner == IsHomepageBanner);
+                var dbSet = await _newsRepository.GetDbSet();
+                var source = dbSet.AsNoTracking();
+
+                if (IsHomepageBanner.HasValue)
+                {
+                    source = source.Where(p => p.IsHomepageBanner == IsHomepageBanner);
+                }
+                if (IsHomepageSlideShow.HasValue)
+                {
+                    source = source.Where(p => p.IsHomepageSlideshow == IsHomepageSlideShow);
+                }
+
+                if (!string.IsNullOrEmpty(searchQuery))
+                {
+                    source = source.Where(p => p.Title.ToLower().Contains(searchQuery.ToLower()) || p.Content.ToLower().Contains(searchQuery.ToLower()));
+                }
+
+                if (status.HasValue)
+                {
+                    source = source.Where(p => p.Status == status);
+                }
+
+                source = sortBy switch
+                {
+                    "publicationdate_asc" => source.OrderBy(p => p.PublicationDate),
+                    "publicationdate_desc" => source.OrderByDescending(p => p.PublicationDate),
+                    "title_asc" => source.OrderBy(p => p.Title),
+                    "title_desc" => source.OrderByDescending(p => p.Title),
+                    "views_asc" => source.OrderBy(p => p.Views),
+                    "views_desc" => source.OrderByDescending(p => p.Views),
+                    _ => source
+                };
+
+                var count = await source.CountAsync();
+                var items = await source.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync();
+
+                return new PaginatedList<News>(items, count, pageIndex, pageSize);
             }
-            if (IsHomepageSlideShow.HasValue)
+            catch (Exception ex)
             {
-                source = source.Where(p => p.IsHomepageSlideshow == IsHomepageSlideShow);
+                throw new Exception("An error occurred while retrieving paginated news.", ex);
             }
-
-
-            if (!string.IsNullOrEmpty(searchQuery))
-            {
-                source = source.Where(p => p.Title.ToLower().Contains(searchQuery.ToLower()) || p.Content.ToLower().Contains(searchQuery.ToLower()));
-            }
-
-            if (status.HasValue)
-            {
-                source = source.Where(p => p.Status == status);
-            }
-
-            source = sortBy switch
-            {
-                "publicationdate_asc" => source.OrderBy(p => p.PublicationDate),
-                "publicationdate_desc" => source.OrderByDescending(p => p.PublicationDate),
-                "title_asc" => source.OrderBy(p => p.Title),
-                "title_desc" => source.OrderByDescending(p => p.Title),
-                "views_asc" => source.OrderBy(p => p.Views),
-                "views_desc" => source.OrderByDescending(p => p.Views),
-                _ => source
-            };
-
-            var count = source.Count();
-            var items = source.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
-
-            return new PaginatedList<News>(items, count, pageIndex, pageSize);
         }
 
         public async Task<News> GetNewsById(string id)
         {
-            return await _newsRepository.GetById(id);
+            try
+            {
+                return await _newsRepository.GetById(id);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while retrieving the news by ID.", ex);
+            }
         }
 
         public async Task<News> AddNews(NewsModel newsModel)
         {
-            var news = new News
+            try
             {
-                NewId = "N" + GenerateId.GenerateRandomId(5),
-                Title = newsModel.Title,
-                Content = newsModel.Content,
-                Image = newsModel.Image,
-                PublicationDate = DateTime.Now,
-                Views = 0,
-                IsHomepageSlideshow = newsModel.IsHomepageSlideshow,
-                IsHomepageBanner = newsModel.IsHomepageBanner,
-                Status = newsModel.Status
-            };
-            await _newsRepository.Add(news);
-            return news;
+                var news = new News
+                {
+                    NewId = "N" + GenerateId.GenerateRandomId(5),
+                    Title = newsModel.Title,
+                    Content = newsModel.Content,
+                    Image = newsModel.Image,
+                    PublicationDate = DateTime.Now,
+                    Views = 0,
+                    IsHomepageSlideshow = newsModel.IsHomepageSlideshow,
+                    IsHomepageBanner = newsModel.IsHomepageBanner,
+                    Status = newsModel.Status
+                };
+                await _newsRepository.Add(news);
+                return news;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while adding the news.", ex);
+            }
         }
 
         public async Task<News> UpdateNews(string id, NewsModel newsModel)
         {
-            var news = await _newsRepository.GetById(id);
-            if (news == null)
+            try
             {
-                return null;
+                var news = await _newsRepository.GetById(id);
+                if (news == null)
+                {
+                    throw new Exception("News not found.");
+                }
+
+                news.Title = newsModel.Title;
+                news.Content = newsModel.Content;
+                news.Image = newsModel.Image;
+                news.IsHomepageSlideshow = newsModel.IsHomepageSlideshow;
+                news.IsHomepageBanner = newsModel.IsHomepageBanner;
+                news.Status = newsModel.Status;
+
+                await _newsRepository.Update(news);
+                return news;
             }
-
-            news.Title = newsModel.Title;
-            news.Content = newsModel.Content;
-            news.Image = newsModel.Image;
-            news.IsHomepageSlideshow = newsModel.IsHomepageSlideshow;
-            news.IsHomepageBanner = newsModel.IsHomepageBanner;
-            news.Status = newsModel.Status;
-
-            await _newsRepository.Update(news);
-            return news;
-        }
-
-        public async Task<News?> DeleteNews(string id) {
-            var news = await _newsRepository.GetById(id);
-            if (news == null)
+            catch (Exception ex)
             {
-                return null;
+                throw new Exception("An error occurred while updating the news.", ex);
             }
-            await _newsRepository.Delete(id);
-            return news;
         }
 
-        public async Task AddAViewUnit(string id) {
-            var news = await _newsRepository.GetById(id);
-            news.Views++;
-            await _newsRepository.Update(news);
+        public async Task<News?> DeleteNews(string id)
+        {
+            try
+            {
+                var news = await _newsRepository.GetById(id);
+                if (news == null)
+                {
+                    throw new Exception("News not found.");
+                }
+                await _newsRepository.Delete(id);
+                return news;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while deleting the news.", ex);
+            }
         }
 
-        public async Task<List<News>> GetSlideshowNews() {
-            List<News> news = await _newsRepository.GetAll();
-            return news.Where(p => p.IsHomepageSlideshow == true).ToList();
+        public async Task AddAViewUnit(string id)
+        {
+            try
+            {
+                var news = await _newsRepository.GetById(id);
+                news.Views++;
+                await _newsRepository.Update(news);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while adding a view unit.", ex);
+            }
         }
 
-        public async Task<List<News>> GetBannerNews() {
-            List<News> news = await _newsRepository.GetAll();
-            return news.Where(p => p.IsHomepageBanner == true).ToList();
+        public async Task<List<News>> GetSlideshowNews()
+        {
+            try
+            {
+                var news = await _newsRepository.GetAll();
+                return news.Where(p => p.IsHomepageSlideshow == true).ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while retrieving slideshow news.", ex);
+            }
+        }
+
+        public async Task<List<News>> GetBannerNews()
+        {
+            try
+            {
+                var news = await _newsRepository.GetAll();
+                return news.Where(p => p.IsHomepageBanner == true).ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while retrieving banner news.", ex);
+            }
         }
     }
 }

@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Services;
 using Services.Helper;
 using Services.Interface;
+using System;
+using System.Threading.Tasks;
 
 namespace API.Controllers
 {
@@ -26,59 +28,100 @@ namespace API.Controllers
             [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 10)
         {
-            var paginatedPayments = await _paymentService.GetPaginatedPayments(searchQuery, sortBy, status, orderId, pageIndex, pageSize);
-            return Ok(paginatedPayments);
+            try
+            {
+                var paginatedPayments = await _paymentService.GetPaginatedPayments(searchQuery, sortBy, status, orderId, pageIndex, pageSize);
+                return Ok(paginatedPayments);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetPaymentById(string id)
         {
-            var payment = await _paymentService.GetPaymentById(id);
-            return Ok(payment);
+            try
+            {
+                var payment = await _paymentService.GetPaymentById(id);
+                return Ok(payment);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         [HttpPost]
         public async Task<IActionResult> AddPayment(Payment payment)
         {
-            await _paymentService.AddPayment(payment);
-            return Ok(payment);
+            try
+            {
+                await _paymentService.AddPayment(payment);
+                return Ok(payment);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         [HttpPut]
         public async Task<IActionResult> UpdatePayment(Payment payment)
         {
-            await _paymentService.UpdatePayment(payment);
-            return Ok(payment);
+            try
+            {
+                await _paymentService.UpdatePayment(payment);
+                return Ok(payment);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePaymentById(string id)
         {
-            await _paymentService.DeletePayment(id);
-            return Ok();
+            try
+            {
+                await _paymentService.DeletePayment(id);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         [HttpGet("GeneratePaymentToken/{bookingId}")]
         public async Task<IActionResult> GeneratePaymentToken(string bookingId)
         {
-            var token = TokenForPayment.GenerateToken(bookingId);
-            return Ok(new { token });
+            try
+            {
+                var token = TokenForPayment.GenerateToken(bookingId);
+                return Ok(new { token });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         [HttpPost("ProcessPayment")]
         public async Task<IActionResult> ProcessPayment(string role, string token)
         {
-            //if (bookingId == null)
-            //{
-            //    return BadRequest(new ResponseModel
-            //    {
-            //        Status = "Error",
-            //        Message = "Booking information is required."
-            //    });
-            //}
-            var bookingId = TokenForPayment.ValidateToken(token);
-            var response = await _paymentService.ProcessBookingPayment(role, bookingId);
-            return Ok(response);
+            try
+            {
+                var bookingId = TokenForPayment.ValidateToken(token);
+                var response = await _paymentService.ProcessBookingPayment(role, bookingId);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
     }
 }

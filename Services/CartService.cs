@@ -68,38 +68,54 @@ namespace Services
 
         public void DeleteUnitItem(string productId, string userId)
         {
-            var savedCart = _httpContextAccessor.HttpContext?.Request.Cookies[$"Cart_{userId}"] ?? string.Empty;
-            if (!string.IsNullOrEmpty(savedCart))
+            try
             {
-                var cartItems = CartUtil.GetCartFromCookie(savedCart);
-                if (cartItems.TryGetValue(productId, out CartItem item))
+                var savedCart = _httpContextAccessor.HttpContext?.Request.Cookies[$"Cart_{userId}"] ?? string.Empty;
+                if (!string.IsNullOrEmpty(savedCart))
                 {
-                    item.Quantity--;
-                    if (item.Quantity <= 0)
+                    var cartItems = CartUtil.GetCartFromCookie(savedCart);
+                    if (cartItems.TryGetValue(productId, out CartItem item))
                     {
-                        cartItems.Remove(productId); // Remove the item if quantity is zero or less
+                        item.Quantity--;
+                        if (item.Quantity <= 0)
+                        {
+                            cartItems.Remove(productId); // Remove the item if quantity is zero or less
+                        }
                     }
-                }
 
-                var strItemsInCart = CartUtil.ConvertCartToString(cartItems.Values.ToList());
-                CartUtil.SaveCartToCookie(_httpContextAccessor.HttpContext.Request, _httpContextAccessor.HttpContext.Response, strItemsInCart, userId);
+                    var strItemsInCart = CartUtil.ConvertCartToString(cartItems.Values.ToList());
+                    CartUtil.SaveCartToCookie(_httpContextAccessor.HttpContext.Request, _httpContextAccessor.HttpContext.Response, strItemsInCart, userId);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                Console.WriteLine($"Error deleting unit item: {ex.Message}");
             }
         }
 
 
         public void RemoveFromCart(string productId, string userId)
         {
-            Dictionary<string, CartItem> cartItems = new Dictionary<string, CartItem>();
-            var savedCart = _httpContextAccessor.HttpContext?.Request.Cookies[$"Cart_{userId}"] ?? string.Empty;
-
-            if (!string.IsNullOrEmpty(savedCart))
+            try
             {
-                cartItems = CartUtil.GetCartFromCookie(savedCart);
-                cartItems.Remove(productId);
-            }
+                Dictionary<string, CartItem> cartItems = new Dictionary<string, CartItem>();
+                var savedCart = _httpContextAccessor.HttpContext?.Request.Cookies[$"Cart_{userId}"] ?? string.Empty;
 
-            var strItemsInCart = CartUtil.ConvertCartToString(cartItems.Values.ToList());
-            CartUtil.SaveCartToCookie(_httpContextAccessor.HttpContext.Request, _httpContextAccessor.HttpContext.Response, strItemsInCart, userId);
+                if (!string.IsNullOrEmpty(savedCart))
+                {
+                    cartItems = CartUtil.GetCartFromCookie(savedCart);
+                    cartItems.Remove(productId);
+                }
+
+                var strItemsInCart = CartUtil.ConvertCartToString(cartItems.Values.ToList());
+                CartUtil.SaveCartToCookie(_httpContextAccessor.HttpContext.Request, _httpContextAccessor.HttpContext.Response, strItemsInCart, userId);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                Console.WriteLine($"Error removing item from cart: {ex.Message}");
+            }
         }
 
         //public List<CartItem> GetCart(string userId)
@@ -175,13 +191,22 @@ namespace Services
 
         public List<CartItem> GetCart(string userId)
         {
-            var savedCart = _httpContextAccessor.HttpContext.Request.Cookies[$"Cart_{userId}"];
-            if (!string.IsNullOrEmpty(savedCart))
+            try
             {
-                var cart = CartUtil.GetCartFromCookie(savedCart);
-                return cart.Values.ToList();
+                var savedCart = _httpContextAccessor.HttpContext.Request.Cookies[$"Cart_{userId}"];
+                if (!string.IsNullOrEmpty(savedCart))
+                {
+                    var cart = CartUtil.GetCartFromCookie(savedCart);
+                    return cart.Values.ToList();
+                }
+                return new List<CartItem>();
             }
-            return new List<CartItem>();
+            catch (Exception ex)
+            {
+                // Log the exception
+                Console.WriteLine($"Error getting cart: {ex.Message}");
+                return new List<CartItem>();
+            }
         }
 
         //public void SaveCart(string userId)
@@ -197,7 +222,15 @@ namespace Services
 
         public void DeleteCartInCookie(string userId)
         {
-            CartUtil.DeleteCartToCookie(_httpContextAccessor.HttpContext.Request, _httpContextAccessor.HttpContext.Response, userId);
+            try
+            {
+                CartUtil.DeleteCartToCookie(_httpContextAccessor.HttpContext.Request, _httpContextAccessor.HttpContext.Response, userId);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                Console.WriteLine($"Error deleting cart in cookie: {ex.Message}");
+            }
         }
 
         //public void ClearCart(string userId)
@@ -237,54 +270,69 @@ namespace Services
 
         public int NumberOfItemsInCart(string userId)
         {
-            int count = 0;
-
-            var savedCart = _httpContextAccessor.HttpContext.Request.Cookies[$"Cart_{userId}"];
-            if (!string.IsNullOrEmpty(savedCart))
+            try
             {
-                var cartItems = CartUtil.GetCartFromCookie(savedCart);
-                // Directly sum up the quantities from cartItems
-                count = cartItems.Values.Sum(item => item.Quantity);
+                int count = 0;
+                var savedCart = _httpContextAccessor.HttpContext.Request.Cookies[$"Cart_{userId}"];
+                if (!string.IsNullOrEmpty(savedCart))
+                {
+                    var cartItems = CartUtil.GetCartFromCookie(savedCart);
+                    // Directly sum up the quantities from cartItems
+                    count = cartItems.Values.Sum(item => item.Quantity);
+                }
+                return count;
             }
-
-            return count;
+            catch (Exception ex)
+            {
+                // Log the exception
+                Console.WriteLine($"Error getting number of items in cart: {ex.Message}");
+                return 0;
+            }
         }
 
 
         public async Task SaveCartToCookie(string productId, string userId)
         {
-            Dictionary<string, CartItem> cartItems = new Dictionary<string, CartItem>();
-            CartItem? item; // Declare item as nullable
-            var selectedProduct = await _productVariantService.GetById(productId);
-            var product = await _productService.GetProductByProductVariantId(productId);
-
-            var savedCart = _httpContextAccessor.HttpContext?.Request.Cookies[$"Cart_{userId}"] ?? string.Empty;
-
-            if (!string.IsNullOrEmpty(savedCart))
+            try
             {
-                cartItems = CartUtil.GetCartFromCookie(savedCart);
-            }
+                Dictionary<string, CartItem> cartItems = new Dictionary<string, CartItem>();
+                CartItem? item; // Declare item as nullable
+                var selectedProduct = await _productVariantService.GetById(productId);
+                var product = await _productService.GetProductByProductVariantId(productId);
 
-            // Check if the item exists in the cart, add or update accordingly
-            if (!cartItems.TryGetValue(productId, out item))
-            {
-                item = new CartItem
+                var savedCart = _httpContextAccessor.HttpContext?.Request.Cookies[$"Cart_{userId}"] ?? string.Empty;
+
+                if (!string.IsNullOrEmpty(savedCart))
                 {
-                    ItemId = productId,
-                    ItemName = product.ProductName,
-                    Quantity = 1,
-                    UnitPrice = selectedProduct.Price
-                };
-                cartItems[productId] = item;
-            }
-            else
-            {
-                item.Quantity++;
-            }
+                    cartItems = CartUtil.GetCartFromCookie(savedCart);
+                }
 
-            // Convert the updated cart to string and save it back to the cookie
-            var strItemsInCart = CartUtil.ConvertCartToString(cartItems.Values.ToList());
-            CartUtil.SaveCartToCookie(_httpContextAccessor.HttpContext.Request, _httpContextAccessor.HttpContext.Response, strItemsInCart, userId);
+                // Check if the item exists in the cart, add or update accordingly
+                if (!cartItems.TryGetValue(productId, out item))
+                {
+                    item = new CartItem
+                    {
+                        ItemId = productId,
+                        ItemName = product.ProductName,
+                        Quantity = 1,
+                        UnitPrice = selectedProduct.Price
+                    };
+                    cartItems[productId] = item;
+                }
+                else
+                {
+                    item.Quantity++;
+                }
+
+                // Convert the updated cart to string and save it back to the cookie
+                var strItemsInCart = CartUtil.ConvertCartToString(cartItems.Values.ToList());
+                CartUtil.SaveCartToCookie(_httpContextAccessor.HttpContext.Request, _httpContextAccessor.HttpContext.Response, strItemsInCart, userId);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                Console.WriteLine($"Error saving cart to cookie: {ex.Message}");
+            }
         }
     }
 }

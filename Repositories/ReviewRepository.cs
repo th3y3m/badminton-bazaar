@@ -1,11 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
 using Repositories.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Repositories
 {
@@ -20,32 +15,78 @@ namespace Repositories
 
         public async Task Add(Review review)
         {
-            _dbContext.Reviews.Add(review);
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                _dbContext.Reviews.Add(review);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error adding review: {ex.Message}");
+            }
         }
 
         public async Task Update(Review review)
         {
-            _dbContext.Reviews.Update(review);
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                _dbContext.Reviews.Update(review);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error updating review: {ex.Message}");
+            }
         }
 
-        public async Task<Review> GetById(string id) => await _dbContext.Reviews.FindAsync(id);
+        public async Task<Review> GetById(string id)
+        {
+            try
+            {
+                return await _dbContext.Reviews.FindAsync(id);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving review by ID: {ex.Message}");
+            }
+        }
 
         public async Task<List<Review>> GetAll()
         {
-            return await _dbContext.Reviews.ToListAsync();
-        }
-        
-        public async Task<DbSet<Review>> GetDbSet()
-        {
-            return await Task.FromResult(_dbContext.Reviews);
+            try
+            {
+                return await _dbContext.Reviews.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving all reviews: {ex.Message}");
+            }
         }
 
-        public async Task Delete(string id) {
-            var review = await GetById(id);
-            _dbContext.Reviews.Remove(review);
-            await _dbContext.SaveChangesAsync();
+        public async Task<DbSet<Review>> GetDbSet()
+        {
+            try
+            {
+                return await Task.FromResult(_dbContext.Reviews);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving DbSet of reviews: {ex.Message}");
+            }
+        }
+
+        public async Task Delete(string id)
+        {
+            try
+            {
+                var review = await GetById(id);
+                _dbContext.Reviews.Remove(review);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error deleting review: {ex.Message}");
+            }
         }
     }
 }

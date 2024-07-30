@@ -1,11 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
 using Repositories.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Repositories
 {
@@ -20,26 +15,64 @@ namespace Repositories
 
         public async Task Add(UserDetail userDetail)
         {
-            _dbContext.UserDetails.Add(userDetail);
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                _dbContext.UserDetails.Add(userDetail);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error adding user detail: {ex.Message}");
+            }
         }
 
         public async Task Update(UserDetail userDetail)
         {
-            _dbContext.UserDetails.Update(userDetail);
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                _dbContext.UserDetails.Update(userDetail);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error updating user detail: {ex.Message}");
+            }
         }
 
-        public async Task<UserDetail> GetById(string id) => await _dbContext.UserDetails.FindAsync(id);
+        public async Task<UserDetail> GetById(string id)
+        {
+            try
+            {
+                return await _dbContext.UserDetails.FindAsync(id);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving user detail by ID: {ex.Message}");
+            }
+        }
 
         public async Task<List<UserDetail>> GetAll()
         {
-            return await _dbContext.UserDetails.ToListAsync();
+            try
+            {
+                return await _dbContext.UserDetails.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving all user details: {ex.Message}");
+            }
         }
-        
+
         public async Task<DbSet<UserDetail>> GetDbSet()
         {
-            return await Task.FromResult(_dbContext.UserDetails);
+            try
+            {
+                return await Task.FromResult(_dbContext.UserDetails);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving DbSet of user details: {ex.Message}");
+            }
         }
 
         public Task Delete(string id)

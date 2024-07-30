@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Services;
 using Services.Interface;
 using Services.Models;
-using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace API.Controllers
 {
@@ -12,98 +11,115 @@ namespace API.Controllers
     {
         private readonly ICartService _cartService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ILogger<CartController> _logger;
 
-        public CartController(ICartService cartService, IHttpContextAccessor httpContextAccessor)
+        public CartController(ICartService cartService, IHttpContextAccessor httpContextAccessor, ILogger<CartController> logger)
         {
             _cartService = cartService;
             _httpContextAccessor = httpContextAccessor;
+            _logger = logger;
         }
 
-        //[HttpPost("Add")]
-        //public IActionResult AddToCart([FromQuery] string productId, [FromQuery] string userId)
-        //{
-        //    _cartService.AddToCart(productId, userId);
-        //    //var session = _httpContextAccessor.HttpContext.Session;
-        //    //session.SetObjectAsJson("Cart", _cartService.GetCart(userId));
-        //    return Ok(new { message = "Item added to cart" });
-        //}
         [HttpPost("AddToCookie")]
         public async Task<IActionResult> SaveCartToCookie([FromQuery] string productId, [FromQuery] string userId)
         {
-            await _cartService.SaveCartToCookie(productId, userId);
-            //var session = _httpContextAccessor.HttpContext.Session;
-            //session.SetObjectAsJson("Cart", _cartService.GetCart(userId));
-            return Ok(new { message = "Item added to cart" });
+            try
+            {
+                await _cartService.SaveCartToCookie(productId, userId);
+                return Ok(new { message = "Item added to cart" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding item to cart");
+                return StatusCode(500, "Internal server error");
+            }
         }
-        
+
         [HttpPost("DeleteUnitItem")]
         public IActionResult DeleteUnitItem([FromQuery] string productId, [FromQuery] string userId)
         {
-            _cartService.DeleteUnitItem(productId, userId);
-            return Ok(new { message = "Item deleted" });
+            try
+            {
+                _cartService.DeleteUnitItem(productId, userId);
+                return Ok(new { message = "Item deleted" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting item from cart");
+                return StatusCode(500, "Internal server error");
+            }
         }
 
         [HttpGet("GetCart")]
         public IActionResult GetCart([FromQuery] string userId)
         {
-            var httpContext = _httpContextAccessor.HttpContext;
-            if (httpContext == null)
+            try
             {
-                return StatusCode(500, "HttpContext is null");
-            }
+                var httpContext = _httpContextAccessor.HttpContext;
+                if (httpContext == null)
+                {
+                    return StatusCode(500, "HttpContext is null");
+                }
 
-            var session = httpContext.Session;
-            var cart = session.GetObjectFromJson<List<CartItem>>("Cart");
-            if (cart == null)
-            {
-                cart = _cartService.GetCart(userId);
-                session.SetObjectAsJson("Cart", cart);
+                var session = httpContext.Session;
+                var cart = session.GetObjectFromJson<List<CartItem>>("Cart");
+                if (cart == null)
+                {
+                    cart = _cartService.GetCart(userId);
+                    session.SetObjectAsJson("Cart", cart);
+                }
+                return Ok(cart);
             }
-            return Ok(cart);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving cart");
+                return StatusCode(500, "Internal server error");
+            }
         }
 
-        //[HttpPost("save")]
-        //public IActionResult SaveCart([FromQuery] string userId)
-        //{
-        //    _cartService.SaveCart(userId);
-        //    return Ok(new { message = "Cart saved to cookie" });
-        //}
-
-        //[HttpPost("clear")]
-        //public IActionResult ClearCart([FromQuery] string userId)
-        //{
-        //    _cartService.ClearCart(userId);
-        //    return Ok(new { message = "Cart cleared" });
-        //}
-
-        [HttpPost("remove")]
+        [HttpPost("Remove")]
         public IActionResult RemoveFromCart([FromQuery] string productId, [FromQuery] string userId)
         {
-            _cartService.RemoveFromCart(productId, userId);
-            return Ok(new { message = "Item removed from cart" });
+            try
+            {
+                _cartService.RemoveFromCart(productId, userId);
+                return Ok(new { message = "Item removed from cart" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing item from cart");
+                return StatusCode(500, "Internal server error");
+            }
         }
-
-        //[HttpPost("update")]
-        //public IActionResult UpdateCart([FromBody] string productId, [FromQuery] int quantity, [FromQuery] string userId)
-        //{
-        //    _cartService.UpgradeCart(userId, productId, quantity);
-        //    return Ok(new { message = "Cart updated" });
-        //}
 
         [HttpPost("DeleteCookie")]
         public IActionResult DeleteCookie([FromQuery] string userId)
         {
-            _cartService.DeleteCartInCookie(userId);
-            return Ok(new { message = "Cookie deleted" });
+            try
+            {
+                _cartService.DeleteCartInCookie(userId);
+                return Ok(new { message = "Cookie deleted" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting cookie");
+                return StatusCode(500, "Internal server error");
+            }
         }
 
         [HttpGet("ItemsInCart")]
         public IActionResult NumberOfItemsInCart([FromQuery] string userId)
         {
-            var cart = _cartService.NumberOfItemsInCart(userId);
-            return Ok(cart);
+            try
+            {
+                var cart = _cartService.NumberOfItemsInCart(userId);
+                return Ok(cart);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving number of items in cart");
+                return StatusCode(500, "Internal server error");
+            }
         }
     }
-
-
 }

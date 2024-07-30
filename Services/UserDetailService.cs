@@ -1,16 +1,9 @@
 ﻿using BusinessObjects;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Repositories;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Services
 {
@@ -29,48 +22,81 @@ namespace Services
             int pageIndex,
             int pageSize)
         {
-            var dbSet = await _userDetailRepository.GetDbSet();
-            var source = dbSet.AsNoTracking();
-
-            // Apply search filter
-            if (!string.IsNullOrEmpty(searchQuery))
+            try
             {
-                source = source.Where(p => p.FullName.ToLower().Contains(searchQuery.ToLower()));
+                var dbSet = await _userDetailRepository.GetDbSet();
+                var source = dbSet.AsNoTracking();
+
+                // Apply search filter
+                if (!string.IsNullOrEmpty(searchQuery))
+                {
+                    source = source.Where(p => p.FullName.ToLower().Contains(searchQuery.ToLower()));
+                }
+
+                // Apply sorting
+                source = sortBy switch
+                {
+                    "name_asc" => source.OrderBy(p => p.FullName),
+                    "name_desc" => source.OrderByDescending(p => p.FullName),
+                    _ => source
+                };
+
+                // Apply pagination
+                var count = source.Count();
+                var items = source.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
+
+                return new PaginatedList<UserDetail>(items, count, pageIndex, pageSize);
             }
-
-            // Apply sorting
-            source = sortBy switch
+            catch (Exception ex)
             {
-                "name_asc" => source.OrderBy(p => p.FullName),
-                "name_desc" => source.OrderByDescending(p => p.FullName),
-                _ => source
-            };
-
-            // Apply pagination
-            var count = source.Count();
-            var items = source.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
-
-            return new PaginatedList<UserDetail>(items, count, pageIndex, pageSize);
+                throw new Exception($"Error retrieving paginated users: {ex.Message}");
+            }
         }
 
-        public async Task<UserDetail> GetUserById(string id) => await _userDetailRepository.GetById(id);
-
-        public async Task AddUserDetail(UserDetail userDetail) => await _userDetailRepository.Add(userDetail);
-
-        public async Task UpdateUserDetail(UserDetailModel userDetail, string id) 
+        public async Task<UserDetail> GetUserById(string id)
         {
-            
-            var user = await _userDetailRepository.GetById(id);
-
-            if (user == null)
+            try
             {
-                return;
+                return await _userDetailRepository.GetById(id);
             }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving user by ID: {ex.Message}");
+            }
+        }
 
-            user.FullName = userDetail.FullName;
-            user.Address = userDetail.Address;
-            user.ProfilePicture = userDetail.ProfilePicture;
-            await _userDetailRepository.Update(user);
+        public async Task AddUserDetail(UserDetail userDetail)
+        {
+            try
+            {
+                await _userDetailRepository.Add(userDetail);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error adding user detail: {ex.Message}");
+            }
+        }
+
+        public async Task UpdateUserDetail(UserDetailModel userDetail, string id)
+        {
+            try
+            {
+                var user = await _userDetailRepository.GetById(id);
+
+                if (user == null)
+                {
+                    throw new Exception("User not found");
+                }
+
+                user.FullName = userDetail.FullName;
+                user.Address = userDetail.Address;
+                user.ProfilePicture = userDetail.ProfilePicture;
+                await _userDetailRepository.Update(user);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error updating user detail: {ex.Message}");
+            }
         }
     }
 }

@@ -1,6 +1,5 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
-using Repositories;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
@@ -8,7 +7,6 @@ using Services.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Services
@@ -36,61 +34,119 @@ namespace Services
             int pageIndex,
             int pageSize)
         {
-            var dbSet = await _paymentRepository.GetDbSet();
-            var source = dbSet.AsNoTracking();
-
-            if (!string.IsNullOrEmpty(searchQuery))
+            try
             {
-                source = source.Where(p => p.PaymentMessage.ToLower().Contains(searchQuery.ToLower()));
+                var dbSet = await _paymentRepository.GetDbSet();
+                var source = dbSet.AsNoTracking();
+
+                if (!string.IsNullOrEmpty(searchQuery))
+                {
+                    source = source.Where(p => p.PaymentMessage.ToLower().Contains(searchQuery.ToLower()));
+                }
+
+                if (!string.IsNullOrEmpty(status))
+                {
+                    source = source.Where(p => p.PaymentStatus == status);
+                }
+
+                if (!string.IsNullOrEmpty(orderId))
+                {
+                    source = source.Where(p => p.OrderId == orderId);
+                }
+
+                source = sortBy switch
+                {
+                    "paymentdate_asc" => source.OrderBy(p => p.PaymentDate),
+                    "paymentdate_desc" => source.OrderByDescending(p => p.PaymentDate),
+                    "orderid_asc" => source.OrderBy(p => p.OrderId),
+                    "orderid_desc" => source.OrderByDescending(p => p.OrderId),
+                    _ => source
+                };
+
+                // Apply pagination
+                var count = source.Count();
+                var items = source.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
+
+                return new PaginatedList<Payment>(items, count, pageIndex, pageSize);
             }
-
-            if (!string.IsNullOrEmpty(status))
+            catch (Exception ex)
             {
-                source = source.Where(p => p.PaymentStatus == status);
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error retrieving paginated payments: {ex.Message}");
             }
-
-            if (!string.IsNullOrEmpty(orderId))
-            {
-                source = source.Where(p => p.OrderId == orderId);
-            }
-
-            source = sortBy switch
-            {
-                "paymentdate_asc" => source.OrderBy(p => p.PaymentDate),
-                "paymentdate_desc" => source.OrderByDescending(p => p.PaymentDate),
-                "orderid_asc" => source.OrderBy(p => p.OrderId),
-                "orderid_desc" => source.OrderByDescending(p => p.OrderId),
-                _ => source
-            };
-
-            // Apply pagination
-            var count = source.Count();
-            var items = source.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
-
-            return new PaginatedList<Payment>(items, count, pageIndex, pageSize);
         }
 
-        public async Task<Payment> GetPaymentById(string id) => await _paymentRepository.GetById(id);
+        public async Task<Payment> GetPaymentById(string id)
+        {
+            try
+            {
+                return await _paymentRepository.GetById(id);
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error retrieving payment by ID: {ex.Message}");
+            }
+        }
 
-        public async Task AddPayment(Payment payment) => await _paymentRepository.Add(payment);
+        public async Task AddPayment(Payment payment)
+        {
+            try
+            {
+                await _paymentRepository.Add(payment);
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error adding payment: {ex.Message}");
+            }
+        }
 
-        public async Task UpdatePayment(Payment payment) => await _paymentRepository.Update(payment);
+        public async Task UpdatePayment(Payment payment)
+        {
+            try
+            {
+                await _paymentRepository.Update(payment);
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error updating payment: {ex.Message}");
+            }
+        }
 
-        public async Task DeletePayment(string id) => await _paymentRepository.Delete(id);
+        public async Task DeletePayment(string id)
+        {
+            try
+            {
+                await _paymentRepository.Delete(id);
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error deleting payment: {ex.Message}");
+            }
+        }
 
         public async Task<string?> ProcessBookingPayment(string role, string orderId)
         {
-            var order = await  _orderService.GetOrderById(orderId);
-            var price = await _orderService.TotalPrice(orderId);
-            if (order == null)
+            try
             {
-                return null;
+                var order = await _orderService.GetOrderById(orderId);
+                var price = await _orderService.TotalPrice(orderId);
+                if (order == null)
+                {
+                    return null;
+                }
+
+                var paymentURL = _vnpayService.CreatePaymentUrl(price, role, order.OrderId);
+                return paymentURL;
             }
-
-            var paymentURL = _vnpayService.CreatePaymentUrl(price, role, order.OrderId);
-
-
-            return paymentURL;
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error processing booking payment: {ex.Message}");
+            }
         }
         //public async Task<ResponseModel> ProcessBookingPaymentByBalance(string orderId)
         //{

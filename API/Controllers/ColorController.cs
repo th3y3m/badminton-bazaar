@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Services;
 using Services.Interface;
+using System;
+using System.Threading.Tasks;
 
 namespace API.Controllers
 {
@@ -22,29 +23,61 @@ namespace API.Controllers
             [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 10)
         {
-            var paginatedCategories = await _colorService.GetPaginatedColors(searchQuery, sortBy, pageIndex, pageSize);
-            return Ok(paginatedCategories);
+            try
+            {
+                var paginatedCategories = await _colorService.GetPaginatedColors(searchQuery, sortBy, pageIndex, pageSize);
+                return Ok(paginatedCategories);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception as needed
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetColorById(string id)
         {
-            var color = await _colorService.GetById(id);
-            return Ok(color);
+            try
+            {
+                var color = await _colorService.GetById(id);
+                return Ok(color);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception as needed
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         [HttpPost]
         public async Task<IActionResult> AddColor([FromBody] string colorModel)
         {
-            var color = await _colorService.Add(colorModel);
-            return Ok(color);
+            try
+            {
+                var color = await _colorService.Add(colorModel);
+                return Ok(color);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception as needed
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         [HttpGet("GetColorsOfProduct/{id}")]
         public async Task<IActionResult> GetColorsOfProduct(string id)
         {
-            var colors = await _colorService.GetColorsOfProduct(id);
-            return Ok(colors);
+            try
+            {
+                var colors = await _colorService.GetColorsOfProduct(id);
+                return Ok(colors);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception as needed
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
     }
 }

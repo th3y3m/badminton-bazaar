@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Services;
 using Services.Interface;
+using System;
+using System.Threading.Tasks;
 
 namespace API.Controllers
 {
@@ -18,8 +19,15 @@ namespace API.Controllers
         [HttpGet("GetOrderDetailByOrderId/{orderId}")]
         public async Task<IActionResult> GetOrderDetailByOrderId(string orderId)
         {
-            var orderDetail = await _orderDetailService.GetOrderDetail(orderId);
-            return Ok(orderDetail);
+            try
+            {
+                var orderDetail = await _orderDetailService.GetOrderDetail(orderId);
+                return Ok(orderDetail);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
     }
 }

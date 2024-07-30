@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Services;
 using Services.Interface;
 
 namespace API.Controllers
@@ -22,29 +21,57 @@ namespace API.Controllers
             [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 10)
         {
-            var paginatedSizes = await _sizeService.GetPaginatedSizes(searchQuery, sortBy, pageIndex, pageSize);
-            return Ok(paginatedSizes);
+            try
+            {
+                var paginatedSizes = await _sizeService.GetPaginatedSizes(searchQuery, sortBy, pageIndex, pageSize);
+                return Ok(paginatedSizes);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error retrieving paginated sizes: {ex.Message}");
+            }
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetSizeById(string id)
         {
-            var size = await _sizeService.GetById(id);
-            return Ok(size);
+            try
+            {
+                var size = await _sizeService.GetById(id);
+                return Ok(size);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error retrieving size by ID: {ex.Message}");
+            }
         }
 
         [HttpPost]
         public async Task<IActionResult> AddSize([FromBody] string sizeModel)
         {
-            var size = await _sizeService.Add(sizeModel);
-            return Ok(size);
+            try
+            {
+                var size = await _sizeService.Add(sizeModel);
+                return Ok(size);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error adding size: {ex.Message}");
+            }
         }
 
         [HttpGet("GetSizesOfProduct/{id}")]
         public async Task<IActionResult> GetSizesOfProduct(string id)
         {
-            var sizes = await _sizeService.GetSizesOfProduct(id);
-            return Ok(sizes);
+            try
+            {
+                var sizes = await _sizeService.GetSizesOfProduct(id);
+                return Ok(sizes);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error retrieving sizes of product: {ex.Message}");
+            }
         }
     }
 }

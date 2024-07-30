@@ -1,11 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
 using Repositories.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Repositories
 {
@@ -20,33 +15,79 @@ namespace Repositories
 
         public async Task Add(Supplier supplier)
         {
-            _dbContext.Suppliers.Add(supplier);
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                _dbContext.Suppliers.Add(supplier);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error adding supplier: {ex.Message}");
+            }
         }
 
         public async Task Update(Supplier supplier)
         {
-            _dbContext.Suppliers.Update(supplier);
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                _dbContext.Suppliers.Update(supplier);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error updating supplier: {ex.Message}");
+            }
         }
 
-        public async Task<Supplier> GetById(string id) => await _dbContext.Suppliers.FindAsync(id);
+        public async Task<Supplier> GetById(string id)
+        {
+            try
+            {
+                return await _dbContext.Suppliers.FindAsync(id);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving supplier by ID: {ex.Message}");
+            }
+        }
 
         public async Task<List<Supplier>> GetAll()
         {
-            return await _dbContext.Suppliers.ToListAsync();
-        }
-        
-        public async Task<DbSet<Supplier>> GetDbSet()
-        {
-            return await Task.FromResult(_dbContext.Suppliers);
+            try
+            {
+                return await _dbContext.Suppliers.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving all suppliers: {ex.Message}");
+            }
         }
 
-        public async Task Delete(string id) {
-            var supplier = await GetById(id);
-            supplier.Status = false;
-            _dbContext.Suppliers.Update(supplier);
-            await _dbContext.SaveChangesAsync();
+        public async Task<DbSet<Supplier>> GetDbSet()
+        {
+            try
+            {
+                return await Task.FromResult(_dbContext.Suppliers);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving DbSet of suppliers: {ex.Message}");
+            }
+        }
+
+        public async Task Delete(string id)
+        {
+            try
+            {
+                var supplier = await GetById(id);
+                supplier.Status = false;
+                _dbContext.Suppliers.Update(supplier);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error deleting supplier: {ex.Message}");
+            }
         }
     }
 }

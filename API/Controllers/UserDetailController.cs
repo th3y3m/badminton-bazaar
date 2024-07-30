@@ -1,7 +1,5 @@
 ﻿using BusinessObjects;
 using Microsoft.AspNetCore.Mvc;
-using Services;
-using Services.Helper;
 using Services.Interface;
 using Services.Models;
 
@@ -25,22 +23,43 @@ namespace API.Controllers
             [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 10)
         {
-            var paginatedUserDetails = await _userDetailService.GetPaginatedUsers(searchQuery, sortBy, pageIndex, pageSize);
-            return Ok(paginatedUserDetails);
+            try
+            {
+                var paginatedUserDetails = await _userDetailService.GetPaginatedUsers(searchQuery, sortBy, pageIndex, pageSize);
+                return Ok(paginatedUserDetails);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error retrieving paginated user details: {ex.Message}");
+            }
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetUserDetailById(string id)
         {
-            var userDetail = await _userDetailService.GetUserById(id);
-            return Ok(userDetail);
+            try
+            {
+                var userDetail = await _userDetailService.GetUserById(id);
+                return Ok(userDetail);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error retrieving user detail by ID: {ex.Message}");
+            }
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateUserDetail([FromBody] UserDetailModel userDetail, string id)
         {
-            await _userDetailService.UpdateUserDetail(userDetail, id);
-            return Ok();
+            try
+            {
+                await _userDetailService.UpdateUserDetail(userDetail, id);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error updating user detail: {ex.Message}");
+            }
         }
     }
 }

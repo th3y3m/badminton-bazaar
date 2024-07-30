@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Services;
 using Services.Interface;
 using Services.Models;
+using System;
+using System.Threading.Tasks;
 
 namespace API.Controllers
 {
@@ -9,7 +10,6 @@ namespace API.Controllers
     [ApiController]
     public class NewsController : ControllerBase
     {
-        
         private readonly INewsService _newsService;
 
         public NewsController(INewsService newsService)
@@ -27,43 +27,85 @@ namespace API.Controllers
             [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 10)
         {
-            var paginatedeNews = await _newsService.GetPaginatedNews(searchQuery, sortBy, isHomePageBanner, isHomePageSlideShow, status, pageIndex, pageSize);
-            return Ok(paginatedeNews);
+            try
+            {
+                var paginatedeNews = await _newsService.GetPaginatedNews(searchQuery, sortBy, isHomePageBanner, isHomePageSlideShow, status, pageIndex, pageSize);
+                return Ok(paginatedeNews);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetNewsById(string id)
         {
-            var news = await _newsService.GetNewsById(id);
-            return Ok(news);
+            try
+            {
+                var news = await _newsService.GetNewsById(id);
+                return Ok(news);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         [HttpPost]
         public async Task<IActionResult> AddNews([FromBody] NewsModel newsModel)
         {
-            var news = await _newsService.AddNews(newsModel);
-            return Ok(news);
+            try
+            {
+                var news = await _newsService.AddNews(newsModel);
+                return Ok(news);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         [HttpPut]
         public async Task<IActionResult> UpdateNews([FromBody] NewsModel newsModel, [FromQuery] string id)
         {
-            var updatedNews = await _newsService.UpdateNews(id, newsModel);
-            return Ok(updatedNews);
+            try
+            {
+                var updatedNews = await _newsService.UpdateNews(id, newsModel);
+                return Ok(updatedNews);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteNews(string id)
         {
-            await _newsService.DeleteNews(id);
-            return Ok();
+            try
+            {
+                await _newsService.DeleteNews(id);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
-        
+
         [HttpPut("AddAViewUnit/{id}")]
         public async Task<IActionResult> AddAViewUnit(string id)
         {
-            await _newsService.AddAViewUnit(id);
-            return Ok();
+            try
+            {
+                await _newsService.AddAViewUnit(id);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
     }
 }

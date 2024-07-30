@@ -1,13 +1,11 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
-using Repositories;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Services
@@ -29,39 +27,53 @@ namespace Services
             int pageIndex,
             int pageSize)
         {
-            var dbSet = await _orderDetailRepository.GetDbSet();
-            var source = dbSet.AsNoTracking();
-
-            if (!string.IsNullOrEmpty(productVariantId))
+            try
             {
-                source = source.Where(p => p.ProductVariantId == productVariantId);
+                var dbSet = await _orderDetailRepository.GetDbSet();
+                var source = dbSet.AsNoTracking();
+
+                if (!string.IsNullOrEmpty(productVariantId))
+                {
+                    source = source.Where(p => p.ProductVariantId == productVariantId);
+                }
+                if (!string.IsNullOrEmpty(orderId))
+                {
+                    source = source.Where(p => p.OrderId == orderId);
+                }
+
+                source = sortBy switch
+                {
+                    "totalprice_asc" => source.OrderBy(p => p.TotalPrice()),
+                    "totalprice_desc" => source.OrderByDescending(p => p.TotalPrice()),
+                    _ => source
+                };
+
+                var count = await source.CountAsync();
+                var items = await source.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync();
+
+                return new PaginatedList<OrderDetail>(items, count, pageIndex, pageSize);
             }
-            if (!string.IsNullOrEmpty(orderId))
+            catch (Exception ex)
             {
-                source = source.Where(p => p.OrderId == orderId);
+                throw new Exception("An error occurred while retrieving paginated order details.", ex);
             }
-
-            source = sortBy switch
-            {
-                "totelprice_asc" => source.OrderBy(p => p.TotalPrice()),
-                "totalprice_desc" => source.OrderByDescending(p => p.TotalPrice()),
-                _ => source
-            };
-
-            var count = source.Count();
-            var items = source.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
-
-            return new PaginatedList<OrderDetail>(items, count, pageIndex, pageSize);
         }
 
         public async Task<List<OrderDetail>> GetOrderDetail(string orderId)
         {
-            var dbSet = await _orderDetailRepository.GetDbSet();
-            var source = dbSet.AsNoTracking();
+            try
+            {
+                var dbSet = await _orderDetailRepository.GetDbSet();
+                var source = dbSet.AsNoTracking();
 
-            source = source.Where(p => p.OrderId == orderId);
+                source = source.Where(p => p.OrderId == orderId);
 
-            return await source.ToListAsync();
+                return await source.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while retrieving order details by order ID.", ex);
+            }
         }
     }
 }

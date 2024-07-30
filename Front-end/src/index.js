@@ -13,37 +13,41 @@ import { AuthProvider } from "./AuthContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { BrowserRouter } from "react-router-dom";
 import RouterCustom from './router';
+import store from './redux/store';
+import { Provider } from 'react-redux'
 
 
 
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <React.StrictMode>
-    <ToastContainer
-      position="top-right"
-      autoClose={5000}
-      hideProgressBar={false}
-      newestOnTop={false}
-      closeOnClick
-      rtl={false}
-      pauseOnFocusLoss
-      draggable
-      pauseOnHover
-      theme="light"
-    />
+  <Provider store={store}>
+    <React.StrictMode>
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
 
-    <BrowserRouter>
-      <GoogleOAuthProvider clienId="333628503460-h7f0nupbv8c3u8e548tj6f9ruioj8jso.apps.googleusercontent.com">
-        <AuthProvider>
-          <RouterCustom />
-        </AuthProvider>
-      </GoogleOAuthProvider>
+      <BrowserRouter>
+        <GoogleOAuthProvider clienId="333628503460-h7f0nupbv8c3u8e548tj6f9ruioj8jso.apps.googleusercontent.com">
+          <AuthProvider>
+            <RouterCustom />
+          </AuthProvider>
+        </GoogleOAuthProvider>
 
-    </BrowserRouter>
+      </BrowserRouter>
 
 
-  </React.StrictMode>
+    </React.StrictMode>
+  </Provider>
 );
 
 // If you want to start measuring performance in your app, pass a function

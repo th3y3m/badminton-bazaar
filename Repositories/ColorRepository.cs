@@ -3,8 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Repositories
@@ -20,33 +18,91 @@ namespace Repositories
 
         public async Task Add(Color color)
         {
-            _dbContext.Colors.Add(color);
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                _dbContext.Colors.Add(color);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Handle or log the exception as needed
+                throw new Exception("An error occurred while adding the color.", ex);
+            }
         }
 
         public async Task Update(Color color)
         {
-            _dbContext.Colors.Update(color);
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                _dbContext.Colors.Update(color);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Handle or log the exception as needed
+                throw new Exception("An error occurred while updating the color.", ex);
+            }
         }
 
-        public async Task<Color> GetById(string id) => await _dbContext.Colors.FindAsync(id);
+        public async Task<Color> GetById(string id)
+        {
+            try
+            {
+                return await _dbContext.Colors.FindAsync(id);
+            }
+            catch (Exception ex)
+            {
+                // Handle or log the exception as needed
+                throw new Exception("An error occurred while retrieving the color by ID.", ex);
+            }
+        }
 
         public async Task<List<Color>> GetAll()
         {
-            return await _dbContext.Colors.ToListAsync();
+            try
+            {
+                return await _dbContext.Colors.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                // Handle or log the exception as needed
+                throw new Exception("An error occurred while retrieving all colors.", ex);
+            }
         }
 
         public async Task<DbSet<Color>> GetDbSet()
         {
-            return await Task.FromResult(_dbContext.Colors);
+            try
+            {
+                return await Task.FromResult(_dbContext.Colors);
+            }
+            catch (Exception ex)
+            {
+                // Handle or log the exception as needed
+                throw new Exception("An error occurred while retrieving the DbSet of colors.", ex);
+            }
         }
 
         public async Task Delete(string id)
         {
-            var color = await GetById(id);
-            _dbContext.Colors.Remove(color);
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                var color = await GetById(id);
+                if (color != null)
+                {
+                    _dbContext.Colors.Remove(color);
+                    await _dbContext.SaveChangesAsync();
+                }
+                else
+                {
+                    throw new Exception("Color not found.");
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle or log the exception as needed
+                throw new Exception("An error occurred while deleting the color.", ex);
+            }
         }
     }
 }

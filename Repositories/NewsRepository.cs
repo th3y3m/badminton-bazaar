@@ -3,8 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Repositories
@@ -20,33 +18,86 @@ namespace Repositories
 
         public async Task Add(News news)
         {
-            _dbContext.News.Add(news);
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                _dbContext.News.Add(news);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while adding the news.", ex);
+            }
         }
 
         public async Task Update(News news)
         {
-            _dbContext.News.Update(news);
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                _dbContext.News.Update(news);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while updating the news.", ex);
+            }
         }
 
-        public async Task<News> GetById(string id) => await _dbContext.News.FindAsync(id);
+        public async Task<News> GetById(string id)
+        {
+            try
+            {
+                return await _dbContext.News.FindAsync(id);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while retrieving the news by ID.", ex);
+            }
+        }
 
         public async Task<List<News>> GetAll()
         {
-            return await _dbContext.News.ToListAsync();
+            try
+            {
+                return await _dbContext.News.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while retrieving all news.", ex);
+            }
         }
+
         public async Task<DbSet<News>> GetDbSet()
         {
-            return await Task.FromResult(_dbContext.News);
+            try
+            {
+                return await Task.FromResult(_dbContext.News);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while retrieving the DbSet of news.", ex);
+            }
         }
 
         public async Task Delete(string id)
         {
-            var news = await GetById(id);
-            news.Status = false;
-            _dbContext.News.Update(news);
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                var news = await GetById(id);
+                if (news != null)
+                {
+                    news.Status = false;
+                    _dbContext.News.Update(news);
+                    await _dbContext.SaveChangesAsync();
+                }
+                else
+                {
+                    throw new Exception("News not found.");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while deleting the news.", ex);
+            }
         }
     }
 }

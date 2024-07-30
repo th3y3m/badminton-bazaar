@@ -3,8 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Repositories
@@ -20,33 +18,85 @@ namespace Repositories
 
         public async Task Add(Payment payment)
         {
-            _dbContext.Payments.Add(payment);
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                _dbContext.Payments.Add(payment);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error adding payment: {ex.Message}");
+            }
         }
 
         public async Task Update(Payment payment)
         {
-            _dbContext.Payments.Update(payment);
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                _dbContext.Payments.Update(payment);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error updating payment: {ex.Message}");
+            }
         }
 
-        public async Task<Payment> GetById(string id) => await _dbContext.Payments.FindAsync(id);
+        public async Task<Payment> GetById(string id)
+        {
+            try
+            {
+                return await _dbContext.Payments.FindAsync(id);
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error retrieving payment by ID: {ex.Message}");
+            }
+        }
 
         public async Task<List<Payment>> GetAll()
         {
-            return await _dbContext.Payments.ToListAsync();
+            try
+            {
+                return await _dbContext.Payments.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error retrieving all payments: {ex.Message}");
+            }
         }
+
         public async Task<DbSet<Payment>> GetDbSet()
         {
-            return await Task.FromResult(_dbContext.Payments);
+            try
+            {
+                return await Task.FromResult(_dbContext.Payments);
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error retrieving payment DbSet: {ex.Message}");
+            }
         }
 
         public async Task Delete(string id)
         {
-            var payment = await GetById(id);
-            payment.PaymentStatus = "Cancelled";
-            _dbContext.Payments.Update(payment);
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                var payment = await GetById(id);
+                payment.PaymentStatus = "Cancelled";
+                _dbContext.Payments.Update(payment);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error deleting payment: {ex.Message}");
+            }
         }
     }
 }

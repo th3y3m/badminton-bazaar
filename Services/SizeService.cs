@@ -1,15 +1,9 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
-using Repositories;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Services
 {
@@ -26,53 +20,95 @@ namespace Services
 
         public async Task<List<SizeModel>> GetSizesOfProduct(string productId)
         {
-            var allProduct = await _productVariantRepository.GetAll();
-            var productVariants = allProduct.Where(p => p.ProductId == productId).ToList();
-            var sizeIds = productVariants.Select(p => p.SizeId).ToList();
-            var allSizes = await GetAll();
-            var sizes = allSizes.Where(p => sizeIds.Contains(p.SizeId)).ToList();
-            var sizeModels = new List<SizeModel>();
-            foreach (var size in sizes)
+            try
             {
-                var sizeModel = new SizeModel
+                var allProduct = await _productVariantRepository.GetAll();
+                var productVariants = allProduct.Where(p => p.ProductId == productId).ToList();
+                var sizeIds = productVariants.Select(p => p.SizeId).ToList();
+                var allSizes = await GetAll();
+                var sizes = allSizes.Where(p => sizeIds.Contains(p.SizeId)).ToList();
+                var sizeModels = new List<SizeModel>();
+                foreach (var size in sizes)
                 {
-                    SizeId = size.SizeId,
-                    SizeName = size.SizeName
-                };
-                sizeModels.Add(sizeModel);
+                    var sizeModel = new SizeModel
+                    {
+                        SizeId = size.SizeId,
+                        SizeName = size.SizeName
+                    };
+                    sizeModels.Add(sizeModel);
+                }
+                return sizeModels;
             }
-            return sizeModels;
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving sizes of product: {ex.Message}");
+            }
         }
 
         public async Task<Size> Add(string sizeName)
         {
-            var size = new Size
+            try
             {
-                SizeId = "SZ" + GenerateId.GenerateRandomId(5),
-                SizeName = sizeName
-            };
-            await _sizeRepository.Add(size);
-            return size;
+                var size = new Size
+                {
+                    SizeId = "SZ" + GenerateId.GenerateRandomId(5),
+                    SizeName = sizeName
+                };
+                await _sizeRepository.Add(size);
+                return size;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error adding size: {ex.Message}");
+            }
         }
 
         public async Task Update(Size size)
         {
-            await _sizeRepository.Update(size);
+            try
+            {
+                await _sizeRepository.Update(size);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error updating size: {ex.Message}");
+            }
         }
 
         public async Task<Size> GetById(string id)
         {
-            return await _sizeRepository.GetById(id);
+            try
+            {
+                return await _sizeRepository.GetById(id);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving size by ID: {ex.Message}");
+            }
         }
 
         public async Task<List<Size>> GetAll()
         {
-            return await _sizeRepository.GetAll();
+            try
+            {
+                return await _sizeRepository.GetAll();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving all sizes: {ex.Message}");
+            }
         }
 
         public async Task Delete(string id)
         {
-            await _sizeRepository.Delete(id);
+            try
+            {
+                await _sizeRepository.Delete(id);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error deleting size: {ex.Message}");
+            }
         }
 
         public async Task<PaginatedList<Size>> GetPaginatedSizes(
@@ -81,27 +117,32 @@ namespace Services
             int pageIndex,
             int pageSize)
         {
-            var dbSet = await _sizeRepository.GetDbSet();
-            var source = dbSet.AsNoTracking();
-
-            if (!string.IsNullOrEmpty(searchQuery))
+            try
             {
-                source = source.Where(p => p.SizeName.ToLower().Contains(searchQuery.ToLower()));
+                var dbSet = await _sizeRepository.GetDbSet();
+                var source = dbSet.AsNoTracking();
+
+                if (!string.IsNullOrEmpty(searchQuery))
+                {
+                    source = source.Where(p => p.SizeName.ToLower().Contains(searchQuery.ToLower()));
+                }
+
+                source = sortBy switch
+                {
+                    "size_asc" => source.OrderBy(p => p.SizeName),
+                    "size_desc" => source.OrderByDescending(p => p.SizeName),
+                    _ => source
+                };
+
+                var count = source.Count();
+                var items = source.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
+
+                return new PaginatedList<Size>(items, count, pageIndex, pageSize);
             }
-
-            source = sortBy switch
+            catch (Exception ex)
             {
-                "size_asc" => source.OrderBy(p => p.SizeName),
-                "size_desc" => source.OrderByDescending(p => p.SizeName),
-                _ => source
-            };
-
-            var count = source.Count();
-            var items = source.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
-
-            return new PaginatedList<Size>(items, count, pageIndex, pageSize);
+                throw new Exception($"Error retrieving paginated sizes: {ex.Message}");
+            }
         }
-
-
     }
 }

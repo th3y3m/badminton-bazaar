@@ -15,6 +15,20 @@ export const fetchNews = createAsyncThunk(
         return response.data;
     }
 );
+export const fetchSlideNews = createAsyncThunk(
+    'news/fetchSlideNews',
+    async (params, thunkAPI) => {
+        const response = await fetchPaginatedNews(params);
+        return response.data;
+    }
+);
+export const fetchBannerNews = createAsyncThunk(
+    'news/fetchBannerNews',
+    async (params, thunkAPI) => {
+        const response = await fetchPaginatedNews(params);
+        return response.data;
+    }
+);
 
 export const fetchSingleNews = createAsyncThunk(
     'news/fetchNewsById',
@@ -51,6 +65,8 @@ export const removeNews = createAsyncThunk(
 // Initial state
 const initialState = {
     news: [],
+    newsSlide: [],
+    banners: [],
     singleNews: null,
     status: 'idle',
     error: null
@@ -71,6 +87,28 @@ const newsSlice = createSlice({
                 state.news = action.payload;
             })
             .addCase(fetchNews.rejected, (state, action) => {
+                state.status = 'failed';
+                state.error = action.error.message;
+            })
+            .addCase(fetchSlideNews.pending, (state) => {
+                state.status = 'loading';
+            })
+            .addCase(fetchSlideNews.fulfilled, (state, action) => {
+                state.status = 'succeeded';
+                state.newsSlide = action.payload;
+            })
+            .addCase(fetchSlideNews.rejected, (state, action) => {
+                state.status = 'failed';
+                state.error = action.error.message;
+            })
+            .addCase(fetchBannerNews.pending, (state) => {
+                state.status = 'loading';
+            })
+            .addCase(fetchBannerNews.fulfilled, (state, action) => {
+                state.status = 'succeeded';
+                state.banners = action.payload;
+            })
+            .addCase(fetchBannerNews.rejected, (state, action) => {
                 state.status = 'failed';
                 state.error = action.error.message;
             })

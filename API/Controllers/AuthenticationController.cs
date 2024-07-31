@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Repositories;
 using Services;
 using Services.Helper;
+using Services.Interface;
 using Services.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
@@ -17,11 +18,11 @@ namespace API.Controllers
     {
         private readonly UserManager<IdentityUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
-        private readonly UserService _userService;
+        private readonly IUserService _userService;
         //private readonly MailService _mailService;
-        private readonly UserDetailService _userDetailService;
+        private readonly IUserDetailService _userDetailService;
 
-        public AuthenticationController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, UserService userService, UserDetailService userDetailService)
+        public AuthenticationController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, IUserService userService, IUserDetailService userDetailService)
         {
             _userManager = userManager;
             _roleManager = roleManager;

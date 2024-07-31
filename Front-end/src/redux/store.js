@@ -13,7 +13,7 @@ import reviewReducer from './slice/reviewSlice'
 import supplierReducer from './slice/supplierSlice'
 import userDetailReducer from './slice/userDetailSlice'
 
-export const store = configureStore({
+const store = configureStore({
   reducer: {
     product: productReducer,
     category: categoryReducer,
@@ -29,4 +29,6 @@ export const store = configureStore({
     review: reviewReducer,
     supplier: supplierReducer,
   },
-})
+});
+
+export default store;

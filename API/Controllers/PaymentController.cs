@@ -20,9 +20,9 @@ namespace API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetPaginatedSizePayments(
+        public async Task<IActionResult> GetPaginatedPayments(
             [FromQuery] string? searchQuery = "",
-            [FromQuery] string? sortBy = "size_asc",
+            [FromQuery] string? sortBy = "paymentdate_asc",
             [FromQuery] string? status = "",
             [FromQuery] string? orderId = "",
             [FromQuery] int pageIndex = 1,

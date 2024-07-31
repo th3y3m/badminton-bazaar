@@ -5,9 +5,18 @@ import { fetchPaginatedNews } from '../../api/newsAxios';
 import Product from '../Product/Product';
 import News from '../News/News';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 
 const HomePage = () => {
     
+    const dispatch = useDispatch();
+    const productsList = useSelector((state) => state.product.products);
+    const productsListStatus = useSelector((state) => state.product.status);
+    const productsListError = useSelector((state) => state.product.error);
+
+
+
+
     const [topSellers, setTopSellers] = useState([]);
     const [banners, setBanners] = useState([]);
     const [rackets, setRackets] = useState([]);

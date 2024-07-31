@@ -1,18 +1,18 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import {
-    fetchPayments,
     deletePayment,
     generatePaymentToken,
     processPayment,
-    processBalancePayment,
-    fetchPaymentById
+    // processBalancePayment,
+    fetchPaymentById,
+    fetchPaginatedPayments
 } from '../../api/paymentAxios';
 
 // Define async thunks
 export const fetchAllPayments = createAsyncThunk(
     'payments/fetchPayments',
     async ({ pageNumber, pageSize }, thunkAPI) => {
-        const response = await fetchPayments(pageNumber, pageSize);
+        const response = await fetchPaginatedPayments(pageNumber, pageSize);
         return response;
     }
 );
@@ -41,13 +41,13 @@ export const executePayment = createAsyncThunk(
     }
 );
 
-export const executeBalancePayment = createAsyncThunk(
-    'payments/processBalancePayment',
-    async (token, thunkAPI) => {
-        const response = await processBalancePayment(token);
-        return response;
-    }
-);
+// export const executeBalancePayment = createAsyncThunk(
+//     'payments/processBalancePayment',
+//     async (token, thunkAPI) => {
+//         const response = await processBalancePayment(token);
+//         return response;
+//     }
+// );
 
 export const fetchPaymentDetails = createAsyncThunk(
     'payments/fetchPaymentById',
@@ -117,17 +117,17 @@ const paymentSlice = createSlice({
                 state.status = 'failed';
                 state.error = action.error.message;
             })
-            .addCase(executeBalancePayment.pending, (state) => {
-                state.status = 'loading';
-            })
-            .addCase(executeBalancePayment.fulfilled, (state, action) => {
-                state.status = 'succeeded';
-                state.balancePaymentResult = action.payload;
-            })
-            .addCase(executeBalancePayment.rejected, (state, action) => {
-                state.status = 'failed';
-                state.error = action.error.message;
-            })
+            // .addCase(executeBalancePayment.pending, (state) => {
+            //     state.status = 'loading';
+            // })
+            // .addCase(executeBalancePayment.fulfilled, (state, action) => {
+            //     state.status = 'succeeded';
+            //     state.balancePaymentResult = action.payload;
+            // })
+            // .addCase(executeBalancePayment.rejected, (state, action) => {
+            //     state.status = 'failed';
+            //     state.error = action.error.message;
+            // })
             .addCase(fetchPaymentDetails.pending, (state) => {
                 state.status = 'loading';
             })

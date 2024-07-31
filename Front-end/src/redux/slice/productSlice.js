@@ -17,6 +17,13 @@ export const fetchProducts = createAsyncThunk(
         return response.data;
     }
 );
+export const fetchRackets = createAsyncThunk(
+    'products/fetchRackets',
+    async (params, thunkAPI) => {
+        const response = await fetchPaginatedProducts(params);
+        return response.items;
+    }
+);
 
 export const fetchProduct = createAsyncThunk(
     'products/fetchProductById',
@@ -54,7 +61,7 @@ export const fetchTopSeller = createAsyncThunk(
     'products/getTopSeller',
     async (num, thunkAPI) => {
         const response = await getTopSeller(num);
-        return response.data;
+        return response;
     }
 );
 
@@ -69,6 +76,7 @@ export const fetchProductRemaining = createAsyncThunk(
 // Initial state
 const initialState = {
     products: [],
+    rackets: [],
     product: null,
     topSellers: [],
     productRemaining: null,
@@ -91,6 +99,17 @@ const productSlice = createSlice({
                 state.products = action.payload;
             })
             .addCase(fetchProducts.rejected, (state, action) => {
+                state.status = 'failed';
+                state.error = action.error.message;
+            })
+            .addCase(fetchRackets.pending, (state) => {
+                state.status = 'loading';
+            })
+            .addCase(fetchRackets.fulfilled, (state, action) => {
+                state.status = 'succeeded';
+                state.rackets = action.payload;
+            })
+            .addCase(fetchRackets.rejected, (state, action) => {
                 state.status = 'failed';
                 state.error = action.error.message;
             })

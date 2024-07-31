@@ -12,21 +12,21 @@ export const fetchNews = createAsyncThunk(
     'news/fetchPaginatedNews',
     async (params, thunkAPI) => {
         const response = await fetchPaginatedNews(params);
-        return response.data;
+        return response.items;
     }
 );
 export const fetchSlideNews = createAsyncThunk(
     'news/fetchSlideNews',
     async (params, thunkAPI) => {
         const response = await fetchPaginatedNews(params);
-        return response.data;
+        return response.items;
     }
 );
 export const fetchBannerNews = createAsyncThunk(
     'news/fetchBannerNews',
     async (params, thunkAPI) => {
         const response = await fetchPaginatedNews(params);
-        return response.data;
+        return response.items;
     }
 );
 

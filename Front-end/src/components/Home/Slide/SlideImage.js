@@ -7,49 +7,48 @@ import { fetchSlideNews } from "../../../redux/slice/newsSlice";
 
 
 const SlideImage = () => {
-    const [slideNews, setSlideNews] = useState([]);
+    // const [slideNews, setSlideNews] = useState([]);
 
-    // const dispatch = useDispatch();
-    // const slideNews = useSelector((state) => state.news.newsSlide);
-    // const slideNewsStatus = useSelector((state) => state.news.status);
-    // const slideNewsError = useSelector((state) => state.news.error);
-    // console.log(slideNews);
+    const dispatch = useDispatch();
+    const slideNews = useSelector((state) => state.news.newsSlide);
+    const slideNewsStatus = useSelector((state) => state.news.status);
+    const slideNewsError = useSelector((state) => state.news.error);
     
     useEffect(() => {
-        // dispatch(fetchSlideNews({
-        //     status: true,
-        //     isHomePageSlideShow: true,
-        //     isHomePageBanner: false,
-        //     pageIndex: 1,
-        //     pageSize: 10
-        // }));
+        dispatch(fetchSlideNews({
+            status: true,
+            isHomePageSlideShow: true,
+            isHomePageBanner: false,
+            pageIndex: 1,
+            pageSize: 10
+        }));
 
-        const getSlideImage = async () => {
-            try {
-                const data = await fetchPaginatedNews({
-                    status: true,
-                    isHomePageSlideShow: true,
-                    isHomePageBanner: false,
-                    pageIndex: 1,
-                    pageSize: 10
-                });
-                setSlideNews(data.items);
-            } catch (error) {
-                console.error("Error fetching slide images:", error);
-            }
-        };
-        getSlideImage();
+        // const getSlideImage = async () => {
+        //     try {
+        //         const data = await fetchPaginatedNews({
+        //             status: true,
+        //             isHomePageSlideShow: true,
+        //             isHomePageBanner: false,
+        //             pageIndex: 1,
+        //             pageSize: 10
+        //         });
+        //         setSlideNews(data.items);
+        //     } catch (error) {
+        //         console.error("Error fetching slide images:", error);
+        //     }
+        // };
+        // getSlideImage();
     }, []);
 
 
-    // if (slideNewsStatus === 'failed') {
-    //     return <div>Error: {slideNewsError}</div>
+    if (slideNewsStatus === 'failed') {
+        return <div>Error: {slideNewsError}</div>
         
-    // }
+    }
 
-    // if (slideNewsStatus === 'loading') {
-    //     return <div>Loading...</div>
-    // }
+    if (slideNewsStatus === 'loading') {
+        return <div>Loading...</div>
+    }
 
     return (
         <div className="slide-container">

@@ -38,15 +38,12 @@ root.render(
       />
 
       <BrowserRouter>
-        <GoogleOAuthProvider clienId="333628503460-h7f0nupbv8c3u8e548tj6f9ruioj8jso.apps.googleusercontent.com">
+        {/* <GoogleOAuthProvider clienId="333628503460-h7f0nupbv8c3u8e548tj6f9ruioj8jso.apps.googleusercontent.com"> */}
           <AuthProvider>
             <RouterCustom />
           </AuthProvider>
-        </GoogleOAuthProvider>
-
+        {/* </GoogleOAuthProvider> */}
       </BrowserRouter>
-
-
     </React.StrictMode>
   </Provider>
 );

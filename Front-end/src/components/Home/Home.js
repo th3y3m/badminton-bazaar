@@ -6,78 +6,39 @@ import Product from '../Product/Product';
 import News from '../News/News';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { fetchBannerNews, fetchNews } from '../../redux/slice/newsSlice';
+import { fetchRackets, fetchTopSeller } from '../../redux/slice/productSlice';
 
 const HomePage = () => {
-    
+
     const dispatch = useDispatch();
-    const productsList = useSelector((state) => state.product.products);
-    const productsListStatus = useSelector((state) => state.product.status);
-    const productsListError = useSelector((state) => state.product.error);
 
+    const topSellerList = useSelector((state) => state.product.topSellers);
+    const topSellerListStatus = useSelector((state) => state.product.status);
+    const topSellerListError = useSelector((state) => state.product.error);
 
+    const bannerList = useSelector((state) => state.news.banners);
+    const bannerListStatus = useSelector((state) => state.news.status);
+    const bannerListError = useSelector((state) => state.news.error);
 
+    const racketList = useSelector((state) => state.product.rackets);
+    const racketListStatus = useSelector((state) => state.product.status);
+    const racketListError = useSelector((state) => state.product.error);
 
-    const [topSellers, setTopSellers] = useState([]);
-    const [banners, setBanners] = useState([]);
-    const [rackets, setRackets] = useState([]);
-    const [news, setNews] = useState([]);
+    const newsList = useSelector((state) => state.news.news);
+    const newsListStatus = useSelector((state) => state.news.status);
+    const newsListError = useSelector((state) => state.news.error);
+
     const [productRemaining, setProductRemaining] = useState({});
     const navigate = useNavigate();
 
-    const getBanners = async () => {
+    const getTopSellerProduct = async () => {
         try {
-            const data = await fetchPaginatedNews({
-                status: true,
-                isHomePageSlideShow: false,
-                isHomePageBanner: true,
-                pageIndex: 1,
-                pageSize: 10
-            });
-            setBanners(data.items);
-        } catch (error) {
-            console.error("Error fetching banners:", error);
-        }
-    }
-
-    const getNews = async () => {
-        try {
-            const data = await fetchPaginatedNews({
-                status: true,
-                isHomePageSlideShow: false,
-                isHomePageBanner: false,
-                pageIndex: 1,
-                pageSize: 10
-            });
-            setNews(data.items);
-        } catch (error) {
-            console.error("Error fetching banners:", error);
-        }
-    }
-
-    const getRackets = async () => {
-        try {
-            const data = await fetchPaginatedProducts({
-                sortBy: "name_asc",
-                status: true,
-                categoryId: "C001",
-                pageIndex: 1,
-                pageSize: 10
-            });
-            setRackets(data.items);
-        } catch (error) {
-            console.error("Error fetching banners:", error);
-        }
-    }
-
-    const getTopSellerProduct = async (n) => {
-        try {
-            const data = await getTopSeller(n);
-            setTopSellers(data);
-
             // Fetch the remaining products count for each top seller product
             const remainingCounts = await Promise.all(
-                data.map(async (product) => {
+                topSellerList.map(async (product) => {
                     const count = await fetchProductRemaining(product.productId);
+                    console.log(count);
                     return { productId: product.productId, count };
                 })
             );
@@ -96,10 +57,29 @@ const HomePage = () => {
     }
 
     useEffect(() => {
-        getTopSellerProduct(10);
-        getBanners();
-        getRackets();
-        getNews();
+        dispatch(fetchBannerNews({
+            status: true,
+            isHomePageSlideShow: false,
+            isHomePageBanner: true,
+            pageIndex: 1,
+            pageSize: 10
+        }));
+        dispatch(fetchNews({
+            status: true,
+            isHomePageSlideShow: false,
+            isHomePageBanner: false,
+            pageIndex: 1,
+            pageSize: 10
+        }));
+        dispatch(fetchRackets({
+            sortBy: "name_asc",
+            status: true,
+            categoryId: "C001",
+            pageIndex: 1,
+            pageSize: 10
+        }));
+        dispatch(fetchTopSeller(10));
+        getTopSellerProduct();
     }, []);
 
     return (
@@ -118,12 +98,21 @@ const HomePage = () => {
                     <div className="col-span-1">
                         <div className="bg-white p-4 shadow-md rounded-lg">
                             <h2 className="text-xl font-bold mb-4">HOT DEALS</h2>
-                            {topSellers.length > 0 && (
-                                <div key={topSellers[0].productId} className="mb-4 cursor-pointer" onClick={() => navigate(`/product-details/${topSellers[0].productId}`)}>
-                                    <img src={topSellers[0].imageUrl} alt={topSellers[0].productName} className="w-full" />
-                                    <h3 className="text-lg font-semibold mt-2">{topSellers[0].productName}</h3>
-                                    <p className="text-red-600 font-bold text-2xl">{topSellers[0].basePrice} $</p>
-                                    <p className="text-gray-600">Remain {productRemaining[topSellers[0].productId] || 0}</p>
+
+                            {topSellerListStatus === 'failed' && (
+                                <div>Error: {topSellerListError}</div>
+                            )}
+
+                            {topSellerListStatus === 'loading' && (
+                                <div>Loading...</div>
+                            )}
+
+                            {topSellerList.length > 0 && (
+                                <div key={topSellerList[0].productId} className="mb-4 cursor-pointer" onClick={() => navigate(`/product-details/${topSellerList[0].productId}`)}>
+                                    <img src={topSellerList[0].imageUrl} alt={topSellerList[0].productName} className="w-full" />
+                                    <h3 className="text-lg font-semibold mt-2">{topSellerList[0].productName}</h3>
+                                    <p className="text-red-600 font-bold text-2xl">{topSellerList[0].basePrice} $</p>
+                                    <p className="text-gray-600">Remain {productRemaining[topSellerList[0].productId] || 0}</p>
                                 </div>
                             )}
                         </div>
@@ -134,8 +123,15 @@ const HomePage = () => {
                         <div className="bg-white p-4 shadow-md rounded-lg">
                             <h2 className="text-xl font-bold mb-4">TOP SELLERS</h2>
                             <ul>
-                                {topSellers.length > 0 && topSellers.slice(1, 4).map((product) => (
-                                    <li key={product.productId} className="flex items-center justify-between border-b border-gray-200 py-2 cursor-pointer" onClick={() => navigate(`/product-details/${topSellers[0].productId}`)}>
+                                {topSellerListStatus === 'failed' && (
+                                    <div>Error: {topSellerListError}</div>
+                                )}
+
+                                {topSellerListStatus === 'loading' && (
+                                    <div>Loading...</div>
+                                )}
+                                {topSellerList.length > 0 && topSellerList.slice(1, 4).map((product) => (
+                                    <li key={product.productId} className="flex items-center justify-between border-b border-gray-200 py-2 cursor-pointer" onClick={() => navigate(`/product-details/${topSellerList[0].productId}`)}>
                                         <div className="flex items-center">
                                             <img src={product.imageUrl} alt={product.productName} className="w-16" />
                                             <div className="ml-4">
@@ -154,13 +150,27 @@ const HomePage = () => {
                 </div>
 
                 <div className='banner1 flex justify-center'>
-                    {banners.length > 0 && <img src={banners[0].image} alt="banner1" />}
+                    {bannerListStatus === 'failed' && (
+                        <div>Error: {bannerListError}</div>
+                    )}
+
+                    {bannerListStatus === 'loading' && (
+                        <div>Loading...</div>
+                    )}
+                    {bannerList.length > 0 && <img src={bannerList[0].image} alt="banner1" />}
                 </div>
 
                 <div className='topsell my-6'>
                     <p className='bg-[#f5f5f5] border-t-2 border-t-[#ed3b05]'>BEST SELLER</p>
-                    {topSellers.length > 0 && <div className='clothes grid grid-cols-5 gap-1'>
-                        {topSellers.slice(0, 11).map((product) => (
+                    {topSellerListStatus === 'failed' && (
+                        <div>Error: {topSellerListError}</div>
+                    )}
+
+                    {topSellerListStatus === 'loading' && (
+                        <div>Loading...</div>
+                    )}
+                    {topSellerList.length > 0 && <div className='clothes grid grid-cols-5 gap-1'>
+                        {topSellerList.slice(0, 11).map((product) => (
                             <div key={product.productId} className="col-span-1 flex flex-col items-center justify-center w-64 h-96 bg-white rounded-lg shadow-md">
                                 <Product product={product} />
                             </div>
@@ -170,9 +180,15 @@ const HomePage = () => {
 
                 <div className='racket my-6'>
                     <p className='bg-[#f5f5f5] border-t-2 border-t-[#ed3b05]'>RACKETS</p>
+                    {racketListStatus === 'failed' && (
+                        <div>Error: {racketListError}</div>
+                    )}
 
-                    {rackets.length > 0 && <div className='clothes grid grid-cols-5 gap-1'>
-                        {rackets.slice(0, 11).map((product) => (
+                    {racketListStatus === 'loading' && (
+                        <div>Loading...</div>
+                    )}
+                    {racketList && <div className='clothes grid grid-cols-5 gap-1'>
+                        {racketList.slice(0, 11).map((product) => (
                             <div key={product.productId} className="col-span-1 flex flex-col items-center justify-center w-64 h-96 bg-white rounded-lg shadow-md">
                                 <Product product={product} />
                             </div>
@@ -181,12 +197,26 @@ const HomePage = () => {
                 </div>
 
                 <div className='banner2 flex justify-center'>
-                    {banners.length > 0 && <img src={banners[1].image} alt="banner1" />}
+                    {bannerListStatus === 'failed' && (
+                        <div>Error: {bannerListError}</div>
+                    )}
+
+                    {bannerListStatus === 'loading' && (
+                        <div>Loading...</div>
+                    )}
+                    {bannerList.length > 0 && <img src={bannerList[1].image} alt="banner1" />}
                 </div>
                 <div className='news my-6'>
                     <p className='bg-[#f5f5f5] border-t-2 border-t-[#ed3b05]'>News</p>
-                    {news.length > 0 && <div className='clothes grid grid-cols-5 gap-1'>
-                        {news.slice(0, 5).map((news) => (
+                    {newsListStatus === 'failed' && (
+                        <div>Error: {newsListError}</div>
+                    )}
+
+                    {newsListStatus === 'loading' && (
+                        <div>Loading...</div>
+                    )}
+                    {newsList.length > 0 && <div className='clothes grid grid-cols-5 gap-1'>
+                        {newsList.slice(0, 5).map((news) => (
                             <div key={news.newId}>
                                 <News news={news} />
                             </div>

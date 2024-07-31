@@ -25,7 +25,6 @@ const fetchPaginatedProducts = async (params) => {
     if (categoryId) queryParams.append('categoryId', categoryId);
     if (pageIndex) queryParams.append('pageIndex', pageIndex);
     if (pageSize) queryParams.append('pageSize', pageSize);
-    console.log(`Product?${queryParams.toString()}`);
     return axios.get(`Product?${queryParams.toString()}`);
 };
 

@@ -7,6 +7,7 @@ import News from '../News/News';
 import { useNavigate } from 'react-router-dom';
 
 const HomePage = () => {
+    
     const [topSellers, setTopSellers] = useState([]);
     const [banners, setBanners] = useState([]);
     const [rackets, setRackets] = useState([]);

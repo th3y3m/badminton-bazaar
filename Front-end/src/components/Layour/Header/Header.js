@@ -1,61 +1,64 @@
 import React, { useContext, useEffect } from 'react';
 import logo from './logo1.png';
-import { AuthContext } from '../../../AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { numberOfItemsInCart } from '../../../api/cartAxios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCartShopping } from '@fortawesome/free-solid-svg-icons';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchLogoutApi } from '../../../redux/slice/authSlice';
 
 const Header = () => {
-  const { user, logout, cartCount, setCartCount } = useContext(AuthContext);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const userToken = useSelector((state) => state.auth.token);
+  console.log('userToken: ', userToken);
 
   const handleLogout = () => {
-    logout();
-    navigate('/');
-    toast.success('Logout successfully');
+    dispatch(fetchLogoutApi()).then(() => {
+      navigate('/');
+    });
   };
 
   const handleCart = () => {
     navigate('/cart');
   };
 
-  const fetchCart = async (userId) => {
-    try {
-      const data = await numberOfItemsInCart(userId);
-      setCartCount(data);
-    } catch (error) {
-      console.error("Error fetching products:", error);
-    }
-  };
+  // const fetchCart = async (userId) => {
+  //   try {
+  //     const data = await numberOfItemsInCart(userId);
+  //     setCartCount(data);
+  //   } catch (error) {
+  //     console.error("Error fetching products:", error);
+  //   }
+  // };
 
-  useEffect(() => {
-    if (user) {
-      fetchCart(user.userId);
-    }
-  }, [user]);
+  // useEffect(() => {
+  //   if (user) {
+  //     fetchCart(user.userId);
+  //   }
+  // }, [user]);
 
   return (
     <header className="bg-white border-b-4 border-orange-500 relative">
       <div className="max-w-7xl mx-auto flex justify-between items-center py-2">
-        
+
         <div className="text-3xl font-bold text-red-600">
-          <img src={logo} alt="Logo" className="h-32 mr-2 inline cursor-pointer" onClick={() => navigate("/")}/> {/* Increase logo size here */}
+          <img src={logo} alt="Logo" className="h-32 mr-2 inline cursor-pointer" onClick={() => navigate("/")} /> {/* Increase logo size here */}
         </div>
         <div className="flex items-center">
           <div className="relative">
             <button className="text-orange-600 text-2xl" onClick={handleCart}>
               <FontAwesomeIcon icon={faCartShopping} />
               <div className='absolute top-2 right-8'>
-                <span className="bg-orange-600 text-white text-sm rounded-full h-5 w-5 flex items-center justify-center">{user ? cartCount : 0}</span>
+                <span className="bg-orange-600 text-white text-sm rounded-full h-5 w-5 flex items-center justify-center">99</span>
               </div>
             </button>
           </div>
           <div className="relative ml-8">
-            {user ? (
+            {userToken ? (
               <div className="flex items-center">
-                <span className="text-sm">Hello, {user.name}</span>
+                <span className="text-sm">Hello</span>
                 <button onClick={handleLogout} className="text-red-500 ml-2">Logout</button>
               </div>
             ) : (

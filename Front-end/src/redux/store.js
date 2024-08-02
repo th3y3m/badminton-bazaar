@@ -12,9 +12,11 @@ import productVariantReducer from './slice/productVariantSlice'
 import reviewReducer from './slice/reviewSlice'
 import supplierReducer from './slice/supplierSlice'
 import userDetailReducer from './slice/userDetailSlice'
+import authReducer from './slice/authSlice'
 
 const store = configureStore({
   reducer: {
+    auth: authReducer,
     product: productReducer,
     category: categoryReducer,
     order: orderReducer,

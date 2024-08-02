@@ -75,6 +75,7 @@ namespace API.Controllers
                             //BanList.BannedUsers.Add(ip);
                             user.LockoutEnabled = false;
                         }
+                        await _userManager.UpdateAsync(user);
                     }
                 }
                 catch (Exception ex)

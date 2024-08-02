@@ -8,10 +8,14 @@ import Login from './components/Login/Login';
 import { Route, Router } from 'react-router-dom';
 import { Switch } from '@mui/material';
 import Register from './components/Register/Register';
+import { useSelector } from 'react-redux';
+
 
 function App() {
 
-  const user = useContext(AuthContext);
+  const user = useSelector((state) => state.auth.account);
+
+  console.log('user: ', user);
 
   return (
     <div className="App">

@@ -13,6 +13,8 @@ const HomePage = () => {
 
     const dispatch = useDispatch();
 
+    const user = useSelector((state) => state.auth.account);
+
     const topSellerList = useSelector((state) => state.product.topSellers);
     const topSellerListStatus = useSelector((state) => state.product.status);
     const topSellerListError = useSelector((state) => state.product.error);

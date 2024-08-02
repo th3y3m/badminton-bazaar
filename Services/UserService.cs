@@ -72,6 +72,18 @@ namespace Services
             }
         }
 
+        public async void UpdateUser(IdentityUser user)
+        {
+            try
+            {
+                await _userRepository.Update(user);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error updating user: {ex.Message}");
+            }
+        }
+
         public async Task<IdentityUser> AddUser(IdentityUser user)
         {
             try

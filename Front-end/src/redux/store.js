@@ -13,6 +13,7 @@ import reviewReducer from './slice/reviewSlice'
 import supplierReducer from './slice/supplierSlice'
 import userDetailReducer from './slice/userDetailSlice'
 import authReducer from './slice/authSlice'
+import cartReducer from './slice/cartSlice'
 
 const store = configureStore({
   reducer: {
@@ -30,6 +31,7 @@ const store = configureStore({
     productVariant: productVariantReducer,
     review: reviewReducer,
     supplier: supplierReducer,
+    cart: cartReducer,
   },
 });
 

@@ -12,7 +12,8 @@ export const fetchAllProductVariants = createAsyncThunk(
     'productVariants/fetchPaginatedProductVariants',
     async (params, thunkAPI) => {
         const response = await fetchPaginatedProductVariants(params);
-        return response.data;
+        console.log(response);
+        return response.items;
     }
 );
 
@@ -20,7 +21,7 @@ export const fetchProductVariant = createAsyncThunk(
     'productVariants/fetchProductVariantById',
     async (id, thunkAPI) => {
         const response = await fetchProductVariantById(id);
-        return response.data;
+        return response;
     }
 );
 
@@ -28,7 +29,7 @@ export const createProductVariant = createAsyncThunk(
     'productVariants/addProductVariant',
     async (productVariantModel, thunkAPI) => {
         const response = await addProductVariant(productVariantModel);
-        return response.data;
+        return response;
     }
 );
 
@@ -36,7 +37,7 @@ export const modifyProductVariant = createAsyncThunk(
     'productVariants/updateProductVariant',
     async ({ productVariantModel, id }, thunkAPI) => {
         const response = await updateProductVariant(productVariantModel, id);
-        return response.data;
+        return response;
     }
 );
 
@@ -44,14 +45,14 @@ export const removeProductVariant = createAsyncThunk(
     'productVariants/deleteProductVariantById',
     async (id, thunkAPI) => {
         const response = await deleteProductVariantById(id);
-        return response.data;
+        return response;
     }
 );
 
 // Initial state
 const initialState = {
     productVariants: [],
-    productVariantDetail: null,
+    productVariantDetail: {},
     status: 'idle',
     error: null
 };

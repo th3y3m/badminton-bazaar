@@ -51,7 +51,7 @@ namespace API.Controllers
         }
 
         [HttpGet("GetCart")]
-        public IActionResult GetCart([FromQuery] string userId)
+        public IActionResult GetCart([FromQuery] string userId = "")
         {
             try
             {
@@ -61,13 +61,8 @@ namespace API.Controllers
                     return StatusCode(500, "HttpContext is null");
                 }
 
-                var session = httpContext.Session;
-                var cart = session.GetObjectFromJson<List<CartItem>>("Cart");
-                if (cart == null)
-                {
-                    cart = _cartService.GetCart(userId);
-                    session.SetObjectAsJson("Cart", cart);
-                }
+                var cart = _cartService.GetCart(userId);
+                
                 return Ok(cart);
             }
             catch (Exception ex)

@@ -3,16 +3,20 @@ import { removeFromCart, deleteUnitItem, saveCartToCookie } from "../../api/cart
 import { fetchProductVariantById } from '../../api/productVariantAxios';
 import { fetchProductById } from '../../api/productAxios';
 import { AuthContext } from '../../AuthContext';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 
 const ProductRow = (cartItem) => {
-    const { user } = useContext(AuthContext);
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+
+    const user = useSelector((state) => state.auth.token);
+
     const { cartCount, setCartCount } = useContext(AuthContext);
     const [productVariant, setProductVariant] = useState({});
     const [quantity, setQuantity] = useState(cartItem.quantity);
     const [product, setProduct] = useState({});
-    
-    
-    
+
     const handleRemove = () => {
         removeFromCart(cartItem.itemId, user.userId);
         cartItem.updateCart();
@@ -23,11 +27,11 @@ const ProductRow = (cartItem) => {
                 setQuantity(prevQuantity => prevQuantity - 1);
                 setCartCount(prevQuantity => prevQuantity - 1);
                 cartItem.updateCart();
-                cartItem.onQuantityChange(); // Trigger recalculation of total price
+                cartItem.onQuantityChange();
             });
         }
     };
-    
+
     const handleAddOne = () => {
         saveCartToCookie(cartItem.itemId, cartItem.userId).then(() => {
             setQuantity(prevQuantity => prevQuantity + 1);
@@ -63,7 +67,7 @@ const ProductRow = (cartItem) => {
         };
         getProductVariant();
         console.log(productVariant);
-    }, [cartItem.itemId, ]);
+    }, [cartItem.itemId,]);
 
     return (
         <div className="grid grid-cols-7 flex-col items-center justify-center w-full h-96 bg-white rounded-lg shadow-md">

@@ -7,12 +7,16 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCartShopping } from '@fortawesome/free-solid-svg-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchLogoutApi } from '../../../redux/slice/authSlice';
+import { fetchNumberOfItems } from '../../../redux/slice/cartSlice';
 
 const Header = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const userToken = useSelector((state) => state.auth.token);
-  console.log('userToken: ', userToken);
+  const user = useSelector((state) => state.auth.token);
+
+  const numberOfItemsInCart = useSelector((state) => state.cart.itemsCount);
+  const numberOfItemsInCartStatus = useSelector((state) => state.cart.itemsCount);
+  const numberOfItemsInCartError = useSelector((state) => state.cart.itemsCount);
 
   const handleLogout = () => {
     dispatch(fetchLogoutApi()).then(() => {
@@ -23,21 +27,10 @@ const Header = () => {
   const handleCart = () => {
     navigate('/cart');
   };
+  useEffect(() => {
 
-  // const fetchCart = async (userId) => {
-  //   try {
-  //     const data = await numberOfItemsInCart(userId);
-  //     setCartCount(data);
-  //   } catch (error) {
-  //     console.error("Error fetching products:", error);
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   if (user) {
-  //     fetchCart(user.userId);
-  //   }
-  // }, [user]);
+    dispatch(fetchNumberOfItems(user?.id || ""));
+  }, [dispatch, user?.id]);
 
   return (
     <header className="bg-white border-b-4 border-orange-500 relative">
@@ -51,14 +44,13 @@ const Header = () => {
             <button className="text-orange-600 text-2xl" onClick={handleCart}>
               <FontAwesomeIcon icon={faCartShopping} />
               <div className='absolute top-2 right-8'>
-                <span className="bg-orange-600 text-white text-sm rounded-full h-5 w-5 flex items-center justify-center">99</span>
+                <span className="bg-orange-600 text-white text-sm rounded-full h-5 w-5 flex items-center justify-center">{numberOfItemsInCart}</span>
               </div>
             </button>
           </div>
           <div className="relative ml-8">
-            {userToken ? (
+            {(user && user.token) ? (
               <div className="flex items-center">
-                <span className="text-sm">Hello</span>
                 <button onClick={handleLogout} className="text-red-500 ml-2">Logout</button>
               </div>
             ) : (

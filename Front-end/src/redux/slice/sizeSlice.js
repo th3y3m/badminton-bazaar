@@ -11,7 +11,7 @@ export const fetchAllSizes = createAsyncThunk(
     'sizes/fetchPaginatedSizes',
     async (params, thunkAPI) => {
         const response = await fetchPaginatedSizes(params);
-        return response.data;
+        return response;
     }
 );
 
@@ -19,7 +19,7 @@ export const fetchSizesForProduct = createAsyncThunk(
     'sizes/fetchSizesOfProduct',
     async (productId, thunkAPI) => {
         const response = await fetchSizesOfProduct(productId);
-        return response.data;
+        return response;
     }
 );
 
@@ -27,7 +27,7 @@ export const fetchSize = createAsyncThunk(
     'sizes/fetchSizeById',
     async (id, thunkAPI) => {
         const response = await fetchSizeById(id);
-        return response.data;
+        return response;
     }
 );
 
@@ -42,7 +42,7 @@ export const createSize = createAsyncThunk(
 // Initial state
 const initialState = {
     sizes: [],
-    sizeDetail: null,
+    sizeDetail: {},
     status: 'idle',
     error: null
 };

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import SlideImage from './Slide/SlideImage'; // Ensure this is your path to SlideImage component
-import { getTopSeller, numOfProductRemaining as fetchProductRemaining, fetchPaginatedProducts } from '../../api/productAxios';
-import { fetchPaginatedNews } from '../../api/newsAxios';
+import SlideImage from './Slide/SlideImage';
+import { numOfProductRemaining as fetchProductRemaining } from '../../api/productAxios';
 import Product from '../Product/Product';
 import News from '../News/News';
 import { useNavigate } from 'react-router-dom';
@@ -13,7 +12,7 @@ const HomePage = () => {
 
     const dispatch = useDispatch();
 
-    const user = useSelector((state) => state.auth.account);
+    const user = useSelector((state) => state.auth.token);
 
     const topSellerList = useSelector((state) => state.product.topSellers);
     const topSellerListStatus = useSelector((state) => state.product.status);
@@ -34,29 +33,29 @@ const HomePage = () => {
     const [productRemaining, setProductRemaining] = useState({});
     const navigate = useNavigate();
 
-    const getTopSellerProduct = async () => {
-        try {
-            // Fetch the remaining products count for each top seller product
-            const remainingCounts = await Promise.all(
-                topSellerList.map(async (product) => {
-                    const count = await fetchProductRemaining(product.productId);
-                    console.log(count);
-                    return { productId: product.productId, count };
-                })
-            );
+    useEffect(() => {
+        const getTopSellerProduct = async () => {
+            try {
+                const remainingCounts = await Promise.all(
+                    topSellerList.map(async (product) => {
+                        const count = await fetchProductRemaining(product.productId);
+                        return { productId: product.productId, count };
+                    })
+                );
 
-            // Create a mapping of productId to remaining count
-            const remainingCountMap = remainingCounts.reduce((acc, { productId, count }) => {
-                acc[productId] = count;
-                return acc;
-            }, {});
+                const remainingCountMap = remainingCounts.reduce((acc, { productId, count }) => {
+                    acc[productId] = count;
+                    return acc;
+                }, {});
 
-            setProductRemaining(remainingCountMap);
-
-        } catch (error) {
-            console.error("Error fetching top seller:", error);
+                console.log("Remaining count map:", remainingCountMap);
+                setProductRemaining(remainingCountMap);
+            } catch (error) {
+                console.error("Error fetching top seller:", error);
+            }
         }
-    }
+        getTopSellerProduct();
+    }, [topSellerList]);
 
     useEffect(() => {
         dispatch(fetchBannerNews({
@@ -81,8 +80,8 @@ const HomePage = () => {
             pageSize: 10
         }));
         dispatch(fetchTopSeller(10));
-        getTopSellerProduct();
-    }, []);
+        // getTopSellerProduct();
+    }, [dispatch]);
 
     return (
         <div>

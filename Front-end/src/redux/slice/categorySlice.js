@@ -12,7 +12,7 @@ export const fetchCategories = createAsyncThunk(
     'categories/fetchPaginatedCategories',
     async (params, thunkAPI) => {
         const response = await fetchPaginatedCategories(params);
-        return response.data;
+        return response;
     }
 );
 
@@ -20,7 +20,7 @@ export const fetchSingleCategory = createAsyncThunk(
     'categories/fetchCategoryById',
     async (id, thunkAPI) => {
         const response = await fetchCategoryById(id);
-        return response.data;
+        return response;
     }
 );
 
@@ -28,7 +28,7 @@ export const createCategory = createAsyncThunk(
     'categories/addCategory',
     async (categoryModel, thunkAPI) => {
         const response = await addCategory(categoryModel);
-        return response.data;
+        return response;
     }
 );
 
@@ -36,7 +36,7 @@ export const modifyCategory = createAsyncThunk(
     'categories/updateCategory',
     async ({ categoryModel, categoryId }, thunkAPI) => {
         const response = await updateCategory(categoryModel, categoryId);
-        return response.data;
+        return response;
     }
 );
 
@@ -44,14 +44,14 @@ export const removeCategory = createAsyncThunk(
     'categories/deleteCategoryById',
     async (id, thunkAPI) => {
         const response = await deleteCategoryById(id);
-        return response.data;
+        return response;
     }
 );
 
 // Initial state
 const initialState = {
     categories: [],
-    singleCategory: null,
+    singleCategory: {},
     status: 'idle',
     error: null
 };

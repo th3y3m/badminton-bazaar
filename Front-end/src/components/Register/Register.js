@@ -18,8 +18,10 @@ const Register = () => {
             return;
         }
 
+
+
         let res = await registerApi({ email, name, password, confirmPassword });
-        
+
     }
 
 

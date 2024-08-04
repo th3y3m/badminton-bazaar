@@ -73,11 +73,9 @@ export const fetchLogoutApi = createAsyncThunk(
     }
 );
 
-
-
 // Initial state for auth slice
 const initialState = {
-    token: '',
+    token: JSON.parse(localStorage.getItem('authToken')) || {},
     status: "idle",
     error: null,
 };
@@ -89,25 +87,29 @@ const authSlice = createSlice({
     extraReducers: (builder) => {
         builder
             .addCase(fetchLoginApi.pending, (state) => {
-                state.status = "loading";;
+                state.status = "loading";
                 state.error = null;
             })
             .addCase(fetchLoginApi.fulfilled, (state, action) => {
-                state.loading = "succeeded";
+                state.status = "succeeded";
                 state.token = action.payload;
+                // Save the token to localStorage
+                localStorage.setItem('authToken', JSON.stringify(action.payload));
             })
             .addCase(fetchLoginApi.rejected, (state, action) => {
-                state.loading = "failed";
+                state.status = "failed";
                 state.error = action.error.message;
             })
             .addCase(fetchLogoutApi.pending, (state) => {
-                state.status = "loading";;
+                state.status = "loading";
                 state.error = null;
             })
             .addCase(fetchLogoutApi.fulfilled, (state) => {
                 state.status = "succeeded";
-                state.token = null;
+                state.token = {};
                 state.error = null;
+                // Clear the token from localStorage
+                localStorage.removeItem('authToken');
             })
             .addCase(fetchLogoutApi.rejected, (state, action) => {
                 state.status = "failed";

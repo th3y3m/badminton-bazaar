@@ -1,58 +1,53 @@
 import { useEffect, useState } from "react";
-import { fetchPaginatedProducts } from "../../api/productAxios";
 import Product from "./Product";
 import ReactPaginate from 'react-paginate';
 import Slider from '@mui/material/Slider';
-import { useNavigate } from "react-router-dom";
-
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchProducts } from "../../redux/slice/productSlice";
 
 const ProductPage = () => {
-    const [products, setProducts] = useState([]);
+    const dispatch = useDispatch();
+
+    const products = useSelector((state) => state.product.products);
+    const productsStatus = useSelector((state) => state.product.status);
+    const productsError = useSelector((state) => state.product.error);
+
+    // const [products, setProducts] = useState([]);
     const [category, setCategory] = useState(null);
     const [sort, setSort] = useState("name_asc");
     const [value, setValue] = useState([0, 500]);
-    const [totalProduct, setTotalProduct] = useState(0);
     const [totalPage, setTotalPage] = useState(0);
-    const [currentPage, setCurrentPage] = useState(1); // Added state for current page
-    const navigate = useNavigate();
-
+    const [currentPage, setCurrentPage] = useState(1);
 
     const handlePageClick = (data) => {
-        let selectedPage = data.selected + 1; // ReactPaginate is zero-indexed
+        let selectedPage = data.selected + 1;
         setCurrentPage(selectedPage);
     }
     const handleChange = (event, newValue) => {
-        setValue(newValue); // newValue is an array [minPrice, maxPrice]
+        setValue(newValue);
     };
     function valuetext(value) {
         return `$${value[0]} - $${value[1]}`;
     }
     useEffect(() => {
-        const getProduct = async () => {
-            try {
-                const data = await fetchPaginatedProducts({
-                    start: value[0] || null,
-                    end: value[1] || null,
-                    searchQuery: "",
-                    sortBy: sort || "name_asc",
-                    status: true,
-                    supplierId: "",
-                    categoryId: category,
-                    pageIndex: currentPage,
-                    pageSize: 12
-                });
+        dispatch(fetchProducts({
+            start: value[0] || null,
+            end: value[1] || null,
+            searchQuery: "",
+            sortBy: sort || "name_asc",
+            status: true,
+            supplierId: "",
+            categoryId: category,
+            pageIndex: currentPage,
+            pageSize: 12
+        }));
+    }, [dispatch, value, sort, category, currentPage]);
 
-                setProducts(data.items || []);
-                setTotalProduct(data.totalCount || 0);
-                setTotalPage(data.totalPages || 0);
-
-            } catch (error) {
-                console.error("Error fetching products:", error);
-                setProducts([]);
-            }
-        };
-        getProduct();
-    }, [category, sort, currentPage, value]);
+    useEffect(() => {
+        if (products && products.totalPages) {
+            setTotalPage(products.totalPages);
+        }
+    }, [products]);
 
     return (
         <div className="container mx-auto">
@@ -117,36 +112,47 @@ const ProductPage = () => {
                             </select>
                         </div>
                     </div>
-                    <div className="grid grid-cols-4 gap-4 mt-4">
-                        {products.length > 0 && products.map((product) => (
-                            <div key={product.productId} className="border border-gray-300 p-2" 
-                            onClick={() => navigate(`/product/${product.productId}`)}
-                            >
-                                <Product product={product} />
+                    <div>
+                        {productsStatus === 'failed' && (
+                            <div>Error: {productsError}</div>
+                        )}
+
+                        {productsStatus === 'loading' && (
+                            <div>Loading...</div>
+                        )}
+
+                        {productsStatus === 'succeeded' && <div>
+                            <div className="grid grid-cols-4 gap-4 mt-4">
+                                {products && products.items && products.items.length > 0 && products.items.map((product) => (
+                                    <div key={product.productId} className="border border-gray-300 p-2"
+                                    >
+                                        <Product product={product} />
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
 
-                    <div className="flex justify-center">
-                        <ReactPaginate
-                            breakLabel="..."
-                            nextLabel="next >"
-                            onPageChange={handlePageClick}
-                            pageRangeDisplayed={3}
-                            pageCount={totalPage}
-                            previousLabel="< previous"
+                            <div className="flex justify-center">
+                                <ReactPaginate
+                                    breakLabel="..."
+                                    nextLabel="next >"
+                                    onPageChange={handlePageClick}
+                                    pageRangeDisplayed={3}
+                                    pageCount={totalPage}
+                                    previousLabel="< previous"
+                                    pageClassName="page-item"
+                                    pageLinkClassName="page-link inline-block py-2 px-3 leading-tight bg-white border border-gray-300 text-blue-700 hover:bg-gray-200"
+                                    previousClassName="page-item"
+                                    previousLinkClassName="page-link inline-block py-2 px-3 leading-tight bg-white border border-gray-300 text-blue-700 hover:bg-gray-200"
+                                    nextClassName="page-item"
+                                    nextLinkClassName="page-link inline-block py-2 px-3 leading-tight bg-white border border-gray-300 text-blue-700 hover:bg-gray-200"
+                                    breakClassName="page-item"
+                                    breakLinkClassName="page-link inline-block py-2 px-3 leading-tight bg-white border border-gray-300 text-blue-700 hover:bg-gray-200"
+                                    containerClassName="pagination flex list-none space-x-2"
+                                    activeClassName="active bg-blue-500 text-white"
+                                />
 
-                            pageClassName="page-item"
-                            pageLinkClassName="page-link inline-block py-2 px-3 leading-tight bg-white border border-gray-300 text-blue-700 hover:bg-gray-200"
-                            previousClassName="page-item"
-                            previousLinkClassName="page-link inline-block py-2 px-3 leading-tight bg-white border border-gray-300 text-blue-700 hover:bg-gray-200"
-                            nextClassName="page-item"
-                            nextLinkClassName="page-link inline-block py-2 px-3 leading-tight bg-white border border-gray-300 text-blue-700 hover:bg-gray-200"
-                            breakClassName="page-item"
-                            breakLinkClassName="page-link inline-block py-2 px-3 leading-tight bg-white border border-gray-300 text-blue-700 hover:bg-gray-200"
-                            containerClassName="pagination flex list-none space-x-2"
-                            activeClassName="active bg-blue-500 text-white"
-                        />
+                            </div>
+                        </div>}
                     </div>
                 </div>
             </div>

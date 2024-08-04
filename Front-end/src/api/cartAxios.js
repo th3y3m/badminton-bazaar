@@ -11,8 +11,20 @@ const deleteUnitItem = async (productId, userId) => {
     return await axios.post(`Cart/DeleteUnitItem?productId=${productId}&userId=${userId}`);
 };
 
-const getCart = async (userId) => {
-    return await axios.get(`Cart/GetCart?userId=${userId}`);
+const getCart = async (id) => {
+    try {
+        if (id) {
+            const response = await axios.get(`Cart/GetCart?userId=${id}`);
+            return response;
+        }
+        else {
+            const response = await axios.get(`Cart/GetCart`);
+            return response;
+        }
+    } catch (error) {
+        console.error("Error fetching cart:", error);
+        throw error;
+    }
 };
 
 // const saveCart = async (userId) => {

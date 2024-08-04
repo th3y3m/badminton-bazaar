@@ -14,7 +14,8 @@ export const fetchProducts = createAsyncThunk(
     'products/fetchPaginatedProducts',
     async (params, thunkAPI) => {
         const response = await fetchPaginatedProducts(params);
-        return response.data;
+        console.log(response);
+        return response;
     }
 );
 export const fetchRackets = createAsyncThunk(
@@ -28,8 +29,11 @@ export const fetchRackets = createAsyncThunk(
 export const fetchProduct = createAsyncThunk(
     'products/fetchProductById',
     async (id, thunkAPI) => {
+        console.log(id);
+
         const response = await fetchProductById(id);
-        return response.data;
+        console.log(response);
+        return response;
     }
 );
 
@@ -77,7 +81,7 @@ export const fetchProductRemaining = createAsyncThunk(
 const initialState = {
     products: [],
     rackets: [],
-    product: null,
+    product: {},
     topSellers: [],
     productRemaining: null,
     status: 'idle',

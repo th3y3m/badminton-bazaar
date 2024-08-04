@@ -13,7 +13,7 @@ const SlideImage = () => {
     const slideNews = useSelector((state) => state.news.newsSlide);
     const slideNewsStatus = useSelector((state) => state.news.status);
     const slideNewsError = useSelector((state) => state.news.error);
-    
+
     useEffect(() => {
         dispatch(fetchSlideNews({
             status: true,
@@ -41,18 +41,25 @@ const SlideImage = () => {
     }, []);
 
 
-    if (slideNewsStatus === 'failed') {
-        return <div>Error: {slideNewsError}</div>
-        
-    }
+    // if (slideNewsStatus === 'failed') {
+    //     return <div>Error: {slideNewsError}</div>
 
-    if (slideNewsStatus === 'loading') {
-        return <div>Loading...</div>
-    }
+    // }
+
+    // if (slideNewsStatus === 'loading') {
+    //     return <div>Loading...</div>
+    // }
 
     return (
         <div className="slide-container">
-            <Fade duration={5000} transitionDuration={500}>
+            {slideNewsStatus === 'failed' && (
+                <div>Error: {slideNewsError}</div>
+            )}
+
+            {slideNewsStatus === 'loading' && (
+                <div>Loading...</div>
+            )}
+            {slideNewsStatus === 'succeeded' && <Fade duration={5000} transitionDuration={500}>
                 {slideNews.map((fadeImage, index) => (
                     <div key={index}>
                         <img
@@ -62,7 +69,7 @@ const SlideImage = () => {
                         />
                     </div>
                 ))}
-            </Fade>
+            </Fade>}
         </div>
     );
 };

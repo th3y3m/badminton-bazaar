@@ -1,48 +1,54 @@
 import { useContext, useEffect, useState } from 'react';
-import { getCart } from "../../api/cartAxios";
 import { AuthContext } from '../../AuthContext'
 import ProductRow from './ProductRow'; // Assuming the path
 import { useNavigate } from 'react-router-dom';
-import { createOrder } from '../../api/orderAxios';
-
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchCart } from '../../redux/slice/cartSlice';
 
 const CartPage = () => {
-    const [cartItems, setCartItems] = useState([]);
-    const [totalPrice, setTotalPrice] = useState(0);
-    const { user, cartCount } = useContext(AuthContext);
+    const dispatch = useDispatch();
     const navigate = useNavigate();
 
-    const getCartDetails = async (userId) => {
-        try {
-            const data = await getCart(userId);
-            setCartItems(data);
-            // Calculate total price here after fetching cart items
-            const total = data.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0);
-            setTotalPrice(total);
-        } catch (error) {
-            console.error("Error fetching products:", error);
+    const user = useSelector((state) => state.auth.token);
+
+    const cartItems = useSelector((state) => state.cart.cart);
+    const cartItemsStatus = useSelector((state) => state.cart.status);
+    const cartItemsError = useSelector((state) => state.cart.error);
+
+    const [totalPrice, setTotalPrice] = useState(0);
+
+    useEffect(() => {
+        if (user?.id) {
+            console.log("Fetching cart for user:", user.id);
+            dispatch(fetchCart(user.id)).catch(error => {
+                console.error("Error fetching cart:", error);
+            });
         }
-    }
-    const handleUpdateCart = () => {
-        getCartDetails(user.userId);
-    };
+    }, [dispatch, user?.id]);
+
+    useEffect(() => {
+        const total = cartItems.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0);
+        setTotalPrice(total);
+    }, [cartItems]);
 
     const handlePlaceOrders = () => {
-        createOrder(user.userId);
         navigate('/orders');
     };
 
+    if (cartItemsStatus === 'loading') {
+        return <div>Loading...</div>;
+    }
 
-    useEffect(() => {
-        if (user) {
-            getCartDetails(user.userId);
-        }
-    }, [cartCount]);
+    if (cartItemsStatus === 'failed') {
+        return <div>Error: {cartItemsError}</div>;
+    }
 
     return (
         <div className='container mx-auto'>
             <h1 className='text-center my-16 text-4xl'>Cart Details</h1>
-            {cartItems.length === 0 ? <p>Your Cart is Empty</p> : (
+            {cartItems && cartItems.length === 0 ? (
+                <p>Your Cart is Empty</p>
+            ) : (
                 <div>
                     <div>
                         <div className="grid grid-cols-7 flex-col justify-center w-full bg-gray-400 rounded-lg shadow-md p-4 gap-4">
@@ -66,7 +72,8 @@ const CartPage = () => {
                             </div>
                         </div>
                         {cartItems.map((item) => (
-                            <ProductRow key={item.itemId} {...item} updateCart={handleUpdateCart} onQuantityChange={handleUpdateCart} />                        ))}
+                            <ProductRow key={item.itemId} {...item} />
+                        ))}
                     </div>
                     <div className="flex my-6 justify-end">
                         <p>Total price: <strong className="text-red-600">{totalPrice} $</strong></p>

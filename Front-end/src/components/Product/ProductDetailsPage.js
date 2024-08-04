@@ -1,93 +1,106 @@
-import { fetchCategoryById } from "../../api/categoryAxios";
-import { fetchSupplierById } from "../../api/supplierAxios";
-import { fetchPaginatedProductVariants } from "../../api/productVariantAxios";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faInfo } from '@fortawesome/free-solid-svg-icons';
-import { fetchColorsOfProduct } from "../../api/colorAxios";
-import { fetchSizesOfProduct } from "../../api/sizeAxios";
-import { addToCart, numberOfItemsInCart, saveCartToCookie } from "../../api/cartAxios";
-import { useContext, useEffect, useState } from "react";
-import { AuthContext } from "../../AuthContext";
+import { saveCartToCookie } from "../../api/cartAxios";
+import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { fetchProductById } from "../../api/productAxios";
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchProduct } from "../../redux/slice/productSlice";
+import { fetchColorsByProduct, fetchSingleColor } from "../../redux/slice/colorSlice";
+import { fetchSize, fetchSizesForProduct } from "../../redux/slice/sizeSlice";
+import { fetchSingleCategory } from "../../redux/slice/categorySlice";
+import { fetchSupplier } from "../../redux/slice/supplierSlice";
+import { fetchAllProductVariants, fetchProductVariant } from "../../redux/slice/productVariantSlice";
+import { fetchNumberOfItems } from "../../redux/slice/cartSlice";
 
 const ProductDetailsPage = () => {
-
     const { id: productId } = useParams();
-    const { user, setCartCount, cartCount } = useContext(AuthContext);
+    const dispatch = useDispatch();
     const navigate = useNavigate();
-    const [category, setCategory] = useState({});
-    const [supplier, setSupplier] = useState({});
-    const [sizeOfProduct, setSizeOfProduct] = useState([]);
-    const [selectedSize, setSelectedSize] = useState({});
-    const [colorOfProduct, setColorOfProduct] = useState([]);
-    const [selectedColor, setSelectedColor] = useState({});
-    const [productVariant, setProductVariant] = useState({});
-    const [product, setProduct] = useState({});
+    const user = useSelector((state) => state.auth.token);
 
-    const getProductById = async () => {
-        try {
-            const data = await fetchProductById(productId);
-            setProduct(data);
-            console.log("Product: ", data);
-        } catch (error) {
-            console.error("Error fetching product:", error);
-        }
-    };
+    const product = useSelector((state) => state.product.product);
+    const productStatus = useSelector((state) => state.product.status);
+    const productError = useSelector((state) => state.product.error);
+
+    const sizeOfProduct = useSelector((state) => state.size.sizes);
+    const sizeOfProductStatus = useSelector((state) => state.size.status);
+    const sizeOfProductError = useSelector((state) => state.size.error);
+    const selectedSize = useSelector((state) => state.size.sizeDetail);
+
+    const colorOfProduct = useSelector((state) => state.color.colors);
+    const colorOfProductStatus = useSelector((state) => state.color.status);
+    const colorOfProductError = useSelector((state) => state.color.error);
+    const selectedColor = useSelector((state) => state.color.singleColor);
+
+    const category = useSelector((state) => state.category.singleCategory);
+    const categoryStatus = useSelector((state) => state.category.status);
+    const categoryError = useSelector((state) => state.category.error);
+
+    const supplier = useSelector((state) => state.supplier.supplierDetail);
+    const supplierStatus = useSelector((state) => state.supplier.status);
+    const supplierError = useSelector((state) => state.supplier.error);
+
+    const productVariants = useSelector((state) => state.productVariant.productVariants);
+    const productVariantStatus = useSelector((state) => state.productVariant.status);
+    const productVariantError = useSelector((state) => state.productVariant.error);
+    const productVariant = useSelector((state) => state.productVariant.productVariantDetail);
+
 
     const handleAddCart = () => {
-        if (user) {
-          saveCartToCookie(productVariant.productVariantId, user.userId)
-            .then(() => {
-              // Update the cart count
-              setCartCount(cartCount + 1);
-
-              toast.success("Added to cart successfully");
-            })
-            .catch((error) => {
-              console.error("Error adding to cart:", error);
-              toast.error("Error adding to cart");
-            });
+        if (user && user.id) {
+            saveCartToCookie(productVariant.productVariantId, user.id)
+                .then(() => {
+                    dispatch(fetchNumberOfItems(user.id)); // Dispatch here after adding to cart
+                    toast.success("Added to cart successfully");
+                })
+                .catch((error) => {
+                    console.error("Error adding to cart:", error);
+                    toast.error("Error adding to cart");
+                });
         } else {
-          toast.error('Please login first', {
-            position: "top-right",
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-            theme: "colored",
-          });
-          navigate('/login');
-        }
-      };
-      
-
-    const getColorsOfProduct = async () => {
-        try {
-            const data = await fetchColorsOfProduct(productId);
-            setSelectedColor(data[0]);
-            setColorOfProduct(data);
-        } catch (error) {
-            console.error("Error fetching colors:", error);
+            toast.error('Please login first', {
+                position: "top-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "colored",
+            });
+            navigate('/login');
         }
     };
 
-    const getSizeOfProduct = async () => {
-        try {
-            const data = await fetchSizesOfProduct(productId);
-            setSelectedSize(data[0]);
-            setSizeOfProduct(data);
-        } catch (error) {
-            console.error("Error fetching sizes:", error);
-        }
-    };
+    useEffect(() => {
+        dispatch(fetchProduct(productId));
+    }, [productId, dispatch]);
 
-    const getProductVariant = async () => {
-        try {
-            const data = await fetchPaginatedProductVariants({
+    useEffect(() => {
+        if (product.productId) {
+            dispatch(fetchColorsByProduct(product.productId));
+            dispatch(fetchSizesForProduct(product.productId));
+            dispatch(fetchSingleCategory(product.categoryId));
+            dispatch(fetchSupplier(product.supplierId));
+        }
+    }, [product, dispatch]);
+
+    useEffect(() => {
+        if (colorOfProduct.length > 0) {
+            dispatch(fetchSingleColor(colorOfProduct[0].colorId));
+        }
+    }, [colorOfProduct, dispatch]);
+
+    useEffect(() => {
+        if (sizeOfProduct.length > 0) {
+            dispatch(fetchSize(sizeOfProduct[0].sizeId));
+        }
+    }, [sizeOfProduct, dispatch]);
+
+    useEffect(() => {
+        if (selectedSize.sizeId || selectedColor.colorId) {
+            dispatch(fetchAllProductVariants({
                 sortBy: "price_asc",
                 status: true,
                 colorId: selectedColor.colorId || "",
@@ -95,51 +108,24 @@ const ProductDetailsPage = () => {
                 productId: productId,
                 pageIndex: 1,
                 pageSize: 20
-            });
-            setProductVariant(data.items[0]);
-        } catch (error) {
-            console.error("Error fetching variant:", error);
+            }));
         }
-    };
-
-    const fetchCategory = async () => {
-        try {
-            const data = await fetchCategoryById(product.categoryId);
-            setCategory(data);
-        } catch (error) {
-            console.error("Error fetching category:", error);
-        }
-    };
-
-    const fetchSupplier = async () => {
-        try {
-            const data = await fetchSupplierById(product.supplierId); // fixed the parameter from product.categoryId to product.supplierId
-            setSupplier(data);
-        } catch (error) {
-            console.error("Error fetching supplier:", error);
-        }
-    };
+    }, [selectedSize, selectedColor, dispatch, productId]);
 
     useEffect(() => {
-        getProductById();
-    }, [productId]);
-
-    useEffect(() => {
-        if (product.productId) {
-            getColorsOfProduct();
-            getSizeOfProduct();
-            fetchCategory();
-            fetchSupplier();
+        if (productVariants.length > 0) {
+            dispatch(fetchProductVariant(productVariants[0].productVariantId));
         }
-        console.log("Product var: ", productVariant);
+    }, [productVariants, dispatch]);
 
-    }, [product]);
+    if (productStatus === 'loading' || sizeOfProductStatus === 'loading' || colorOfProductStatus === 'loading' ||
+        categoryStatus === 'loading' || supplierStatus === 'loading' || productVariantStatus === 'loading') {
+        return <div>Loading...</div>;
+    }
 
-    useEffect(() => {
-        if (selectedSize.sizeId || selectedColor.colorId) {
-            getProductVariant();
-        }
-    }, [selectedSize, selectedColor]);
+    if (productError || sizeOfProductError || colorOfProductError || categoryError || supplierError || productVariantError) {
+        return <div>Error: {productError || sizeOfProductError || colorOfProductError || categoryError || supplierError || productVariantError}</div>;
+    }
 
     return (
         <div className="container mx-auto relative mb-10">
@@ -156,10 +142,10 @@ const ProductDetailsPage = () => {
                         <p className="text-lg font-semibold mt-2">Category:</p>
                         <p className="text-lg font-light">{category.categoryName}</p>
                         <p className="text-lg font-semibold mt-2">Size:</p>
-                        {sizeOfProduct.length > 0 && sizeOfProduct.map((size) => (
+                        {sizeOfProduct && sizeOfProduct.length > 0 && sizeOfProduct.map((size) => (
                             <button
                                 key={size.sizeId}
-                                onClick={() => setSelectedSize(size)}
+                                onClick={() => dispatch(fetchSize(size.sizeId))}
                                 className={`px-2 py-1 rounded-lg mr-2 ${selectedSize?.sizeId === size.sizeId
                                     ? 'bg-blue-500 text-white cursor-not-allowed'
                                     : 'bg-gray-300 text-black'
@@ -171,27 +157,30 @@ const ProductDetailsPage = () => {
                         ))}
 
                         <p className="text-lg font-semibold mt-2">Color:</p>
-                        {colorOfProduct.length > 0 && colorOfProduct.map((color) => (
-                            <button
-                                key={color.colorId}
-                                onClick={() => setSelectedColor(color)}
-                                className={`px-2 py-1 rounded-lg mr-2 text-black ${selectedColor?.colorId === color.colorId
-                                    ? 'text-white cursor-not-allowed'
-                                    : ''
-                                    }`}
-                                style={{
-                                    backgroundColor: selectedColor?.colorId === color.colorId ? color.colorName : 'gray',
-                                    borderColor: selectedColor?.colorId === color.colorId ? color.colorName : 'gray'
-                                }}
-                                disabled={selectedColor?.colorId === color.colorId}
-                            >
-                                {color.colorName}
+                        {colorOfProduct && colorOfProduct.length > 0 &&
+                            colorOfProduct.map((color) => (
+                                <button
+                                    key={color.colorId}
+                                    onClick={() => dispatch(fetchSingleColor(color.colorId))}
+                                    className={`px-2 py-1 rounded-lg mr-2 text-black ${selectedColor?.colorId === color.colorId
+                                        ? 'text-white cursor-not-allowed'
+                                        : ''
+                                        }`}
+                                    style={{
+                                        backgroundColor: selectedColor?.colorId === color.colorId ? color.colorName : 'gray',
+                                        borderColor: selectedColor?.colorId === color.colorName ? color.colorName : 'gray'
+                                    }}
+                                    disabled={selectedColor?.colorId === color.colorId}
+                                >
+                                    {color.colorName}
+                                </button>
+                            ))}
+                        <div>
+                            <button onClick={handleAddCart}
+                                className="bg-red-600 text-white px-4 py-2 rounded-lg mt-2">
+                                Add to cart
                             </button>
-                        ))}
-                        <button onClick={handleAddCart}
-                            className="bg-red-600 text-white px-4 py-2 rounded-lg mt-2">
-                            Add to cart
-                        </button>
+                        </div>
                     </div>
                 </div>
                 <div className="border border-[#a09f9f]">

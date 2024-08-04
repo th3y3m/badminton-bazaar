@@ -193,7 +193,15 @@ namespace Services
         {
             try
             {
-                var savedCart = _httpContextAccessor.HttpContext.Request.Cookies[$"Cart_{userId}"];
+                string savedCart;
+                if (string.IsNullOrEmpty(userId))
+                {
+                     savedCart = _httpContextAccessor.HttpContext.Request.Cookies[$"Cart"];
+                }
+                else
+                { 
+                     savedCart = _httpContextAccessor.HttpContext.Request.Cookies[$"Cart_{userId}"]; 
+                }
                 if (!string.IsNullOrEmpty(savedCart))
                 {
                     var cart = CartUtil.GetCartFromCookie(savedCart);

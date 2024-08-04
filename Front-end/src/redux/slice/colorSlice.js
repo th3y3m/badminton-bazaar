@@ -11,7 +11,7 @@ export const fetchColors = createAsyncThunk(
     'colors/fetchPaginatedColors',
     async (params, thunkAPI) => {
         const response = await fetchPaginatedColors(params);
-        return response.data;
+        return response;
     }
 );
 
@@ -19,7 +19,7 @@ export const fetchSingleColor = createAsyncThunk(
     'colors/fetchColorById',
     async (id, thunkAPI) => {
         const response = await fetchColorById(id);
-        return response.data;
+        return response;
     }
 );
 
@@ -35,14 +35,14 @@ export const fetchColorsByProduct = createAsyncThunk(
     'colors/fetchColorsOfProduct',
     async (productId, thunkAPI) => {
         const response = await fetchColorsOfProduct(productId);
-        return response.data;
+        return response;
     }
 );
 
 // Initial state
 const initialState = {
     colors: [],
-    singleColor: null,
+    singleColor: {},
     status: 'idle',
     error: null
 };

@@ -12,7 +12,7 @@ export const fetchAllSuppliers = createAsyncThunk(
     'suppliers/fetchPaginatedSuppliers',
     async (params, thunkAPI) => {
         const response = await fetchPaginatedSuppliers(params);
-        return response.data;
+        return response;
     }
 );
 
@@ -20,7 +20,7 @@ export const fetchSupplier = createAsyncThunk(
     'suppliers/fetchSupplierById',
     async (id, thunkAPI) => {
         const response = await fetchSupplierById(id);
-        return response.data;
+        return response;
     }
 );
 
@@ -28,7 +28,7 @@ export const createSupplier = createAsyncThunk(
     'suppliers/addSupplier',
     async (supplierModel, thunkAPI) => {
         const response = await addSupplier(supplierModel);
-        return response.data;
+        return response;
     }
 );
 
@@ -36,7 +36,7 @@ export const modifySupplier = createAsyncThunk(
     'suppliers/updateSupplier',
     async ({ supplierModel, id }, thunkAPI) => {
         const response = await updateSupplier(supplierModel, id);
-        return response.data;
+        return response;
     }
 );
 
@@ -44,14 +44,14 @@ export const removeSupplier = createAsyncThunk(
     'suppliers/deleteSupplierById',
     async (id, thunkAPI) => {
         const response = await deleteSupplierById(id);
-        return response.data;
+        return response;
     }
 );
 
 // Initial state
 const initialState = {
     suppliers: [],
-    supplierDetail: null,
+    supplierDetail: {},
     status: 'idle',
     error: null
 };

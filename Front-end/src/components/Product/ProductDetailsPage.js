@@ -118,14 +118,14 @@ const ProductDetailsPage = () => {
         }
     }, [productVariants, dispatch]);
 
-    if (productStatus === 'loading' || sizeOfProductStatus === 'loading' || colorOfProductStatus === 'loading' ||
-        categoryStatus === 'loading' || supplierStatus === 'loading' || productVariantStatus === 'loading') {
+    if (productStatus === 'failed') {
+        return <div>Error: {productError}</div>;
+    }
+    if (productStatus === 'loading') {
         return <div>Loading...</div>;
     }
 
-    if (productError || sizeOfProductError || colorOfProductError || categoryError || supplierError || productVariantError) {
-        return <div>Error: {productError || sizeOfProductError || colorOfProductError || categoryError || supplierError || productVariantError}</div>;
-    }
+
 
     return (
         <div className="container mx-auto relative mb-10">
@@ -138,26 +138,66 @@ const ProductDetailsPage = () => {
                         <h1 className="text-4xl font-bold">{product.productName}</h1>
                         <p className="text-2xl font-bold text-red-600">{productVariant.price || product.basePrice} $</p>
                         <p className="text-lg font-semibold mt-2">Supplier:</p>
-                        <p className="text-lg font-light">{supplier.companyName}</p>
+                        {supplierStatus === 'failed' && (
+                            <div>Error: {supplierError}</div>
+                        )}
+
+                        {supplierStatus === 'loading' && (
+                            <div>Loading...</div>
+                        )}
+                        {supplierStatus === 'succeeded' && (
+                            <p className="text-lg font-light">{supplier.companyName}</p>
+                        )}
+
                         <p className="text-lg font-semibold mt-2">Category:</p>
-                        <p className="text-lg font-light">{category.categoryName}</p>
-                        <p className="text-lg font-semibold mt-2">Size:</p>
-                        {sizeOfProduct && sizeOfProduct.length > 0 && sizeOfProduct.map((size) => (
-                            <button
-                                key={size.sizeId}
-                                onClick={() => dispatch(fetchSize(size.sizeId))}
-                                className={`px-2 py-1 rounded-lg mr-2 ${selectedSize?.sizeId === size.sizeId
-                                    ? 'bg-blue-500 text-white cursor-not-allowed'
-                                    : 'bg-gray-300 text-black'
-                                    }`}
-                                disabled={selectedSize?.sizeId === size.sizeId}
-                            >
-                                {size.sizeName}
-                            </button>
-                        ))}
+                        {categoryStatus === 'failed' && (
+                            <div>Error: {categoryError}</div>
+                        )}
+
+                        {categoryStatus === 'loading' && (
+                            <div>Loading...</div>
+                        )}
+                        {categoryStatus === 'succeeded' && (
+                            <p className="text-lg font-light">{category.categoryName}</p>
+                        )}
+
+                        {sizeOfProduct && sizeOfProduct.length > 0 &&
+                            <div>
+                                <p className="text-lg font-semibold mt-2">Size:</p>
+                                {sizeOfProductStatus === 'failed' && (
+                                    <div>Error: {sizeOfProductError}</div>
+                                )}
+
+                                {sizeOfProductStatus === 'loading' && (
+                                    <div>Loading...</div>
+                                )}
+                                {sizeOfProductStatus === 'succeeded' && (
+                                    sizeOfProduct.map((size) => (
+                                        <button
+                                            key={size.sizeId}
+                                            onClick={() => dispatch(fetchSize(size.sizeId))}
+                                            className={`px-2 py-1 rounded-lg mr-2 ${selectedSize?.sizeId === size.sizeId
+                                                ? 'bg-blue-500 text-white cursor-not-allowed'
+                                                : 'bg-gray-300 text-black'
+                                                }`}
+                                            disabled={selectedSize?.sizeId === size.sizeId}
+                                        >
+                                            {size.sizeName}
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        }
 
                         <p className="text-lg font-semibold mt-2">Color:</p>
-                        {colorOfProduct && colorOfProduct.length > 0 &&
+                        {colorOfProductStatus === 'failed' && (
+                            <div>Error: {colorOfProductError}</div>
+                        )}
+
+                        {colorOfProductStatus === 'loading' && (
+                            <div>Loading...</div>
+                        )}
+                        {colorOfProductStatus === 'succeeded' && (
                             colorOfProduct.map((color) => (
                                 <button
                                     key={color.colorId}
@@ -174,7 +214,8 @@ const ProductDetailsPage = () => {
                                 >
                                     {color.colorName}
                                 </button>
-                            ))}
+                            ))
+                        )}
                         <div>
                             <button onClick={handleAddCart}
                                 className="bg-red-600 text-white px-4 py-2 rounded-lg mt-2">

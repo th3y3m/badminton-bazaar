@@ -29,7 +29,6 @@ const fetchPaginatedProducts = async (params) => {
 };
 
 const fetchProductById = async (id) => {
-    console.log(id);
     return axios.get(`Product/${id}`);
 };
 

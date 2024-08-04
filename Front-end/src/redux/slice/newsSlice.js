@@ -34,7 +34,7 @@ export const fetchSingleNews = createAsyncThunk(
     'news/fetchNewsById',
     async (id, thunkAPI) => {
         const response = await fetchNewsById(id);
-        return response.data;
+        return response;
     }
 );
 
@@ -42,7 +42,7 @@ export const createNews = createAsyncThunk(
     'news/addNews',
     async (newsModel, thunkAPI) => {
         const response = await addNews(newsModel);
-        return response.data;
+        return response;
     }
 );
 
@@ -50,7 +50,7 @@ export const modifyNews = createAsyncThunk(
     'news/updateNews',
     async ({ newsModel, id }, thunkAPI) => {
         const response = await updateNews(newsModel, id);
-        return response.data;
+        return response;
     }
 );
 
@@ -58,7 +58,7 @@ export const removeNews = createAsyncThunk(
     'news/deleteNewsById',
     async (id, thunkAPI) => {
         const response = await deleteNewsById(id);
-        return response.data;
+        return response;
     }
 );
 
@@ -67,7 +67,7 @@ const initialState = {
     news: [],
     newsSlide: [],
     banners: [],
-    singleNews: null,
+    singleNews: {},
     status: 'idle',
     error: null
 };

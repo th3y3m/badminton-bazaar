@@ -6,6 +6,7 @@ export const ROUTERS = {
         PRODUCTDETAILS: "/product-details",
         LOGIN: "/login",
         NEWS: "/news",
+        NEWSDETAILS: "/news-details",
         PAYMENTDETAIL: "/payment-detail",
         PAYMENTFAILED: "/reject",
         PAYMENTSUCCESSFUL: "/confirm",

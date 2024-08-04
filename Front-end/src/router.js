@@ -22,14 +22,15 @@ const renderUserRouter = () => {
     const userRouters = [
         { path: ROUTERS.USER.HOME, component: HomePage },
         // { path: ROUTERS.USER.PROFILE, component: ProfilePage },
-        { path: ROUTERS.USER.NEWS + "/:id", component: NewsPage },
+        { path: ROUTERS.USER.NEWS, component: NewsPage },
+        { path: ROUTERS.USER.NEWSDETAILS + "/:id", component: NewsPage },
         // { path: ROUTERS.USER.PAYMENTDETAIL, component: PaymentDetail },
         // { path: ROUTERS.USER.PAYMENTFAILED, component: PaymentFailed },
         // { path: ROUTERS.USER.PAYMENTSUCCESSFUL, component: PaymentSuccessful },
         { path: ROUTERS.USER.CART, component: CartPage },
         { path: ROUTERS.USER.REGISTER, component: Register },
         { path: ROUTERS.USER.PRODUCTDETAILS + "/:id", component: ProductDetailsPage },
-                // { path: ROUTERS.USER.ORDERS, component: Orders },
+        // { path: ROUTERS.USER.ORDERS, component: Orders },
         { path: ROUTERS.USER.PRODUCTS, component: ProductPage },
     ];
 
@@ -52,11 +53,11 @@ const renderUserRouter = () => {
 
 const RouterCustom = () => {
     return (
-      <Routes>
-        <Route path={ROUTERS.USER.LOGIN} element={<Login />} />
-        <Route path="/*" element={renderUserRouter()} />
-      </Routes>
+        <Routes>
+            <Route path={ROUTERS.USER.LOGIN} element={<Login />} />
+            <Route path="/*" element={renderUserRouter()} />
+        </Routes>
     );
-  };
-  
-  export default RouterCustom;
+};
+
+export default RouterCustom;

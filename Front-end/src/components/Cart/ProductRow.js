@@ -1,10 +1,10 @@
-import { useState, useEffect, useContext } from 'react';
+import { useEffect } from 'react';
 import { removeFromCart, deleteUnitItem, saveCartToCookie } from "../../api/cartAxios";
-import { fetchProductVariantById } from '../../api/productVariantAxios';
-import { fetchProductById } from '../../api/productAxios';
-import { AuthContext } from '../../AuthContext';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { fetchProduct } from '../../redux/slice/productSlice';
+import { fetchProductVariant } from '../../redux/slice/productVariantSlice';
+import { addToCookie, deleteAUnitItem, fetchCart, fetchNumberOfItems, removeItem } from '../../redux/slice/cartSlice';
 
 const ProductRow = (cartItem) => {
     const dispatch = useDispatch();
@@ -12,74 +12,83 @@ const ProductRow = (cartItem) => {
 
     const user = useSelector((state) => state.auth.token);
 
-    const { cartCount, setCartCount } = useContext(AuthContext);
-    const [productVariant, setProductVariant] = useState({});
-    const [quantity, setQuantity] = useState(cartItem.quantity);
-    const [product, setProduct] = useState({});
+    const product = useSelector((state) => state.product.product);
+    const productStatus = useSelector((state) => state.product.status);
+    const productError = useSelector((state) => state.product.error);
+
+    const productVariant = useSelector((state) => state.productVariant.productVariantDetail);
+    const productVariantStatus = useSelector((state) => state.productVariant.status);
+    const productVariantError = useSelector((state) => state.productVariant.error);
 
     const handleRemove = () => {
-        removeFromCart(cartItem.itemId, user.userId);
-        cartItem.updateCart();
+        dispatch(removeItem({ productId: cartItem.itemId, userId: user.id }))
+            .then(() => {
+                dispatch(fetchNumberOfItems(user.id)); // Dispatch here after adding to cart
+            })
+            .then(() => {
+                dispatch(fetchCart(user.id)); // Dispatch here after adding to cart
+            })
+            .catch((error) => {
+                console.error("Error adding to cart:", error);
+            });
     };
     const handleRemoveOne = () => {
-        if (quantity > 1) {
-            deleteUnitItem(cartItem.itemId, cartItem.userId).then(() => {
-                setQuantity(prevQuantity => prevQuantity - 1);
-                setCartCount(prevQuantity => prevQuantity - 1);
-                cartItem.updateCart();
-                cartItem.onQuantityChange();
-            });
+        if (cartItem.quantity > 1) {
+            dispatch(deleteAUnitItem({ productId: cartItem.itemId, userId: user.id }))
+                .then(() => {
+                    dispatch(fetchNumberOfItems(user.id)); // Dispatch here after adding to cart
+                })
+                .then(() => {
+                    dispatch(fetchCart(user.id)); // Dispatch here after adding to cart
+                })
+                .catch((error) => {
+                    console.error("Error adding to cart:", error);
+                });
         }
     };
 
     const handleAddOne = () => {
-        saveCartToCookie(cartItem.itemId, cartItem.userId).then(() => {
-            setQuantity(prevQuantity => prevQuantity + 1);
-            setCartCount(prevQuantity => prevQuantity + 1);
-            cartItem.updateCart();
-            cartItem.onQuantityChange(); // Trigger recalculation of total price
-        });
+        dispatch(addToCookie({ productId: cartItem.itemId, userId: user.id }))
+            .then(() => {
+                dispatch(fetchNumberOfItems(user.id));
+            })
+            .then(() => {
+                dispatch(fetchCart(user.id)); // Dispatch here after adding to cart
+            })
+            .catch((error) => {
+                console.error("Error adding to cart:", error);
+            });
     };
 
-    const getProduct = async () => {
-        try {
-            const data = await fetchProductById(productVariant.productId);
-            setProduct(data);
-        } catch (error) {
-            console.error("Error fetching products:", error);
+    useEffect(() => {
+        dispatch(fetchProductVariant(cartItem.itemId));
+    }, [cartItem.itemId, dispatch]);
+
+    useEffect(() => {
+        if (productVariant) {
+
+            dispatch(fetchProduct(productVariant.productId));
         }
+    }, [cartItem.itemId, dispatch]);
+
+    if (productError === 'failed' || productVariantError === 'failed') {
+        return <div>Error: {productError || productVariantError}</div>;
     }
-
-    useEffect(() => {
-        getProduct();
-    }, [productVariant.productId, cartCount]);
-
-    useEffect(() => {
-        const getProductVariant = async () => {
-            try {
-                const data = await fetchProductVariantById(cartItem.itemId);
-                console.log(data);
-
-                setProductVariant(data);
-            } catch (error) {
-                console.error("Error fetching products:", error);
-            }
-        };
-        getProductVariant();
-        console.log(productVariant);
-    }, [cartItem.itemId,]);
+    if (productStatus === 'loading' || productVariantStatus === 'loading') {
+        return <div>Loading...</div>;
+    }
 
     return (
         <div className="grid grid-cols-7 flex-col items-center justify-center w-full h-96 bg-white rounded-lg shadow-md">
             <img src={productVariant.variantImageURL} alt={product.productName} className="w-full col-span-1" />
-            <h3 className="text-lg font-semibold mt-2 col-span-2">{product.productName}</h3>
+            <h3 className="text-lg font-semibold mt-2 col-span-2">{cartItem.itemName}</h3>
             <p className="text-lg font-semibold mt-2 col-span-1 text-center">{cartItem.unitPrice} $</p>
             <div className="flex items-center col-span-1 justify-center">
                 <button className="bg-blue-500 text-white px-2 py-1 rounded-lg text-center" onClick={handleRemoveOne}>-</button>
-                <p className="text-red-600 font-bold text-2xl mx-4 text-center">{quantity}</p>
+                <p className="text-red-600 font-bold text-2xl mx-4 text-center">{cartItem.quantity}</p>
                 <button className="bg-blue-500 text-white px-2 py-1 rounded-lg text-center" onClick={handleAddOne}>+</button>
             </div>
-            <p className="text-lg font-semibold mt-2 col-span-1 text-center">{quantity * cartItem.unitPrice} $</p>
+            <p className="text-lg font-semibold mt-2 col-span-1 text-center">{cartItem.quantity * cartItem.unitPrice} $</p>
             <button className="bg-red-600 text-white px-4 py-2 rounded-lg mt-2 col-span-1" onClick={handleRemove}>Remove</button>
         </div>
     );

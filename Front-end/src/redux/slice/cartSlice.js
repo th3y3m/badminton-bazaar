@@ -25,7 +25,7 @@ export const addToCookie = createAsyncThunk(
     'cart/addToCookie',
     async ({ productId, userId }, thunkAPI) => {
         const response = await saveCartToCookie(productId, userId);
-        return response.data;
+        return response;
     }
 );
 
@@ -33,7 +33,7 @@ export const removeItem = createAsyncThunk(
     'cart/removeItem',
     async ({ productId, userId }, thunkAPI) => {
         const response = await removeFromCart(productId, userId);
-        return response.data;
+        return response;
     }
 );
 
@@ -41,7 +41,7 @@ export const deleteAUnitItem = createAsyncThunk(
     'cart/deleteAUnitItem',
     async ({ productId, userId }, thunkAPI) => {
         const response = await deleteUnitItem(productId, userId);
-        return response.data;
+        return response;
     }
 );
 
@@ -49,7 +49,7 @@ export const clearCartCookie = createAsyncThunk(
     'cart/clearCartCookie',
     async (userId, thunkAPI) => {
         const response = await deleteCookie(userId);
-        return response.data;
+        return response;
     }
 );
 

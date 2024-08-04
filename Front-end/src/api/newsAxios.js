@@ -26,6 +26,9 @@ const fetchPaginatedNews = async (params) => {
 const fetchNewsById = async (id) => {
     return axios.get(`News/${id}`);
 };
+const viewNews = async (id) => {
+    return axios.put(`News/AddAViewUnit/${id}`);
+};
 
 const addNews = async (newsModel) => {
     return axios.post('News', newsModel);
@@ -42,6 +45,7 @@ const deleteNewsById = async (id) => {
 export {
     fetchPaginatedNews,
     fetchNewsById,
+    viewNews,
     addNews,
     updateNews,
     deleteNewsById

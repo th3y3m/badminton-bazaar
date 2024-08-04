@@ -12,7 +12,6 @@ export const fetchAllProductVariants = createAsyncThunk(
     'productVariants/fetchPaginatedProductVariants',
     async (params, thunkAPI) => {
         const response = await fetchPaginatedProductVariants(params);
-        console.log(response);
         return response.items;
     }
 );

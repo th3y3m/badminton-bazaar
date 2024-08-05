@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { fetchNews, fetchTopView } from "../../redux/slice/newsSlice";
 import ReactPaginate from "react-paginate";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 
 const NewsList = () => {
     const dispatch = useDispatch();
@@ -67,7 +69,9 @@ const NewsList = () => {
                             <div className="text-red-500">Error: {topViewError}</div>
                         )}
                         {topViewStatus === 'loading' && (
-                            <div className="text-blue-500">Loading...</div>
+                            <div className="text-blue-500">
+                                <FontAwesomeIcon icon={faSpinner} spin />
+                            </div>
                         )}
                         {topViewStatus === 'succeeded' && (
                             <div className="space-y-4">
@@ -91,7 +95,9 @@ const NewsList = () => {
                             <div className="text-red-500">Error: {newsError}</div>
                         )}
                         {newsStatus === 'loading' && (
-                            <div className="text-blue-500">Loading...</div>
+                            <div className="text-blue-500">
+                                <FontAwesomeIcon icon={faSpinner} spin />
+                            </div>
                         )}
                         {newsStatus === 'succeeded' && (
                             <div>

@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchSingleNews } from "../../redux/slice/newsSlice";
 import { useEffect } from "react";
 import { viewNews } from "../../api/newsAxios";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 
 const NewsPage = () => {
     const { id: newsId } = useParams();
@@ -34,7 +36,9 @@ const NewsPage = () => {
                     )}
 
                     {newsStatus === 'loading' && (
-                        <div className="text-gray-500">Loading...</div>
+                        <div className="text-blue-500">
+                            <FontAwesomeIcon icon={faSpinner} spin />
+                        </div>
                     )}
 
                     {newsStatus === 'succeeded' && (

@@ -7,6 +7,8 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchBannerNews, fetchNews } from '../../redux/slice/newsSlice';
 import { fetchRackets, fetchTopSeller } from '../../redux/slice/productSlice';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 
 const HomePage = () => {
     const dispatch = useDispatch();
@@ -100,7 +102,9 @@ const HomePage = () => {
                             )}
 
                             {topSellerListStatus === 'loading' && (
-                                <div className="text-gray-500">Loading...</div>
+                                <div className="text-blue-500">
+                                    <FontAwesomeIcon icon={faSpinner} spin />
+                                </div>
                             )}
 
                             {topSellerList.length > 0 && (
@@ -124,7 +128,9 @@ const HomePage = () => {
                                 )}
 
                                 {topSellerListStatus === 'loading' && (
-                                    <div className="text-gray-500">Loading...</div>
+                                    <div className="text-blue-500">
+                                        <FontAwesomeIcon icon={faSpinner} spin />
+                                    </div>
                                 )}
                                 {topSellerList.length > 0 && topSellerList.slice(1, 4).map((product) => (
                                     <li key={product.productId} className="flex items-center justify-between border-b border-gray-200 py-2 cursor-pointer hover:bg-gray-100" onClick={() => navigate(`/product-details/${product.productId}`)}>
@@ -151,7 +157,9 @@ const HomePage = () => {
                     )}
 
                     {bannerListStatus === 'loading' && (
-                        <div className="text-gray-500">Loading...</div>
+                        <div className="text-blue-500">
+                            <FontAwesomeIcon icon={faSpinner} spin />
+                        </div>
                     )}
                     {bannerList.length > 0 && <img src={bannerList[0].image} alt="banner1" className="w-full rounded-lg shadow-lg" />}
                 </div>
@@ -163,7 +171,9 @@ const HomePage = () => {
                     )}
 
                     {topSellerListStatus === 'loading' && (
-                        <div className="text-gray-500">Loading...</div>
+                        <div className="text-blue-500">
+                            <FontAwesomeIcon icon={faSpinner} spin />
+                        </div>
                     )}
                     {topSellerList.length > 0 && (
                         <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4'>
@@ -183,7 +193,9 @@ const HomePage = () => {
                     )}
 
                     {racketListStatus === 'loading' && (
-                        <div className="text-gray-500">Loading...</div>
+                        <div className="text-blue-500">
+                            <FontAwesomeIcon icon={faSpinner} spin />
+                        </div>
                     )}
                     {racketList && (
                         <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4'>
@@ -202,7 +214,9 @@ const HomePage = () => {
                     )}
 
                     {bannerListStatus === 'loading' && (
-                        <div className="text-gray-500">Loading...</div>
+                        <div className="text-blue-500">
+                            <FontAwesomeIcon icon={faSpinner} spin />
+                        </div>
                     )}
                     {bannerList.length > 0 && <img src={bannerList[1].image} alt="banner2" className="w-full rounded-lg shadow-lg" />}
                 </div>
@@ -214,7 +228,9 @@ const HomePage = () => {
                     )}
 
                     {newsListStatus === 'loading' && (
-                        <div className="text-gray-500">Loading...</div>
+                        <div className="text-blue-500">
+                            <FontAwesomeIcon icon={faSpinner} spin />
+                        </div>
                     )}
                     {newsList && newsList.items && newsList.items.length > 0 && (
                         <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>

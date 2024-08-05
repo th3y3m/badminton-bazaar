@@ -4,6 +4,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { fetchBookingById } from 'api/bookingApi';
 import moment from 'moment';
 import CancelIcon from '@mui/icons-material/Cancel';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 
 export const PaymentConfirmed = ({
   userInfo = {}, branchId = 'N/A', courtId = 'N/A',
@@ -40,11 +42,13 @@ export const PaymentConfirmed = ({
   }, []);
 
   if (loading) {
-    return <Typography>Loading...</Typography>;
+    return <Typography><div className="text-blue-500">
+      <FontAwesomeIcon icon={faSpinner} spin />
+    </div></Typography>;
   }
 
 
-  
+
   return (
     <Box sx={{ padding: '40px', textAlign: 'center' }}>
       <Box sx={{ backgroundColor: "#F0F0F0", padding: '40px', borderRadius: 2 }}>
@@ -99,10 +103,10 @@ export const PaymentConfirmed = ({
                 </Grid>
                 <Grid item xs={6}>
                   <Typography variant="body1" color="black" sx={{ textAlign: 'right' }}>
-                    {timeSlots ? (  timeSlots.map ((slot,index) => (
+                    {timeSlots ? (timeSlots.map((slot, index) => (
                       <div key={index}>
-                     { `${slot.slotStartTime} - ${slot.slotEndTime} ` }
-                      </div>))): 'N/A'}
+                        {`${slot.slotStartTime} - ${slot.slotEndTime} `}
+                      </div>))) : 'N/A'}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>

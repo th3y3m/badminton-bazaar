@@ -1,25 +1,37 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faInfo } from '@fortawesome/free-solid-svg-icons';
-import { saveCartToCookie } from "../../api/cartAxios";
-import { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchProduct, fetchRelatedProducts } from "../../redux/slice/productSlice";
-import { fetchColorsByProduct, fetchSingleColor } from "../../redux/slice/colorSlice";
-import { fetchSize, fetchSizesForProduct } from "../../redux/slice/sizeSlice";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSpinner, faInfo } from "@fortawesome/free-solid-svg-icons";
+import {
+    fetchProduct, fetchRelatedProducts
+} from "../../redux/slice/productSlice";
+import {
+    fetchColorsByProduct, fetchSingleColor
+} from "../../redux/slice/colorSlice";
+import {
+    fetchSize, fetchSizesForProduct
+} from "../../redux/slice/sizeSlice";
 import { fetchSingleCategory } from "../../redux/slice/categorySlice";
 import { fetchSupplier } from "../../redux/slice/supplierSlice";
-import { fetchAllProductVariants, fetchProductVariant } from "../../redux/slice/productVariantSlice";
+import {
+    fetchAllProductVariants, fetchProductVariant
+} from "../../redux/slice/productVariantSlice";
 import { fetchNumberOfItems } from "../../redux/slice/cartSlice";
+import {
+    createReview,
+    fetchAllReviews, fetchAverageRating
+} from '../../redux/slice/reviewSlice';
+import { saveCartToCookie } from "../../api/cartAxios";
 import Product from './Product';
 import { Rating, Typography } from '@mui/material';
-import { fetchAverageRating } from '../../redux/slice/reviewSlice';
 
 const ProductDetailsPage = () => {
     const { id: productId } = useParams();
     const dispatch = useDispatch();
     const navigate = useNavigate();
+
     const user = useSelector((state) => state.auth.token);
 
     const product = useSelector((state) => state.product.product);
@@ -45,8 +57,6 @@ const ProductDetailsPage = () => {
     const supplierError = useSelector((state) => state.supplier.error);
 
     const productVariants = useSelector((state) => state.productVariant.productVariants);
-    const productVariantStatus = useSelector((state) => state.productVariant.status);
-    const productVariantError = useSelector((state) => state.productVariant.error);
     const productVariant = useSelector((state) => state.productVariant.productVariantDetail);
 
     const relatedProducts = useSelector((state) => state.product.relatedProducts);
@@ -60,6 +70,13 @@ const ProductDetailsPage = () => {
     const averageReviews = useSelector((state) => state.review.averageRating);
     const averageReviewsStatus = useSelector((state) => state.review.status);
     const averageReviewsError = useSelector((state) => state.review.error);
+
+    const reviewDetail = useSelector((state) => state.review.reviewDetail);
+    const reviewDetailStatus = useSelector((state) => state.review.status);
+    const reviewDetailError = useSelector((state) => state.review.error);
+
+    const [rating, setRating] = useState(0);
+    const [content, setContent] = useState("");
 
     const handleAddCart = () => {
         if (user && user.id) {
@@ -99,6 +116,9 @@ const ProductDetailsPage = () => {
             dispatch(fetchSupplier(product.supplierId));
             dispatch(fetchRelatedProducts(product.productId));
             dispatch(fetchAverageRating(product.productId));
+            dispatch(fetchAllReviews({
+                productId: product.productId,
+            }));
         }
     }, [product, dispatch]);
 
@@ -134,138 +154,217 @@ const ProductDetailsPage = () => {
         }
     }, [productVariants, dispatch]);
 
+    const handleReview = () => {
+        if (user && user.id) {
+            dispatch(createReview({
+                reviewText: content,
+                rating: rating,
+                productId: product.productId,
+                userId: user.id
+            })).then(() => {
+                toast.success("Review successfully added");
+                dispatch(fetchAverageRating(product.productId));
+            }).then(() => {
+                dispatch(fetchAllReviews({ productId: product.productId }));
+            })
+            // .catch((error) => {
+            //     toast.error("Error adding review");
+            // });
+        } else {
+            toast.error('Please login first', {
+                position: "top-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "colored",
+            });
+            navigate('/login');
+        }
+    };
+
+
     if (productStatus === 'failed') {
-        return <div>Error: {productError}</div>;
+        return <div className="text-red-500">Error: {productError}</div>;
     }
     if (productStatus === 'loading') {
-        return <div>Loading...</div>;
+        return <div className="text-blue-500">
+            <FontAwesomeIcon icon={faSpinner} spin />
+        </div>;
     }
 
     return (
         <div className="container mx-auto relative mb-10">
-            <div>
-                <div className="grid grid-cols-12">
-                    <div className="col-span-6">
-                        <img src={product.imageUrl} alt={product.productName} className="w-full" />
-                    </div>
-                    <div className="col-span-6">
-                        <h1 className="text-4xl font-bold">{product.productName}</h1>
-                        <p className="text-2xl font-bold text-red-600">{productVariant.price || product.basePrice} $</p>
-                        <p className="text-lg font-semibold mt-2">Supplier:</p>
-                        {supplierStatus === 'failed' && (
-                            <div>Error: {supplierError}</div>
-                        )}
-
-                        {supplierStatus === 'loading' && (
-                            <div>Loading...</div>
-                        )}
-                        {supplierStatus === 'succeeded' && (
-                            <p className="text-lg font-light">{supplier.companyName}</p>
-                        )}
-
-                        <p className="text-lg font-semibold mt-2">Category:</p>
-                        {categoryStatus === 'failed' && (
-                            <div>Error: {categoryError}</div>
-                        )}
-
-                        {categoryStatus === 'loading' && (
-                            <div>Loading...</div>
-                        )}
-                        {categoryStatus === 'succeeded' && (
-                            <p className="text-lg font-light">{category.categoryName}</p>
-                        )}
-
-                        {sizeOfProduct && sizeOfProduct.length > 0 &&
-                            <div>
-                                <p className="text-lg font-semibold mt-2">Size:</p>
-                                {sizeOfProductStatus === 'failed' && (
-                                    <div>Error: {sizeOfProductError}</div>
-                                )}
-
-                                {sizeOfProductStatus === 'loading' && (
-                                    <div>Loading...</div>
-                                )}
-                                {sizeOfProductStatus === 'succeeded' && (
-                                    sizeOfProduct.map((size) => (
-                                        <button
-                                            key={size.sizeId}
-                                            onClick={() => dispatch(fetchSize(size.sizeId))}
-                                            className={`px-2 py-1 rounded-lg mr-2 ${selectedSize?.sizeId === size.sizeId
-                                                ? 'bg-blue-500 text-white cursor-not-allowed'
-                                                : 'bg-gray-300 text-black'
-                                                }`}
-                                            disabled={selectedSize?.sizeId === size.sizeId}
-                                        >
-                                            {size.sizeName}
-                                        </button>
-                                    ))
-                                )}
-                            </div>
-                        }
-
-                        <p className="text-lg font-semibold mt-2">Color:</p>
-                        {colorOfProductStatus === 'failed' && (
-                            <div>Error: {colorOfProductError}</div>
-                        )}
-
-                        {colorOfProductStatus === 'loading' && (
-                            <div>Loading...</div>
-                        )}
-                        {colorOfProductStatus === 'succeeded' && (
-                            colorOfProduct.map((color) => (
-                                <button
-                                    key={color.colorId}
-                                    onClick={() => dispatch(fetchSingleColor(color.colorId))}
-                                    className={`px-2 py-1 rounded-lg mr-2 text-black ${selectedColor?.colorId === color.colorId
-                                        ? 'text-white cursor-not-allowed'
-                                        : ''
-                                        }`}
-                                    style={{
-                                        backgroundColor: selectedColor?.colorId === color.colorId ? color.colorName : 'gray',
-                                        borderColor: selectedColor?.colorId === color.colorName ? color.colorName : 'gray'
-                                    }}
-                                    disabled={selectedColor?.colorId === color.colorId}
-                                >
-                                    {color.colorName}
-                                </button>
-                            ))
-                        )}
-                        <div>
-                            <button onClick={handleAddCart}
-                                className="bg-red-600 text-white px-4 py-2 rounded-lg mt-2">
-                                Add to cart
-                            </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <img src={product.imageUrl} alt={product.productName} className="w-full" />
+                </div>
+                <div>
+                    <h1 className="text-4xl font-bold">{product.productName}</h1>
+                    <p className="text-2xl font-bold text-red-600">{productVariant.price || product.basePrice} $</p>
+                    <p className="text-lg font-semibold mt-2">Supplier:</p>
+                    {supplierStatus === 'failed' && (
+                        <div className="text-red-500">Error: {supplierError}</div>
+                    )}
+                    {supplierStatus === 'loading' && (
+                        <div className="text-blue-500">
+                            <FontAwesomeIcon icon={faSpinner} spin />
                         </div>
+                    )}
+                    {supplierStatus === 'succeeded' && (
+                        <p className="text-lg font-light">{supplier.companyName}</p>
+                    )}
+
+                    <p className="text-lg font-semibold mt-2">Category:</p>
+                    {categoryStatus === 'failed' && (
+                        <div className="text-red-500">Error: {categoryError}</div>
+                    )}
+                    {categoryStatus === 'loading' && (
+                        <div className="text-blue-500">
+                            <FontAwesomeIcon icon={faSpinner} spin />
+                        </div>
+                    )}
+                    {categoryStatus === 'succeeded' && (
+                        <p className="text-lg font-light">{category.categoryName}</p>
+                    )}
+
+                    {sizeOfProduct && sizeOfProduct.length > 0 && (
+                        <div>
+                            <p className="text-lg font-semibold mt-2">Size:</p>
+                            {sizeOfProductStatus === 'failed' && (
+                                <div className="text-red-500">Error: {sizeOfProductError}</div>
+                            )}
+                            {sizeOfProductStatus === 'loading' && (
+                                <div className="text-blue-500">
+                                    <FontAwesomeIcon icon={faSpinner} spin />
+                                </div>
+                            )}
+                            {sizeOfProductStatus === 'succeeded' && (
+                                sizeOfProduct.map((size) => (
+                                    <button
+                                        key={size.sizeId}
+                                        onClick={() => dispatch(fetchSize(size.sizeId))}
+                                        className={`px-2 py-1 rounded-lg mr-2 ${selectedSize?.sizeId === size.sizeId
+                                            ? 'bg-blue-500 text-white cursor-not-allowed'
+                                            : 'bg-gray-300 text-black'
+                                            }`}
+                                        disabled={selectedSize?.sizeId === size.sizeId}
+                                    >
+                                        {size.sizeName}
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                    )}
+
+                    <p className="text-lg font-semibold mt-2">Color:</p>
+                    {colorOfProductStatus === 'failed' && (
+                        <div className="text-red-500">Error: {colorOfProductError}</div>
+                    )}
+                    {colorOfProductStatus === 'loading' && (
+                        <div className="text-blue-500">
+                            <FontAwesomeIcon icon={faSpinner} spin />
+                        </div>
+                    )}
+                    {colorOfProductStatus === 'succeeded' && (
+                        colorOfProduct.map((color) => (
+                            <button
+                                key={color.colorId}
+                                onClick={() => dispatch(fetchSingleColor(color.colorId))}
+                                className={`px-2 py-1 rounded-lg mr-2 text-black ${selectedColor?.colorId === color.colorId
+                                    ? 'text-white cursor-not-allowed'
+                                    : ''
+                                    }`}
+                                style={{
+                                    backgroundColor: selectedColor?.colorId === color.colorId ? color.colorName : 'gray',
+                                    borderColor: selectedColor?.colorId === color.colorName ? color.colorName : 'gray'
+                                }}
+                                disabled={selectedColor?.colorId === color.colorId}
+                            >
+                                {color.colorName}
+                            </button>
+                        ))
+                    )}
+                    <div>
+                        <button onClick={handleAddCart}
+                            className="bg-red-600 text-white px-4 py-2 rounded-lg mt-2">
+                            Add to cart
+                        </button>
                     </div>
                 </div>
             </div>
-            <div className="border-t-4 border-red-500">
-                <h2 className="text-2xl font-bold p-3 bg-[#e4e1e1]"><FontAwesomeIcon icon={faInfo} /> Description</h2>
-                <p className="text-lg font-light">{product.productDescription}</p>
+            <div className="border-t-4 border-red-500 mt-6">
+                <h2 className="text-2xl font-bold p-3 bg-gray-200"><FontAwesomeIcon icon={faInfo} /> Description</h2>
+                <p className="text-lg font-light p-4">{product.productDescription}</p>
             </div>
 
-            <div className="border-t-4 border-red-500">
-                <h2 className="text-2xl font-bold p-3 bg-[#e4e1e1]">Reviews</h2>
-                <div className=''>
+            <div className="border-t-4 border-red-500 mt-6">
+                <h2 className="text-2xl font-bold p-3 bg-gray-200">Reviews</h2>
+                <div className="p-4">
                     <Typography component="legend">Rating</Typography>
-                    <Rating name="half-rating-read" defaultValue={averageReviews} precision={0.2} readOnly /><span className='ml-3'>{averageReviews.toFixed(1)}</span>
+                    {averageReviewsStatus === 'failed' && (
+                        <div className="text-red-500">Error: {averageReviewsError}</div>
+                    )}
+                    {averageReviewsStatus === 'loading' && (
+                        <div className="text-blue-500">
+                            <FontAwesomeIcon icon={faSpinner} spin />
+                        </div>
+                    )}
+                    {averageReviewsStatus === 'succeeded' && (
+                        <div>
+                            <Rating name="half-rating-read" defaultValue={averageReviews} precision={0.2} readOnly /><span className='ml-3'>{averageReviews.toFixed(1)}</span>
+                        </div>
+                    )}
                     <div className='mt-8'>
                         {reviewsStatus === 'failed' && (
-                            <div>Error: {reviewsError}</div>
+                            <div className="text-red-500">Error: {reviewsError}</div>
                         )}
-
                         {reviewsStatus === 'loading' && (
-                            <div>Loading...</div>
+                            <div className="text-blue-500">
+                                <FontAwesomeIcon icon={faSpinner} spin />
+                            </div>
                         )}
                         {reviewsStatus === 'succeeded' && (
                             <div>
-                                {reviews && reviews.map((review) => (
-                                    <div key={review.reviewId} className='border border-gray-300 p-2 rounded-lg'>
+                                <div className="mb-4">
+                                    <Typography component="legend">Write a review</Typography>
+                                    <Rating
+                                        name="half-rating"
+                                        defaultValue={0}
+                                        precision={0.5}
+                                        onChange={(e, newValue) => setRating(newValue)}
+                                    />
+                                    <textarea
+                                        className='border border-gray-300 p-2 rounded-lg w-full mt-2'
+                                        placeholder='Write a review'
+                                        onChange={(e) => setContent(e.target.value)}
+                                    ></textarea>
+                                    <button
+                                        className='bg-blue-500 text-white px-4 py-2 rounded-lg mt-2'
+                                        onClick={handleReview}
+                                    >
+                                        Submit
+                                    </button>
+                                    <span>
+                                        {reviewDetailStatus === 'failed' && (
+                                            <div className="text-red-500">Error: {reviewDetailError}</div>
+                                        )}
+                                        {reviewDetailStatus === 'loading' && (
+                                            <div className="text-blue-500">
+                                                <FontAwesomeIcon icon={faSpinner} spin />
+                                            </div>
+                                        )}
+                                    </span>
+                                </div>
+                                {reviews && reviews.items && reviews.items.map((review) => (
+                                    <div key={review.reviewId} className='border border-gray-300 p-2 rounded-lg mb-2'>
                                         <div className='flex justify-between'>
-                                            <p className='text-lg font-semibold'>{review.title}</p>
+                                            <p className='text-lg font-semibold'>{review.reviewText}</p>
                                             <Rating name="half-rating-read" defaultValue={review.rating} precision={0.2} readOnly />
                                         </div>
-                                        <p className='text-gray-600'>{review.content}</p>
+                                        <p className='text-gray-600'>{review.reviewText}</p>
                                     </div>
                                 ))}
                             </div>
@@ -275,14 +374,15 @@ const ProductDetailsPage = () => {
             </div>
             <div className='mt-10'>
                 <div className='border-t-4 border-red-500'>
-                    <h2 className='bg-[#e4e1e1] text-2xl font-bold p-3 mb-10'>Related Products</h2>
+                    <h2 className='bg-gray-200 text-2xl font-bold p-3 mb-10'>Related Products</h2>
                     <div>
                         {relatedProductsStatus === 'failed' && (
-                            <div>Error: {relatedProductsError}</div>
+                            <div className="text-red-500">Error: {relatedProductsError}</div>
                         )}
-
                         {relatedProductsStatus === 'loading' && (
-                            <div>Loading...</div>
+                            <div className="text-blue-500">
+                                <FontAwesomeIcon icon={faSpinner} spin />
+                            </div>
                         )}
                         {relatedProductsStatus === 'succeeded' && (
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -294,9 +394,7 @@ const ProductDetailsPage = () => {
                             </div>
                         )}
                     </div>
-
                 </div>
-
             </div>
         </div>
     );

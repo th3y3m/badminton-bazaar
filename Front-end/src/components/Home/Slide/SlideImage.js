@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Fade } from 'react-slideshow-image';
 import 'react-slideshow-image/dist/styles.css';
-import { fetchPaginatedNews } from "../../../api/newsAxios";
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchSlideNews } from "../../../redux/slice/newsSlice";
-
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 
 const SlideImage = () => {
     // const [slideNews, setSlideNews] = useState([]);
@@ -57,7 +57,9 @@ const SlideImage = () => {
             )}
 
             {slideNewsStatus === 'loading' && (
-                <div>Loading...</div>
+                <div className="text-blue-500">
+                    <FontAwesomeIcon icon={faSpinner} spin />
+                </div>
             )}
             {slideNewsStatus === 'succeeded' && <Fade duration={5000} transitionDuration={500}>
                 {slideNews.map((fadeImage, index) => (

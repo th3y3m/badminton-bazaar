@@ -1,9 +1,10 @@
-import { useContext, useEffect, useState } from 'react';
-import { AuthContext } from '../../AuthContext'
+import { useEffect, useState } from 'react';
 import ProductRow from './ProductRow'; // Assuming the path
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCart } from '../../redux/slice/cartSlice';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 
 const CartPage = () => {
     const dispatch = useDispatch();
@@ -36,7 +37,9 @@ const CartPage = () => {
     };
 
     if (cartItemsStatus === 'loading') {
-        return <div>Loading...</div>;
+        return <div className="text-blue-500">
+            <FontAwesomeIcon icon={faSpinner} spin />
+        </div>
     }
 
     if (cartItemsStatus === 'failed') {

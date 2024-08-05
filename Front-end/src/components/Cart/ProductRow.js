@@ -1,14 +1,13 @@
 import { useEffect } from 'react';
-import { removeFromCart, deleteUnitItem, saveCartToCookie } from "../../api/cartAxios";
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
 import { fetchProduct } from '../../redux/slice/productSlice';
 import { fetchProductVariant } from '../../redux/slice/productVariantSlice';
 import { addToCookie, deleteAUnitItem, fetchCart, fetchNumberOfItems, removeItem } from '../../redux/slice/cartSlice';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 
 const ProductRow = (cartItem) => {
     const dispatch = useDispatch();
-    const navigate = useNavigate();
 
     const user = useSelector((state) => state.auth.token);
 
@@ -75,7 +74,9 @@ const ProductRow = (cartItem) => {
         return <div>Error: {productError || productVariantError}</div>;
     }
     if (productStatus === 'loading' || productVariantStatus === 'loading') {
-        return <div>Loading...</div>;
+        return <div className="text-blue-500">
+            <FontAwesomeIcon icon={faSpinner} spin />
+        </div>;
     }
 
     return (

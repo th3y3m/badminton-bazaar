@@ -99,7 +99,7 @@ const reviewSlice = createSlice({
             })
             .addCase(createReview.fulfilled, (state, action) => {
                 state.status = 'succeeded';
-                state.reviews.push(action.payload);
+                state.reviews.items.push(action.payload);
             })
             .addCase(createReview.rejected, (state, action) => {
                 state.status = 'failed';

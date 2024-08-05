@@ -4,6 +4,8 @@ import ReactPaginate from 'react-paginate';
 import Slider from '@mui/material/Slider';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProducts } from "../../redux/slice/productSlice";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 
 const ProductPage = () => {
     const dispatch = useDispatch();
@@ -127,7 +129,9 @@ const ProductPage = () => {
                             <div className="text-red-500">Error: {productsError}</div>
                         )}
                         {productsStatus === 'loading' && (
-                            <div className="text-blue-500">Loading...</div>
+                            <div className="text-blue-500">
+                                <FontAwesomeIcon icon={faSpinner} spin />
+                            </div>
                         )}
                         {productsStatus === 'succeeded' && (
                             <div>

@@ -35,7 +35,7 @@ export const createSize = createAsyncThunk(
     'sizes/addSize',
     async (SizeModel, thunkAPI) => {
         const response = await addSize(SizeModel);
-        return response.data;
+        return response;
     }
 );
 

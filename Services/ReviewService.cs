@@ -146,5 +146,20 @@ namespace Services
                 throw new Exception($"Error deleting review: {ex.Message}");
             }
         }
+
+        public async Task<double?> GetAverageRating(string productId)
+        {
+            try
+            {
+                var reviews = await _reviewRepository.GetDbSet();
+                var averageRating = reviews.Where(r => r.ProductId == productId).Average(r => r.Rating);
+
+                return averageRating == null ? 0 : averageRating;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving average rating: {ex.Message}");
+            }
+        }
     }
 }

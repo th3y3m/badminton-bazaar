@@ -6,7 +6,7 @@ export const fetchOrderDetail = createAsyncThunk(
     'orderDetails/fetchOrderDetailByOrderId',
     async (orderId, thunkAPI) => {
         const response = await fetchOrderDetailByOrderId(orderId);
-        return response.data;
+        return response;
     }
 );
 

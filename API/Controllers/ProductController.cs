@@ -96,6 +96,25 @@ namespace API.Controllers
         {
             try
             {
+                var file = productModel.ProductImageUrl;
+
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest("No file uploaded.");
+                }
+
+                var fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
+                using (var stream = file.OpenReadStream())
+                {
+                    var task = new FirebaseStorage("court-callers.appspot.com")
+                        .Child("NewsImages")
+                        .Child(fileName)
+                        .PutAsync(stream);
+
+                    var downloadUrl = await task;
+                    productModel.ImageUrl = downloadUrl; // Directly assign the URL
+                }
+
                 var product = await _productService.UpdateProduct(productModel, productId);
                 return Ok(product);
             }
@@ -103,6 +122,16 @@ namespace API.Controllers
             {
                 return StatusCode(500, $"Error updating product: {ex.Message}");
             }
+
+            //try
+            //{
+            //    var product = await _productService.UpdateProduct(productModel, productId);
+            //    return Ok(product);
+            //}
+            //catch (Exception ex)
+            //{
+            //    return StatusCode(500, $"Error updating product: {ex.Message}");
+            //}
         }
 
         [HttpDelete("{id}")]
@@ -144,6 +173,20 @@ namespace API.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"Error retrieving product remaining: {ex.Message}");
+            }
+        }
+
+        [HttpGet("GetRelatedProduct/{productId}")]
+        public async Task<IActionResult> GetRelatedProduct(string productId)
+        {
+            try
+            {
+                var products = await _productService.GetRelatedProduct(productId);
+                return Ok(products);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error retrieving related products: {ex.Message}");
             }
         }
     }

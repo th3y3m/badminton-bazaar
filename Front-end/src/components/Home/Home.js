@@ -216,10 +216,10 @@ const HomePage = () => {
                     {newsListStatus === 'loading' && (
                         <div className="text-gray-500">Loading...</div>
                     )}
-                    {newsList.length > 0 && (
+                    {newsList && newsList.items && newsList.items.length > 0 && (
                         <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-                            {newsList.slice(0, 5).map((news) => (
-                                <div key={news.newId} className='col-span-1'>
+                            {newsList.items.slice(0, 4).map((news) => (
+                                <div key={news.newId} className='col-span-1 rounded-lg p-4 transform transition duration-300 hover:scale-105'>
                                     <News news={news} />
                                 </div>
                             ))}

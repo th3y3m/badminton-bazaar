@@ -22,7 +22,16 @@ const fetchUserDetailById = async (id) => {
 };
 
 const updateUserDetail = async (UserDetailModel, id) => {
-    return axios.put(`UserDetail?id=${id}`, UserDetailModel);
+    const formData = new FormData();
+    formData.append('FullName', UserDetailModel.FullName);
+    formData.append('Address', UserDetailModel.Address);
+    formData.append('ImageUrl', UserDetailModel.ImageUrl);
+    console.log(formData);
+    return axios.put(`UserDetail/${id}`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
 };
 
 export {

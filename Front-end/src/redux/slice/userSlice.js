@@ -12,7 +12,7 @@ export const fetchAllUsers = createAsyncThunk(
     'users/fetchPaginatedUsers',
     async (params, thunkAPI) => {
         const response = await fetchPaginatedUsers(params);
-        return response.data;
+        return response;
     }
 );
 
@@ -20,7 +20,7 @@ export const fetchUser = createAsyncThunk(
     'users/fetchUserById',
     async (id, thunkAPI) => {
         const response = await fetchUserById(id);
-        return response.data;
+        return response;
     }
 );
 
@@ -28,7 +28,7 @@ export const removeUser = createAsyncThunk(
     'users/deleteUser',
     async (id, thunkAPI) => {
         const response = await deleteUser(id);
-        return response.data;
+        return response;
     }
 );
 
@@ -36,7 +36,7 @@ export const banUserById = createAsyncThunk(
     'users/banUser',
     async (id, thunkAPI) => {
         const response = await banUser(id);
-        return response.data;
+        return response;
     }
 );
 
@@ -44,14 +44,14 @@ export const unbanUserById = createAsyncThunk(
     'users/unbanUser',
     async (id, thunkAPI) => {
         const response = await unbanUser(id);
-        return response.data;
+        return response;
     }
 );
 
 // Initial state
 const initialState = {
     users: [],
-    userDetail: null,
+    userDetail: {},
     status: 'idle',
     error: null
 };

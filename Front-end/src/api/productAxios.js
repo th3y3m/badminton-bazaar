@@ -31,6 +31,9 @@ const fetchPaginatedProducts = async (params) => {
 const fetchProductById = async (id) => {
     return axios.get(`Product/${id}`);
 };
+const fetchRelatedProduct = async (id) => {
+    return axios.get(`Product/GetRelatedProduct/${id}`);
+};
 
 const addProduct = async (productModel) => {
     const formData = new FormData();
@@ -65,6 +68,7 @@ const numOfProductRemaining = async (id) => {
 export {
     fetchPaginatedProducts,
     fetchProductById,
+    fetchRelatedProduct,
     addProduct,
     updateProduct,
     deleteProductById,

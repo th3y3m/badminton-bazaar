@@ -230,5 +230,19 @@ namespace Services
                 throw new Exception($"Error retrieving product by product variant ID: {ex.Message}");
             }
         }
+
+        public async Task<List<Product>> GetRelatedProduct(string productId)
+        {
+            try
+            {
+                var product = await _productRepository.GetById(productId);
+                var products = await _productRepository.GetAll();
+                return products.Where(p => p.CategoryId == product.CategoryId && p.ProductId != productId).ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving related products: {ex.Message}");
+            }
+        }
     }
 }

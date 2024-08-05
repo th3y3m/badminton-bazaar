@@ -1,13 +1,14 @@
-import React, { useContext, useEffect } from 'react';
-import logo from './logo1.png';
+import React, { useEffect } from 'react';
+import logo from '../../../assets/logo1.png';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import { numberOfItemsInCart } from '../../../api/cartAxios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCartShopping } from '@fortawesome/free-solid-svg-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchLogoutApi } from '../../../redux/slice/authSlice';
 import { fetchNumberOfItems } from '../../../redux/slice/cartSlice';
+import { fetchUserDetail } from '../../../redux/slice/userDetailSlice';
+import { Avatar } from '@mui/material';
+import { fetchUser } from '../../../redux/slice/userSlice';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -15,8 +16,12 @@ const Header = () => {
   const user = useSelector((state) => state.auth.token);
 
   const numberOfItemsInCart = useSelector((state) => state.cart.itemsCount);
-  const numberOfItemsInCartStatus = useSelector((state) => state.cart.itemsCount);
-  const numberOfItemsInCartError = useSelector((state) => state.cart.itemsCount);
+  const numberOfItemsInCartStatus = useSelector((state) => state.cart.status);
+  const numberOfItemsInCartError = useSelector((state) => state.cart.error);
+
+  const userDetails = useSelector((state) => state.userDetails.userDetail);
+  const userDetailsStatus = useSelector((state) => state.userDetails.status);
+  const userDetailsError = useSelector((state) => state.userDetails.error);
 
   const handleLogout = () => {
     dispatch(fetchLogoutApi()).then(() => {
@@ -28,9 +33,16 @@ const Header = () => {
     navigate('/cart');
   };
   useEffect(() => {
-
     dispatch(fetchNumberOfItems(user?.id || ""));
   }, [dispatch, user?.id]);
+
+  useEffect(() => {
+    if (user && user.id) {
+      dispatch(fetchUserDetail(user.id));
+      dispatch(fetchUser(user.id));
+    }
+  }, [user, dispatch]);
+
 
   return (
     <header className="bg-white border-b-4 border-orange-500 relative">
@@ -52,6 +64,9 @@ const Header = () => {
             {(user && user.token) ? (
               <div className="flex items-center">
                 <button onClick={handleLogout} className="text-red-500 ml-2">Logout</button>
+                <div className='right-2'>
+                  <button onClick={() => navigate('/profile')} className="text-sm"><Avatar src={userDetails.profilePicture} /></button>
+                </div>
               </div>
             ) : (
               <div className="flex items-center">
@@ -63,13 +78,13 @@ const Header = () => {
         </div>
       </div>
       <nav className="bg-orange-500">
-        <ul className="flex justify-center space-x-4 text-white font-semibold py-2 cursor-pointer" onClick={() => navigate("/products")}>
-          <li><a href="#" className="hover:underline">PRODUCTS</a></li>
-          <li><a href="#" className="hover:underline">RACKETS</a></li>
-          <li><a href="#" className="hover:underline">MEN</a></li>
-          <li><a href="#" className="hover:underline">WOMEN</a></li>
-          <li><a href="#" className="hover:underline">ABOUT US</a></li>
-          <li><a href="#" className="hover:underline">NEWS</a></li>
+        <ul className="flex justify-center space-x-4 text-white font-semibold py-2">
+          <li className='cursor-pointer' onClick={() => navigate("/products")}>PRODUCTS</li>
+          <li className='cursor-pointer' onClick={() => navigate("/products")}>RACKETS</li>
+          <li className='cursor-pointer' onClick={() => navigate("/products")}>MEN</li>
+          <li className='cursor-pointer' onClick={() => navigate("/products")}>WOMEN</li>
+          <li className='cursor-pointer' onClick={() => navigate("/products")}>ABOUT US</li>
+          <li className='cursor-pointer' onClick={() => navigate("/news")}>NEWS</li>
         </ul>
       </nav>
     </header>

@@ -23,5 +23,6 @@ namespace Services.Interface
         Task<Review> AddReview(ReviewModel reviewModel);
         Task<Review?> UpdateReview(ReviewModel reviewModel, string reviewId);
         Task DeleteReview(string id);
+        Task<double?> GetAverageRating(string productId);
     }
 }

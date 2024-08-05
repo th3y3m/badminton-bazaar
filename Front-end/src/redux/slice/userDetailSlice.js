@@ -10,7 +10,7 @@ export const fetchAllUserDetails = createAsyncThunk(
     'userDetails/fetchPaginatedUserDetails',
     async (params, thunkAPI) => {
         const response = await fetchPaginatedUserDetails(params);
-        return response.data;
+        return response;
     }
 );
 
@@ -18,7 +18,7 @@ export const fetchUserDetail = createAsyncThunk(
     'userDetails/fetchUserDetailById',
     async (id, thunkAPI) => {
         const response = await fetchUserDetailById(id);
-        return response.data;
+        return response;
     }
 );
 
@@ -26,14 +26,14 @@ export const modifyUserDetail = createAsyncThunk(
     'userDetails/updateUserDetail',
     async ({ UserDetailModel, id }, thunkAPI) => {
         const response = await updateUserDetail(UserDetailModel, id);
-        return response.data;
+        return response;
     }
 );
 
 // Initial state
 const initialState = {
     userDetails: [],
-    userDetail: null,
+    userDetail: {},
     status: 'idle',
     error: null
 };

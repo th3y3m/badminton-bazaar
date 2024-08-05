@@ -12,9 +12,10 @@ export const fetchNews = createAsyncThunk(
     'news/fetchPaginatedNews',
     async (params, thunkAPI) => {
         const response = await fetchPaginatedNews(params);
-        return response.items;
+        return response;
     }
 );
+
 export const fetchSlideNews = createAsyncThunk(
     'news/fetchSlideNews',
     async (params, thunkAPI) => {
@@ -22,8 +23,17 @@ export const fetchSlideNews = createAsyncThunk(
         return response.items;
     }
 );
+
 export const fetchBannerNews = createAsyncThunk(
     'news/fetchBannerNews',
+    async (params, thunkAPI) => {
+        const response = await fetchPaginatedNews(params);
+        return response.items;
+    }
+);
+
+export const fetchTopView = createAsyncThunk(
+    'news/fetchTopView',
     async (params, thunkAPI) => {
         const response = await fetchPaginatedNews(params);
         return response.items;
@@ -64,7 +74,8 @@ export const removeNews = createAsyncThunk(
 
 // Initial state
 const initialState = {
-    news: [],
+    news: { items: [], totalPages: 0 },
+    topView: [],
     newsSlide: [],
     banners: [],
     singleNews: {},
@@ -87,6 +98,17 @@ const newsSlice = createSlice({
                 state.news = action.payload;
             })
             .addCase(fetchNews.rejected, (state, action) => {
+                state.status = 'failed';
+                state.error = action.error.message;
+            })
+            .addCase(fetchTopView.pending, (state) => {
+                state.status = 'loading';
+            })
+            .addCase(fetchTopView.fulfilled, (state, action) => {
+                state.status = 'succeeded';
+                state.topView = action.payload;
+            })
+            .addCase(fetchTopView.rejected, (state, action) => {
                 state.status = 'failed';
                 state.error = action.error.message;
             })
@@ -128,7 +150,7 @@ const newsSlice = createSlice({
             })
             .addCase(createNews.fulfilled, (state, action) => {
                 state.status = 'succeeded';
-                state.news.push(action.payload);
+                state.news.items.push(action.payload);
             })
             .addCase(createNews.rejected, (state, action) => {
                 state.status = 'failed';
@@ -139,9 +161,9 @@ const newsSlice = createSlice({
             })
             .addCase(modifyNews.fulfilled, (state, action) => {
                 state.status = 'succeeded';
-                const index = state.news.findIndex(news => news.id === action.payload.id);
+                const index = state.news.items.findIndex(news => news.id === action.payload.id);
                 if (index !== -1) {
-                    state.news[index] = action.payload;
+                    state.news.items[index] = action.payload;
                 }
             })
             .addCase(modifyNews.rejected, (state, action) => {
@@ -153,7 +175,7 @@ const newsSlice = createSlice({
             })
             .addCase(removeNews.fulfilled, (state, action) => {
                 state.status = 'succeeded';
-                state.news = state.news.filter(news => news.id !== action.payload.id);
+                state.news.items = state.news.items.filter(news => news.id !== action.payload.id);
             })
             .addCase(removeNews.rejected, (state, action) => {
                 state.status = 'failed';

@@ -4,7 +4,8 @@ import {
     fetchReviewById,
     addReview,
     updateReview,
-    deleteReviewById
+    deleteReviewById,
+    getAverageRating
 } from '../../api/reviewAxios';
 
 // Define async thunks
@@ -12,7 +13,7 @@ export const fetchAllReviews = createAsyncThunk(
     'reviews/fetchPaginatedReviews',
     async (params, thunkAPI) => {
         const response = await fetchPaginatedReviews(params);
-        return response.data;
+        return response;
     }
 );
 
@@ -20,7 +21,7 @@ export const fetchReview = createAsyncThunk(
     'reviews/fetchReviewById',
     async (id, thunkAPI) => {
         const response = await fetchReviewById(id);
-        return response.data;
+        return response;
     }
 );
 
@@ -28,7 +29,7 @@ export const createReview = createAsyncThunk(
     'reviews/addReview',
     async (reviewModel, thunkAPI) => {
         const response = await addReview(reviewModel);
-        return response.data;
+        return response;
     }
 );
 
@@ -36,7 +37,7 @@ export const modifyReview = createAsyncThunk(
     'reviews/updateReview',
     async ({ reviewModel, id }, thunkAPI) => {
         const response = await updateReview(reviewModel, id);
-        return response.data;
+        return response;
     }
 );
 
@@ -44,14 +45,22 @@ export const removeReview = createAsyncThunk(
     'reviews/deleteReviewById',
     async (id, thunkAPI) => {
         const response = await deleteReviewById(id);
-        return response.data;
+        return response;
+    }
+);
+export const fetchAverageRating = createAsyncThunk(
+    'reviews/fetchAverageRating',
+    async (id, thunkAPI) => {
+        const response = await getAverageRating(id);
+        return response;
     }
 );
 
 // Initial state
 const initialState = {
     reviews: [],
-    reviewDetail: null,
+    reviewDetail: {},
+    averageRating: 0,
     status: 'idle',
     error: null
 };
@@ -93,6 +102,17 @@ const reviewSlice = createSlice({
                 state.reviews.push(action.payload);
             })
             .addCase(createReview.rejected, (state, action) => {
+                state.status = 'failed';
+                state.error = action.error.message;
+            })
+            .addCase(fetchAverageRating.pending, (state) => {
+                state.status = 'loading';
+            })
+            .addCase(fetchAverageRating.fulfilled, (state, action) => {
+                state.status = 'succeeded';
+                state.averageRating = action.payload;
+            })
+            .addCase(fetchAverageRating.rejected, (state, action) => {
                 state.status = 'failed';
                 state.error = action.error.message;
             })

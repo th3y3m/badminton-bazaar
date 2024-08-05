@@ -39,9 +39,14 @@ const deleteReviewById = async (id) => {
     return axios.delete(`Review/${id}`);
 };
 
+const getAverageRating = async (id) => {
+    return axios.get(`Review/GetAverageRating/${id}`);
+};
+
 export {
     fetchPaginatedReviews,
     fetchReviewById,
+    getAverageRating,
     addReview,
     updateReview,
     deleteReviewById

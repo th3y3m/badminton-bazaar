@@ -27,7 +27,7 @@ export const createColor = createAsyncThunk(
     'colors/addColor',
     async (colorModel, thunkAPI) => {
         const response = await addColor(colorModel);
-        return response.data;
+        return response;
     }
 );
 

@@ -120,9 +120,9 @@ namespace API.Controllers
                 UserId = user.Id,
                 Point = 0,
                 FullName = model.FullName,
-
+                ProfilePicture = "https://firebasestorage.googleapis.com/v0/b/storage-8b808.appspot.com/o/OIP.jpeg?alt=media&token=60195a0a-2fd6-4c66-9e3a-0f7f80eb8473"
             };
-            _userDetailService.AddUserDetail(userDetail);
+            await _userDetailService.AddUserDetail(userDetail);
 
             return Ok(new ResponseModel { Status = "Success", Message = "User created successfully!" });
         }

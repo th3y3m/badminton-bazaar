@@ -5,13 +5,16 @@ import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchProduct } from "../../redux/slice/productSlice";
+import { fetchProduct, fetchRelatedProducts } from "../../redux/slice/productSlice";
 import { fetchColorsByProduct, fetchSingleColor } from "../../redux/slice/colorSlice";
 import { fetchSize, fetchSizesForProduct } from "../../redux/slice/sizeSlice";
 import { fetchSingleCategory } from "../../redux/slice/categorySlice";
 import { fetchSupplier } from "../../redux/slice/supplierSlice";
 import { fetchAllProductVariants, fetchProductVariant } from "../../redux/slice/productVariantSlice";
 import { fetchNumberOfItems } from "../../redux/slice/cartSlice";
+import Product from './Product';
+import { Rating, Typography } from '@mui/material';
+import { fetchAverageRating } from '../../redux/slice/reviewSlice';
 
 const ProductDetailsPage = () => {
     const { id: productId } = useParams();
@@ -46,6 +49,17 @@ const ProductDetailsPage = () => {
     const productVariantError = useSelector((state) => state.productVariant.error);
     const productVariant = useSelector((state) => state.productVariant.productVariantDetail);
 
+    const relatedProducts = useSelector((state) => state.product.relatedProducts);
+    const relatedProductsStatus = useSelector((state) => state.product.status);
+    const relatedProductsError = useSelector((state) => state.product.error);
+
+    const reviews = useSelector((state) => state.review.reviews);
+    const reviewsStatus = useSelector((state) => state.review.status);
+    const reviewsError = useSelector((state) => state.review.error);
+
+    const averageReviews = useSelector((state) => state.review.averageRating);
+    const averageReviewsStatus = useSelector((state) => state.review.status);
+    const averageReviewsError = useSelector((state) => state.review.error);
 
     const handleAddCart = () => {
         if (user && user.id) {
@@ -83,6 +97,8 @@ const ProductDetailsPage = () => {
             dispatch(fetchSizesForProduct(product.productId));
             dispatch(fetchSingleCategory(product.categoryId));
             dispatch(fetchSupplier(product.supplierId));
+            dispatch(fetchRelatedProducts(product.productId));
+            dispatch(fetchAverageRating(product.productId));
         }
     }, [product, dispatch]);
 
@@ -124,8 +140,6 @@ const ProductDetailsPage = () => {
     if (productStatus === 'loading') {
         return <div>Loading...</div>;
     }
-
-
 
     return (
         <div className="container mx-auto relative mb-10">
@@ -224,10 +238,65 @@ const ProductDetailsPage = () => {
                         </div>
                     </div>
                 </div>
-                <div className="border border-[#a09f9f]">
-                    <h2 className="text-2xl font-bold p-3 bg-[#e4e1e1]"><FontAwesomeIcon icon={faInfo} /> Description</h2>
-                    <p className="text-lg font-light">{product.productDescription}</p>
+            </div>
+            <div className="border-t-4 border-red-500">
+                <h2 className="text-2xl font-bold p-3 bg-[#e4e1e1]"><FontAwesomeIcon icon={faInfo} /> Description</h2>
+                <p className="text-lg font-light">{product.productDescription}</p>
+            </div>
+
+            <div className="border-t-4 border-red-500">
+                <h2 className="text-2xl font-bold p-3 bg-[#e4e1e1]">Reviews</h2>
+                <div className=''>
+                    <Typography component="legend">Rating</Typography>
+                    <Rating name="half-rating-read" defaultValue={averageReviews} precision={0.2} readOnly /><span className='ml-3'>{averageReviews.toFixed(1)}</span>
+                    <div className='mt-8'>
+                        {reviewsStatus === 'failed' && (
+                            <div>Error: {reviewsError}</div>
+                        )}
+
+                        {reviewsStatus === 'loading' && (
+                            <div>Loading...</div>
+                        )}
+                        {reviewsStatus === 'succeeded' && (
+                            <div>
+                                {reviews && reviews.map((review) => (
+                                    <div key={review.reviewId} className='border border-gray-300 p-2 rounded-lg'>
+                                        <div className='flex justify-between'>
+                                            <p className='text-lg font-semibold'>{review.title}</p>
+                                            <Rating name="half-rating-read" defaultValue={review.rating} precision={0.2} readOnly />
+                                        </div>
+                                        <p className='text-gray-600'>{review.content}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
+            </div>
+            <div className='mt-10'>
+                <div className='border-t-4 border-red-500'>
+                    <h2 className='bg-[#e4e1e1] text-2xl font-bold p-3 mb-10'>Related Products</h2>
+                    <div>
+                        {relatedProductsStatus === 'failed' && (
+                            <div>Error: {relatedProductsError}</div>
+                        )}
+
+                        {relatedProductsStatus === 'loading' && (
+                            <div>Loading...</div>
+                        )}
+                        {relatedProductsStatus === 'succeeded' && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                {relatedProducts && relatedProducts.map((product) => (
+                                    <div key={product.productId} className="border border-gray-300 p-2 rounded-lg">
+                                        <Product product={product} />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                </div>
+
             </div>
         </div>
     );

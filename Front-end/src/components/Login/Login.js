@@ -1,11 +1,9 @@
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ROUTERS } from "../../utils/Routers";
 import { toast } from "react-toastify";
-import { AuthContext } from "../../AuthContext";
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchLoginApi } from "../../redux/slice/authSlice";
 import { useNavigate } from "react-router-dom";
-
 
 const Login = () => {
 
@@ -13,8 +11,6 @@ const Login = () => {
     const navigate = useNavigate();
 
     const userLogin = useSelector((state) => state.auth.token);
-    const userLoginStatus = useSelector((state) => state.auth.status);
-    const userLoginError = useSelector((state) => state.auth.error);
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');

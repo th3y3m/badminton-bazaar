@@ -29,5 +29,6 @@ namespace Services.Interface
         Task<int> ProductRemaining(string productId);
         Task<List<Product>> GetTopSeller(int n);
         Task<int> GetSelledProduct(string productId);
+        Task<List<Product>> GetRelatedProduct(string productId);
     }
 }

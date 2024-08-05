@@ -12,7 +12,7 @@ export const fetchOrders = createAsyncThunk(
     'orders/fetchPaginatedOrders',
     async (params, thunkAPI) => {
         const response = await fetchPaginatedOrders(params);
-        return response.data;
+        return response;
     }
 );
 
@@ -20,7 +20,7 @@ export const fetchSingleOrder = createAsyncThunk(
     'orders/fetchOrderById',
     async (orderId, thunkAPI) => {
         const response = await fetchOrderById(orderId);
-        return response.data;
+        return response;
     }
 );
 
@@ -28,7 +28,7 @@ export const fetchOrderPrice = createAsyncThunk(
     'orders/fetchTotalPrice',
     async (orderId, thunkAPI) => {
         const response = await fetchTotalPrice(orderId);
-        return response.data;
+        return response;
     }
 );
 
@@ -36,7 +36,7 @@ export const createNewOrder = createAsyncThunk(
     'orders/createOrder',
     async (userId, thunkAPI) => {
         const response = await createOrder(userId);
-        return response.data;
+        return response;
     }
 );
 
@@ -44,7 +44,7 @@ export const deleteOrder = createAsyncThunk(
     'orders/deleteOrderById',
     async (orderId, thunkAPI) => {
         const response = await deleteOrderById(orderId);
-        return response.data;
+        return response;
     }
 );
 

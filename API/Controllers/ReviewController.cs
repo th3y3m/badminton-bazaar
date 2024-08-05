@@ -91,5 +91,19 @@ namespace API.Controllers
                 return StatusCode(500, $"Error deleting review: {ex.Message}");
             }
         }
+
+        [HttpGet("GetAverageRating/{productId}")]
+        public async Task<IActionResult> GetAverageRating(string productId)
+        {
+            try
+            {
+                var reviews = await _reviewService.GetAverageRating(productId);
+                return Ok(reviews);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error retrieving reviews by product ID: {ex.Message}");
+            }
+        }
     }
 }

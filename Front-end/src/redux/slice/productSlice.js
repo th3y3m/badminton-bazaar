@@ -6,7 +6,8 @@ import {
     updateProduct,
     deleteProductById,
     getTopSeller,
-    numOfProductRemaining
+    numOfProductRemaining,
+    fetchRelatedProduct
 } from '../../api/productAxios';
 
 // Define async thunks
@@ -25,6 +26,13 @@ export const fetchRackets = createAsyncThunk(
         return response.items;
     }
 );
+export const fetchRelatedProducts = createAsyncThunk(
+    'products/fetchRelatedProduct',
+    async (id, thunkAPI) => {
+        const response = await fetchRelatedProduct(id);
+        return response;
+    }
+);
 
 export const fetchProduct = createAsyncThunk(
     'products/fetchProductById',
@@ -41,7 +49,7 @@ export const createProduct = createAsyncThunk(
     'products/addProduct',
     async (productModel, thunkAPI) => {
         const response = await addProduct(productModel);
-        return response.data;
+        return response;
     }
 );
 
@@ -49,7 +57,7 @@ export const modifyProduct = createAsyncThunk(
     'products/updateProduct',
     async ({ productModel, productId }, thunkAPI) => {
         const response = await updateProduct(productModel, productId);
-        return response.data;
+        return response;
     }
 );
 
@@ -57,7 +65,7 @@ export const removeProduct = createAsyncThunk(
     'products/deleteProductById',
     async (id, thunkAPI) => {
         const response = await deleteProductById(id);
-        return response.data;
+        return response;
     }
 );
 
@@ -73,7 +81,7 @@ export const fetchProductRemaining = createAsyncThunk(
     'products/numOfProductRemaining',
     async (id, thunkAPI) => {
         const response = await numOfProductRemaining(id);
-        return response.data;
+        return response;
     }
 );
 
@@ -81,6 +89,7 @@ export const fetchProductRemaining = createAsyncThunk(
 const initialState = {
     products: [],
     rackets: [],
+    relatedProducts: [],
     product: {},
     topSellers: [],
     productRemaining: null,
@@ -114,6 +123,17 @@ const productSlice = createSlice({
                 state.rackets = action.payload;
             })
             .addCase(fetchRackets.rejected, (state, action) => {
+                state.status = 'failed';
+                state.error = action.error.message;
+            })
+            .addCase(fetchRelatedProducts.pending, (state) => {
+                state.status = 'loading';
+            })
+            .addCase(fetchRelatedProducts.fulfilled, (state, action) => {
+                state.status = 'succeeded';
+                state.relatedProducts = action.payload;
+            })
+            .addCase(fetchRelatedProducts.rejected, (state, action) => {
                 state.status = 'failed';
                 state.error = action.error.message;
             })

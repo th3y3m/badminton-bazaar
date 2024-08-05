@@ -1,5 +1,7 @@
 ﻿using BusinessObjects;
+using Firebase.Storage;
 using Microsoft.AspNetCore.Mvc;
+using Services;
 using Services.Interface;
 using Services.Models;
 
@@ -49,17 +51,45 @@ namespace API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateUserDetail([FromBody] UserDetailModel userDetail, string id)
+        public async Task<IActionResult> UpdateUserDetail([FromForm] UserDetailModel userDetail, string id)
         {
             try
             {
+                var file = userDetail.ImageUrl;
+
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest("No file uploaded.");
+                }
+
+                var fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
+                using (var stream = file.OpenReadStream())
+                {
+                    var task = new FirebaseStorage("court-callers.appspot.com")
+                        .Child("NewsImages")
+                        .Child(fileName)
+                        .PutAsync(stream);
+
+                    var downloadUrl = await task;
+                    userDetail.ProfilePicture = downloadUrl; // Directly assign the URL
+                }
+
                 await _userDetailService.UpdateUserDetail(userDetail, id);
                 return Ok();
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error updating user detail: {ex.Message}");
+                return StatusCode(500, $"Error adding product: {ex.Message}");
             }
+            //try
+            //{
+            //    await _userDetailService.UpdateUserDetail(userDetail, id);
+            //    return Ok();
+            //}
+            //catch (Exception ex)
+            //{
+            //    return StatusCode(500, $"Error updating user detail: {ex.Message}");
+            //}
         }
     }
 }

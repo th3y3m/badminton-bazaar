@@ -1,23 +1,19 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProduct } from '../../redux/slice/productSlice';
 import { fetchProductVariant } from '../../redux/slice/productVariantSlice';
 import { addToCookie, deleteAUnitItem, fetchCart, fetchNumberOfItems, removeItem } from '../../redux/slice/cartSlice';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { fetchProductVariantById } from '../../api/productVariantAxios';
 
-const ProductRow = (cartItem) => {
+const ProductRow = ({ cartItem }) => {
     const dispatch = useDispatch();
 
     const user = useSelector((state) => state.auth.token);
 
-    const product = useSelector((state) => state.product.product);
-    const productStatus = useSelector((state) => state.product.status);
-    const productError = useSelector((state) => state.product.error);
-
-    const productVariant = useSelector((state) => state.productVariant.productVariantDetail);
-    const productVariantStatus = useSelector((state) => state.productVariant.status);
-    const productVariantError = useSelector((state) => state.productVariant.error);
+    const [productVariant, setProductVariant] = useState({});
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleRemove = () => {
         dispatch(removeItem({ productId: cartItem.itemId, userId: user.id }))
@@ -60,28 +56,25 @@ const ProductRow = (cartItem) => {
     };
 
     useEffect(() => {
-        dispatch(fetchProductVariant(cartItem.itemId));
-    }, [cartItem.itemId, dispatch]);
+        const fetchProduct = async (id) => {
+            setIsLoading(true);
+            const response = await fetchProductVariantById(id);
+            setProductVariant(response);
+            setIsLoading(false);
+        };
+        fetchProduct(cartItem.itemId);
+    }, [cartItem.itemId]);
 
-    useEffect(() => {
-        if (productVariant) {
 
-            dispatch(fetchProduct(productVariant.productId));
-        }
-    }, [cartItem.itemId, dispatch]);
-
-    if (productError === 'failed' || productVariantError === 'failed') {
-        return <div>Error: {productError || productVariantError}</div>;
-    }
-    if (productStatus === 'loading' || productVariantStatus === 'loading') {
+    if (isLoading) {
         return <div className="text-blue-500">
             <FontAwesomeIcon icon={faSpinner} spin />
-        </div>;
+        </div>
     }
 
     return (
         <div className="grid grid-cols-7 flex-col items-center justify-center w-full h-96 bg-white rounded-lg shadow-md">
-            <img src={productVariant.variantImageURL} alt={product.productName} className="w-full col-span-1" />
+            <img src={productVariant.variantImageURL} alt={cartItem.itemName} className="w-full col-span-1" />
             <h3 className="text-lg font-semibold mt-2 col-span-2">{cartItem.itemName}</h3>
             <p className="text-lg font-semibold mt-2 col-span-1 text-center">{cartItem.unitPrice} $</p>
             <div className="flex items-center col-span-1 justify-center">

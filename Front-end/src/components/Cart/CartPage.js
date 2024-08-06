@@ -8,8 +8,8 @@ import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { ROUTERS } from '../../utils/Routers';
 
 const CartPage = () => {
-    const dispatch = useDispatch();
     const navigate = useNavigate();
+    const dispatch = useDispatch();
 
     const user = useSelector((state) => state.auth.token);
 
@@ -76,7 +76,7 @@ const CartPage = () => {
                             </div>
                         </div>
                         {cartItems.map((item) => (
-                            <ProductRow key={item.itemId} {...item} />
+                            <ProductRow key={item.itemId} cartItem={item} />
                         ))}
                     </div>
                     <div className="flex my-6 justify-end">

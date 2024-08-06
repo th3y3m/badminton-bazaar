@@ -34,10 +34,10 @@ namespace API
 
             builder.Services.AddSession(options =>
             {
-                options.IdleTimeout = TimeSpan.FromMinutes(120);
+                options.IdleTimeout = TimeSpan.FromDays(7);
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
-                options.Cookie.SameSite = SameSiteMode.None; // Allow cross-site cookies
+                options.Cookie.SameSite = SameSiteMode.None; 
             });
 
             builder.Services.AddHttpContextAccessor();

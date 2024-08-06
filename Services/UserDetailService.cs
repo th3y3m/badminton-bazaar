@@ -10,10 +10,12 @@ namespace Services
     public class UserDetailService : IUserDetailService
     {
         private readonly IUserDetailRepository _userDetailRepository;
+        private readonly IReviewService _reviewService;
 
-        public UserDetailService(IUserDetailRepository userDetailRepository)
+        public UserDetailService(IUserDetailRepository userDetailRepository, IReviewService reviewService)
         {
             _userDetailRepository = userDetailRepository;
+            _reviewService = reviewService;
         }
 
         public async Task<PaginatedList<UserDetail>> GetPaginatedUsers(
@@ -96,6 +98,25 @@ namespace Services
             catch (Exception ex)
             {
                 throw new Exception($"Error updating user detail: {ex.Message}");
+            }
+        }
+
+        public async Task<UserDetail> GetUserByReview(string reviewId)
+        {
+            try
+            {
+                var review = await _reviewService.GetReviewById(reviewId);
+                if (review == null)
+                    {
+                    throw new Exception("Review not found");
+                }
+
+                var user = await _userDetailRepository.GetById(review.UserId);
+                return user;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving user by review ID: {ex.Message}");
             }
         }
     }

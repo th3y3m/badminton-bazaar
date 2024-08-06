@@ -10,6 +10,7 @@ import ProductDetailsPage from "./components/Product/ProductDetailsPage";
 import NewsPage from "./components/News/NewsPage";
 import NewsList from "./components/News/NewsList";
 import Profile from "./components/Profile/Profile";
+import CheckOutPage from "./components/Checkout/CheckoutPage";
 
 const ProtectedRoute = ({ component: Component, allowedRoles, ...rest }) => {
     const userRole = localStorage.getItem('userRole');
@@ -32,6 +33,7 @@ const renderUserRouter = () => {
         { path: ROUTERS.USER.CART, component: CartPage },
         { path: ROUTERS.USER.REGISTER, component: Register },
         { path: ROUTERS.USER.PRODUCTDETAILS + "/:id", component: ProductDetailsPage },
+        { path: ROUTERS.USER.CHECKOUT, component: CheckOutPage },
         // { path: ROUTERS.USER.ORDERS, component: Orders },
         { path: ROUTERS.USER.PRODUCTS, component: ProductPage },
     ];

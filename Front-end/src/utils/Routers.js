@@ -13,6 +13,7 @@ export const ROUTERS = {
         CART: "/cart",
         ORDERS: "/orders",
         REGISTER: "/register",
+        CHECKOUT: "/checkout",
         ERROR: "/*",
     }
 }

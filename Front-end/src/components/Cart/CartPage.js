@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchCart } from '../../redux/slice/cartSlice';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { ROUTERS } from '../../utils/Routers';
 
 const CartPage = () => {
     const dispatch = useDispatch();
@@ -33,7 +34,7 @@ const CartPage = () => {
     }, [cartItems]);
 
     const handlePlaceOrders = () => {
-        navigate('/orders');
+        navigate(ROUTERS.USER.CHECKOUT);
     };
 
     if (cartItemsStatus === 'loading') {

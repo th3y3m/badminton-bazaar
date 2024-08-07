@@ -20,11 +20,11 @@ namespace BusinessObjects
 
         [ForeignKey("Color")]
         [StringLength(10)]
-        public string ColorId { get; set; }
+        public string? ColorId { get; set; }
 
         [ForeignKey("Size")]
         [StringLength(10)]
-        public string SizeId { get; set; }
+        public string? SizeId { get; set; }
 
         [Required]
         public int StockQuantity { get; set; }
@@ -41,8 +41,8 @@ namespace BusinessObjects
 
 
         // Navigation properties
-        public virtual Color Color { get; set; }
-        public virtual Size Size { get; set; }
+        public virtual Color? Color { get; set; }
+        public virtual Size? Size { get; set; }
         public virtual Product Product { get; set; }
         public virtual ICollection<OrderDetail> OrderDetails { get; set; }
 

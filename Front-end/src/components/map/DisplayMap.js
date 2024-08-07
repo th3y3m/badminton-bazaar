@@ -5,31 +5,41 @@ import "leaflet-control-geocoder/dist/Control.Geocoder.css";
 import "leaflet-control-geocoder/dist/Control.Geocoder.js";
 import RoutingMachine from './RoutingMachine';
 import { getGeocodeFromAddress } from './GeocoderLocation';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 
-function DisplayMap({ address }) {
-  const [userPosition, setUserPosition] = useState([10.875376656860935, 106.80076631184579]);
-  const [destination, setDestination] = useState([10.875376656860935, 106.80076631184579]);
+function DisplayMap({ address, address2 }) {
+  const [userPosition, setUserPosition] = useState(null);
+  const [destination, setDestination] = useState([10.765268969704836, 106.60137392529515]);
 
   useEffect(() => {
     if (address) {
       getGeocodeFromAddress(address)
-        .then(result => setDestination(result))
+        .then(result => {
+          if (result) {
+            console.log("Destination geocode:", result);
+            setDestination(result);
+          }
+        })
         .catch(error => console.error(error));
     }
   }, [address]);
 
   useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setUserPosition([position.coords.latitude, position.coords.longitude]);
-      },
-      () => {
-        console.error("User location permission denied");
-      }
-    );
-  }, []);
+    if (address2) {
+      getGeocodeFromAddress(address2)
+        .then(result => {
+          if (result) {
+            console.log("User geocode:", result);
+            setUserPosition(result);
+          }
+        })
+        .catch(error => console.error(error));
+    }
+  }, [address2]);
 
   // Default center for the map to prevent white screen when positions are null
+
   const defaultCenter = [10.875376656860935, 106.80076631184579];
 
   return (
@@ -48,9 +58,7 @@ function DisplayMap({ address }) {
           <Popup>Branch Location</Popup>
         </Marker>
       )}
-
       {destination && <UpdateMapView position={destination || defaultCenter} />}
-      {/* Conditional rendering of RoutingMachine */}
       {userPosition && destination && <RoutingMachine userPosition={userPosition} branchPosition={destination} />}
     </MapContainer>
   );
@@ -77,6 +85,5 @@ const originIcon = L.icon({
   iconAnchor: [17, 35],
   popupAnchor: [0, -35]
 });
-
 
 export default DisplayMap;

@@ -11,8 +11,8 @@ function RoutingMachine({ userPosition, branchPosition }) {
 
     L.Routing.control({
       waypoints: [L.latLng(userPosition), L.latLng(branchPosition)],
-      lineOptions:{
-        styles:[
+      lineOptions: {
+        styles: [
           {
             color: "blue",
             weight: 6,
@@ -26,7 +26,7 @@ function RoutingMachine({ userPosition, branchPosition }) {
       fitSelectedRoutes: true,
       showAlternatives: true,
       draggableWaypoints: false,
-      createMarker: function() { return null; } // Prevent automatic marker creation
+      createMarker: function () { return null; } // Prevent automatic marker creation
 
     }).addTo(map);
   }, []);

@@ -5,8 +5,10 @@ import { fetchCart } from "../../redux/slice/cartSlice";
 import DisplayMap from "../map/DisplayMap";
 import "./style.scss";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faMapLocation } from "@fortawesome/free-solid-svg-icons";
-import { faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { faMapLocation, faSpinner, faInfoCircle } from "@fortawesome/free-solid-svg-icons";
+import { fetchFreightPriceByDistance } from "../../redux/slice/freightPriceSlice";
+import { Tooltip } from "react-tooltip";
+import FreightPrice from "../Freight/Freight";
 
 const CheckOutPage = () => {
     const dispatch = useDispatch();
@@ -19,9 +21,13 @@ const CheckOutPage = () => {
     const userDetail = useSelector((state) => state.userDetails.userDetail);
     const account = useSelector((state) => state.user.userDetail);
 
+    const price = useSelector((state) => state.freightPrice.priceByDistance);
+
     const [address, setAddress] = useState(userDetail.address || "");
     const [inputAddress, setInputAddress] = useState(userDetail.address || "");
     const [isLoading, setIsLoading] = useState(false);
+    const [distance, setDistance] = useState(null);
+    const [totalPrice, setTotalPrice] = useState(0);
 
     useEffect(() => {
         if (user?.id) {
@@ -31,6 +37,20 @@ const CheckOutPage = () => {
             });
         }
     }, [dispatch, user?.id]);
+
+    useEffect(() => {
+        if (distance) {
+            dispatch(fetchFreightPriceByDistance(distance)).catch(error => {
+                console.error("Error fetching freight price by distance:", error);
+            });
+        }
+    }, [dispatch, distance]);
+
+    // Calculate the total price whenever the cart changes
+    useEffect(() => {
+        const subtotal = cart.reduce((acc, item) => acc + item.quantity * item.unitPrice, 0);
+        setTotalPrice(subtotal);
+    }, [cart]);
 
     const handleInputAddressChange = (e) => {
         setInputAddress(e.target.value);
@@ -65,8 +85,13 @@ const CheckOutPage = () => {
             },
             () => {
                 console.error("User location permission denied");
+                setIsLoading(false);
             }
         );
+    };
+
+    const handleDistanceCalculated = (distance) => {
+        setDistance(distance);
     };
 
     return (
@@ -85,8 +110,7 @@ const CheckOutPage = () => {
                             <span className="text-blue-500 flex justify-center items-center h-full">
                                 <FontAwesomeIcon icon={faSpinner} spin />
                             </span>
-                        )
-                        }
+                        )}
                         <div className="flex items-center mt-2">
                             <input
                                 type="text"
@@ -123,7 +147,7 @@ const CheckOutPage = () => {
                                             <span>Store Location</span>
                                         </div>
                                     </div>
-                                    <DisplayMap address={"819 Hương Lộ 2, Phường Bình Trị Đông A, Quận Bình Tân, TP. HCM Ho Chi Minh"} address2={address} />
+                                    <DisplayMap address={"819 Hương Lộ 2, Phường Bình Trị Đông A, Quận Bình Tân, TP. HCM Ho Chi Minh"} address2={address} onDistanceCalculated={handleDistanceCalculated} />
                                 </div>
                             </div>
                         </div>
@@ -138,19 +162,33 @@ const CheckOutPage = () => {
                         <div className="text-red-500">Error {cartItemsError}</div>
                     )}
                     {cartItemsStatus === "loading" && (
-
                         <div className="text-blue-500 flex justify-center items-center h-full">
                             <FontAwesomeIcon icon={faSpinner} spin />
                         </div>
                     )}
-
-                    <div className="space-y-4">
+                    <div className="space-y-4 border-b border-gray-400">
                         {cart.map((cartItem) => (
                             <ProductInformationCard key={cartItem.itemId} cartItem={cartItem} />
                         ))}
                     </div>
                     <div className="mt-4 text-lg font-semibold flex justify-end">
-                        <p className="mr-1 font-bold text-3xl">Total: ${cart.reduce((acc, item) => acc + item.quantity * item.unitPrice, 0)}</p>
+                        <p className="mr-1 font-bold">Sub Total: ${totalPrice}</p>
+                    </div>
+                    <div className="mt-4 text-lg font-semibold flex justify-end border-b border-gray-600">
+                        <div className="flex justify-start items-center">
+                            <FontAwesomeIcon
+                                icon={faInfoCircle}
+                                data-tooltip-id="freight-tooltip"
+                                className="ml-2 text-blue-500 cursor-pointer"
+                            />
+                            <Tooltip id="freight-tooltip" place="left">
+                                <FreightPrice />
+                            </Tooltip>
+                        </div>
+                        <p className="mr-1 font-bold">Freight: ${price || 0}</p>
+                    </div>
+                    <div className="mt-4 text-lg font-semibold flex justify-end">
+                        <p className="mr-1 font-bold text-3xl">Total: ${totalPrice + (price || 0)}</p>
                     </div>
                 </div>
             </div>

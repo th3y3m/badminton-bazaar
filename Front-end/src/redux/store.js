@@ -14,6 +14,7 @@ import supplierReducer from './slice/supplierSlice'
 import userDetailReducer from './slice/userDetailSlice'
 import authReducer from './slice/authSlice'
 import cartReducer from './slice/cartSlice'
+import freightPriceReducer from './slice/freightPriceSlice'
 
 const store = configureStore({
   reducer: {
@@ -32,6 +33,7 @@ const store = configureStore({
     review: reviewReducer,
     supplier: supplierReducer,
     cart: cartReducer,
+    freightPrice: freightPriceReducer,
   },
 });
 

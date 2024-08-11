@@ -27,7 +27,7 @@ const ProductInformationCard = ({ cartItem }) => {
     }
 
     return (
-        <div className="grid grid-cols-5 gap-1 items-center h-32 p-2 border-b border-gray-200">
+        <div className="grid grid-cols-5 gap-1 items-center h-32 p-2">
             <div className="col-span-1 relative"> {/* Add relative positioning here */}
                 <img src={productVariant.variantImageURL} alt={cartItem.itemName} className="w-32 h-32 object-cover" />
                 <span className="absolute top-0 right-0 bg-gray-800 text-white text-xs font-bold rounded-full px-2 py-1">

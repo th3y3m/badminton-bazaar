@@ -8,7 +8,7 @@ import { getGeocodeFromAddress } from './GeocoderLocation';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 
-function DisplayMap({ address, address2 }) {
+function DisplayMap({ address, address2, onDistanceCalculated }) {
   const [userPosition, setUserPosition] = useState(null);
   const [destination, setDestination] = useState([10.765268969704836, 106.60137392529515]);
 
@@ -38,8 +38,6 @@ function DisplayMap({ address, address2 }) {
     }
   }, [address2]);
 
-  // Default center for the map to prevent white screen when positions are null
-
   const defaultCenter = [10.875376656860935, 106.80076631184579];
 
   return (
@@ -59,7 +57,13 @@ function DisplayMap({ address, address2 }) {
         </Marker>
       )}
       {destination && <UpdateMapView position={destination || defaultCenter} />}
-      {userPosition && destination && <RoutingMachine userPosition={userPosition} branchPosition={destination} />}
+      {userPosition && destination && (
+        <RoutingMachine
+          userPosition={userPosition}
+          branchPosition={destination}
+          onRouteCalculated={(distance, time) => onDistanceCalculated(distance)}
+        />
+      )}
     </MapContainer>
   );
 }

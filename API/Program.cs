@@ -114,6 +114,8 @@ namespace API
             builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
             builder.Services.AddScoped<IUserDetailRepository, UserDetailRepository>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
+            builder.Services.AddScoped<IFreightPriceRepository, FreightPriceRepository>();
+
 
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<ICategoryService, CategoryService>();
@@ -129,6 +131,7 @@ namespace API
             builder.Services.AddScoped<IUserDetailService, UserDetailService>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<ICartService, CartService>();
+            builder.Services.AddScoped<IFreightPriceService, FreightPriceService>();
 
             builder.Services.AddScoped<IVnpayService, VnpayService>();
 

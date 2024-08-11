@@ -46,6 +46,7 @@ namespace Repositories
         public virtual DbSet<Color> Colors { get; set; }
         public virtual DbSet<Size> Sizes { get; set; }
         public virtual DbSet<ProductVariant> ProductVariants { get; set; }
+        public virtual DbSet<FreightPrice> FreightPrices { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

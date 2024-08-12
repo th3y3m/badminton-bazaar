@@ -34,7 +34,7 @@ export const modifyUserDetail = createAsyncThunk(
 const initialState = {
     userDetails: [],
     userDetail: {},
-    status: 'idle',
+    status: '',
     error: null
 };
 

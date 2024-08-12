@@ -25,8 +25,8 @@ const updateUserDetail = async (UserDetailModel, id) => {
     const formData = new FormData();
     formData.append('FullName', UserDetailModel.FullName);
     formData.append('Address', UserDetailModel.Address);
+    formData.append('ProfilePicture', UserDetailModel.ProfilePicture);
     formData.append('ImageUrl', UserDetailModel.ImageUrl);
-    console.log(formData);
     return axios.put(`UserDetail/${id}`, formData, {
         headers: {
             'Content-Type': 'multipart/form-data',

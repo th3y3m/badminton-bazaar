@@ -19,6 +19,6 @@ namespace Services.Models
         [StringLength(int.MaxValue)]
         public string? ProfilePicture { get; set; }
 
-        public IFormFile ImageUrl { get; set; }
+        public IFormFile? ImageUrl { get; set; }
     }
 }

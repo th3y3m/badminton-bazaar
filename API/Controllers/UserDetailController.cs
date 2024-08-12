@@ -55,23 +55,27 @@ namespace API.Controllers
         {
             try
             {
-                var file = userDetail.ImageUrl;
-
-                if (file == null || file.Length == 0)
+                if (userDetail.ImageUrl != null)
                 {
-                    return BadRequest("No file uploaded.");
-                }
 
-                var fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
-                using (var stream = file.OpenReadStream())
-                {
-                    var task = new FirebaseStorage("court-callers.appspot.com")
-                        .Child("NewsImages")
-                        .Child(fileName)
-                        .PutAsync(stream);
+                    var file = userDetail.ImageUrl;
 
-                    var downloadUrl = await task;
-                    userDetail.ProfilePicture = downloadUrl; // Directly assign the URL
+                    if (file == null || file.Length == 0)
+                    {
+                        return BadRequest("No file uploaded.");
+                    }
+
+                    var fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
+                    using (var stream = file.OpenReadStream())
+                    {
+                        var task = new FirebaseStorage("court-callers.appspot.com")
+                            .Child("NewsImages")
+                            .Child(fileName)
+                            .PutAsync(stream);
+
+                        var downloadUrl = await task;
+                        userDetail.ProfilePicture = downloadUrl; // Directly assign the URL
+                    }
                 }
 
                 await _userDetailService.UpdateUserDetail(userDetail, id);

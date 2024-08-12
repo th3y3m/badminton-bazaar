@@ -11,11 +11,8 @@ const Profile = () => {
 
     const userDetails = useSelector((state) => state.userDetails.userDetail);
     const userDetailsStatus = useSelector((state) => state.userDetails.status);
-    const userDetailsError = useSelector((state) => state.userDetails.error);
 
     const account = useSelector((state) => state.user.userDetail);
-    const accountStatus = useSelector((state) => state.user.status);
-    const accountError = useSelector((state) => state.user.error);
 
     const [fullName, setFullName] = useState(userDetails.fullName || "");
     const [address, setAddress] = useState(userDetails.address || "");
@@ -30,8 +27,10 @@ const Profile = () => {
         const formData = {
             FullName: fullName || userDetails.fullName,
             Address: address || "",
-            ImageUrl: profilePicture || userDetails.profilePicture
+            ProfilePicture: userDetails.profilePicture
         };
+        console.log(userDetails.profilePicture);
+        console.log(formData.ProfilePicture);
         try {
             await dispatch(modifyUserDetail({ UserDetailModel: formData, id: account.id }));
             dispatch(fetchUserDetail(user.id));
@@ -46,9 +45,8 @@ const Profile = () => {
         const formData = {
             FullName: fullName || userDetails.fullName,
             Address: address || "",
-            ImageUrl: file || userDetails.profilePicture
+            ImageUrl: file
         };
-        console.log(formData);
         try {
             await dispatch(modifyUserDetail({ UserDetailModel: formData, id: account.id }));
             dispatch(fetchUserDetail(user.id));
@@ -103,7 +101,7 @@ const Profile = () => {
             </div>
             <div className="text-center">
                 {userDetailsStatus === 'failed' && (
-                    <div className="text-red-500">Error: {userDetailsError}</div>
+                    <div className="text-red-500">Error</div>
                 )}
                 {userDetailsStatus === 'loading' && (
                     <div className="text-blue-500">

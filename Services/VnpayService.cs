@@ -19,7 +19,7 @@ namespace Services
     {
         private readonly ILogger<VnpayService> _logger;
         public string url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"; // HTTPS
-        public string returnUrl = $"https://courtcaller.azurewebsites.net/VNpayAPI/paymentconfirm";
+        public string returnUrl = $"https://localhost:7173/VNpayAPI/paymentconfirm\r\n";
         public string tmnCode = "FKUXJX95";
         public string hashSecret = "0D3EAMNJYSY9INENB5JYP8XW2U8MD8WE";
         private readonly IOrderRepository _orderRepository;
@@ -141,7 +141,7 @@ namespace Services
                         return new PaymentStatusModel
                         {
                             IsSuccessful = false,
-                            RedirectUrl = "https://localhost:3000/reject?vnp_TxnRef={json[\"vnp_TxnRef\"].ToString()}"
+                            RedirectUrl = $"https://localhost:3000/reject?vnp_TxnRef={json["vnp_TxnRef"].ToString()}"
                         };
                     }
                 }

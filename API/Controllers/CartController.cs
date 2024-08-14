@@ -51,7 +51,7 @@ namespace API.Controllers
         }
 
         [HttpGet("GetCart")]
-        public IActionResult GetCart([FromQuery] string userId = "")
+        public async Task<IActionResult> GetCart([FromQuery] string userId = "")
         {
             try
             {
@@ -61,7 +61,7 @@ namespace API.Controllers
                     return StatusCode(500, "HttpContext is null");
                 }
 
-                var cart = _cartService.GetCart(userId);
+                var cart = await _cartService.GetCart(userId);
                 
                 return Ok(cart);
             }

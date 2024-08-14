@@ -21,7 +21,6 @@ const CartPage = () => {
 
     useEffect(() => {
         if (user?.id) {
-            console.log("Fetching cart for user:", user.id);
             dispatch(fetchCart(user.id)).catch(error => {
                 console.error("Error fetching cart:", error);
             });

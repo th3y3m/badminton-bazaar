@@ -33,7 +33,7 @@ const FreightPrice = () => {
             <h1 className="text-lg font-bold mb-2">Freight Price</h1>
             <div className="space-y-2">
                 {prices && prices.map((price) => (
-                    <div key={price.id} className="flex justify-between">
+                    <div key={price.priceId} className="flex justify-between">
                         <p>{price.minDistance} - {price.maxDistance} km: </p>
                         <p className="font-semibold">${price.pricePerKm}</p>
                     </div>

@@ -12,7 +12,7 @@ namespace Services.Interface
         Task SaveCartToCookie(string productId, string userId);
         void DeleteUnitItem(string productId, string userId);
         void RemoveFromCart(string productId, string userId);
-        List<CartItem> GetCart(string userId);
+        Task<List<CartItem>> GetCart(string userId);
         void DeleteCartInCookie(string userId);
         int NumberOfItemsInCart(string userId);
     }

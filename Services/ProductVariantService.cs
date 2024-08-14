@@ -161,5 +161,43 @@ namespace Services
                 throw new Exception($"Error retrieving paginated product variants: {ex.Message}");
             }
         }
+
+        public async Task<bool> CheckStock(List<CartItem> productVariants)
+        {
+            try
+            {
+                foreach (var productVariant in productVariants)
+                {
+                    var variant = await GetById(productVariant.ItemId);
+                    if (variant.StockQuantity < productVariant.Quantity)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error checking stock: {ex.Message}");
+            }
+        }
+        public async Task<bool> CheckStock(CartItem cartItem)
+        {
+            try
+            {
+
+                    var variant = await GetById(cartItem.ItemId);
+                    if (variant.StockQuantity < cartItem.Quantity)
+                    {
+                        return false;
+                    }
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error checking stock: {ex.Message}");
+            }
+        }
     }
 }

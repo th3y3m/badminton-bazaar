@@ -36,7 +36,7 @@ export const createPaymentToken = createAsyncThunk(
 export const executePayment = createAsyncThunk(
     'payments/processPayment',
     async (token, thunkAPI) => {
-        const response = await processPayment(token);
+        const response = await processPayment("Customer", token);
         return response;
     }
 );
@@ -60,7 +60,9 @@ export const fetchPaymentDetails = createAsyncThunk(
 // Initial state
 const initialState = {
     payments: [],
-    paymentDetail: null,
+    paymentDetail: {},
+    paymentToken: null,
+    paymentResult: null,
     status: 'idle',
     error: null
 };

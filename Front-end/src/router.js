@@ -11,6 +11,9 @@ import NewsPage from "./components/News/NewsPage";
 import NewsList from "./components/News/NewsList";
 import Profile from "./components/Profile/Profile";
 import CheckOutPage from "./components/Checkout/CheckoutPage";
+import PaymentFailed from "./components/Payment/PaymentFailed";
+import PaymentSuccessful from "./components/Payment/PaymentSuccessful";
+import ErrorPage from "./components/Error/ErrorPage";
 
 const ProtectedRoute = ({ component: Component, allowedRoles, ...rest }) => {
     const userRole = localStorage.getItem('userRole');
@@ -21,21 +24,20 @@ const ProtectedRoute = ({ component: Component, allowedRoles, ...rest }) => {
 
     return <Component {...rest} />;
 };
+
 const renderUserRouter = () => {
     const userRouters = [
         { path: ROUTERS.USER.HOME, component: HomePage },
         { path: ROUTERS.USER.PROFILE, component: Profile },
         { path: ROUTERS.USER.NEWS, component: NewsList },
         { path: ROUTERS.USER.NEWSDETAILS + "/:id", component: NewsPage },
-        // { path: ROUTERS.USER.PAYMENTDETAIL, component: PaymentDetail },
-        // { path: ROUTERS.USER.PAYMENTFAILED, component: PaymentFailed },
-        // { path: ROUTERS.USER.PAYMENTSUCCESSFUL, component: PaymentSuccessful },
+        { path: ROUTERS.USER.PAYMENTFAILED, component: PaymentFailed },
         { path: ROUTERS.USER.CART, component: CartPage },
         { path: ROUTERS.USER.REGISTER, component: Register },
         { path: ROUTERS.USER.PRODUCTDETAILS + "/:id", component: ProductDetailsPage },
         { path: ROUTERS.USER.CHECKOUT, component: CheckOutPage },
-        // { path: ROUTERS.USER.ORDERS, component: Orders },
         { path: ROUTERS.USER.PRODUCTS, component: ProductPage },
+        { path: ROUTERS.USER.PAYMENTSUCCESSFUL, component: PaymentSuccessful },
     ];
 
     return (
@@ -50,6 +52,8 @@ const renderUserRouter = () => {
                         }
                     />
                 ))}
+                {/* 404 Error Page Route */}
+                <Route path="*" element={<ErrorPage />} />
             </Routes>
         </MasterLayout>
     );

@@ -55,11 +55,11 @@ namespace Repositories
             }
         }
 
-        public async Task<OrderDetail> GetByOrderId(string id)
+        public async Task<List<OrderDetail>> GetByOrderId(string id)
         {
             try
             {
-                return await Task.FromResult(_dbContext.OrderDetails.FirstOrDefault(x => x.OrderId == id));
+                return await Task.FromResult(_dbContext.OrderDetails.Where(x => x.OrderId == id).ToList());
             }
             catch (Exception ex)
             {

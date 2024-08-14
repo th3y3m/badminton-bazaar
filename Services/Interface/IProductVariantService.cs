@@ -25,5 +25,7 @@ namespace Services.Interface
         Task<ProductVariant> GetById(string id);
         Task DeleteById(string id);
         Task<List<ProductVariant>> GetAll();
+        Task<bool> CheckStock(List<CartItem> productVariants);
+        Task<bool> CheckStock(CartItem cartItem);
     }
 }

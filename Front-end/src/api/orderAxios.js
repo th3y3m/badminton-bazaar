@@ -29,9 +29,24 @@ const fetchTotalPrice = async (orderId) => {
     return axios.get(`Order/Price/${orderId}`);
 };
 
-const createOrder = async (userId) => {
-    return axios.post('Order/CreateOrder', { userId });
+// const createOrder = async (userId) => {
+//     return axios.post('Order/CreateOrder', { userId });
+// };
+const createOrder = async (userId, freight, address) => {
+    try {
+        const requestBody = {
+            userId: userId,
+            freight: freight,
+            address: address
+        };
+
+        return axios.post('Order/CreateOrder', requestBody); // Send the data in the request body
+    } catch (error) {
+        console.error(`Error creating order axios: ${error.message}`);
+        throw error;
+    }
 };
+
 
 const deleteOrderById = async (orderId) => {
     return axios.delete(`Order/DeleteOrder/${orderId}`);

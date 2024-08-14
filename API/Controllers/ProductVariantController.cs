@@ -111,5 +111,19 @@ namespace API.Controllers
                 return StatusCode(500, $"Error deleting product variant: {ex.Message}");
             }
         }
+
+        [HttpGet("CheckStock")]
+        public async Task<IActionResult> CheckStock([FromQuery] CartItem productId)
+        {
+            try
+            {
+                var stock = await _productVariantService.CheckStock(productId);
+                return Ok(stock);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error checking stock: {ex.Message}");
+            }
+        }
     }
 }

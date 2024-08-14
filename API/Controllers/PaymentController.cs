@@ -21,10 +21,10 @@ namespace API.Controllers
 
         [HttpGet]
         public async Task<IActionResult> GetPaginatedPayments(
-            [FromQuery] string? searchQuery = "",
-            [FromQuery] string? sortBy = "paymentdate_asc",
-            [FromQuery] string? status = "",
-            [FromQuery] string? orderId = "",
+            [FromQuery] string searchQuery = "",
+            [FromQuery] string sortBy = "paymentdate_asc",
+            [FromQuery] string status = "",
+            [FromQuery] string orderId = "",
             [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 10)
         {
@@ -96,12 +96,12 @@ namespace API.Controllers
         }
 
         [HttpGet("GeneratePaymentToken/{bookingId}")]
-        public async Task<IActionResult> GeneratePaymentToken(string bookingId)
+        public IActionResult GeneratePaymentToken(string bookingId)
         {
             try
             {
                 var token = TokenForPayment.GenerateToken(bookingId);
-                return Ok(new { token });
+                return Ok(token);
             }
             catch (Exception ex)
             {

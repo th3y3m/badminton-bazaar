@@ -189,23 +189,34 @@ namespace Services
         //    Console.WriteLine("Current Cart Items: " + JsonSerializer.Serialize(currentCartItems));
         //}
 
-        public List<CartItem> GetCart(string userId)
+        public async Task<List<CartItem>> GetCart(string userId)
         {
             try
             {
                 string savedCart;
                 if (string.IsNullOrEmpty(userId))
                 {
-                     savedCart = _httpContextAccessor.HttpContext.Request.Cookies[$"Cart"];
+                    savedCart = _httpContextAccessor.HttpContext.Request.Cookies[$"Cart"];
                 }
                 else
-                { 
-                     savedCart = _httpContextAccessor.HttpContext.Request.Cookies[$"Cart_{userId}"]; 
+                {
+                    savedCart = _httpContextAccessor.HttpContext.Request.Cookies[$"Cart_{userId}"];
                 }
                 if (!string.IsNullOrEmpty(savedCart))
                 {
                     var cart = CartUtil.GetCartFromCookie(savedCart);
-                    return cart.Values.ToList();
+                    var cartItems = cart.Values.ToList();
+                    //foreach (var item in cartItems)
+                    //{
+                    //    bool isStockAvailable = await _productVariantService.CheckStock(item);
+                    //    if (!isStockAvailable)
+                    //    {
+                    //        cartItems.Remove(item);
+                    //    }
+                    //}
+                    //var strItemsInCart = CartUtil.ConvertCartToString(cartItems);
+                    //CartUtil.SaveCartToCookie(_httpContextAccessor.HttpContext.Request, _httpContextAccessor.HttpContext.Response, strItemsInCart, userId);
+                    return cartItems;
                 }
                 return new List<CartItem>();
             }
@@ -281,7 +292,15 @@ namespace Services
             try
             {
                 int count = 0;
-                var savedCart = _httpContextAccessor.HttpContext.Request.Cookies[$"Cart_{userId}"];
+                string savedCart;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    savedCart = _httpContextAccessor.HttpContext.Request.Cookies[$"Cart"];
+                }
+                else
+                {
+                    savedCart = _httpContextAccessor.HttpContext.Request.Cookies[$"Cart_{userId}"];
+                }
                 if (!string.IsNullOrEmpty(savedCart))
                 {
                     var cartItems = CartUtil.GetCartFromCookie(savedCart);

@@ -1,4 +1,5 @@
 using API.Middlewares;
+using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +30,12 @@ namespace API
                 options.UseSqlServer(connectionString);
             });
 
+            //Hangfire
+            builder.Services.AddHangfire(config =>
+            config.UseSqlServerStorage(configuration.GetConnectionString("BadmintonBazaarDb")));
+
+            builder.Services.AddHangfireServer();
+
             // Add services to the container
             builder.Services.AddDistributedMemoryCache();
 
@@ -37,7 +44,7 @@ namespace API
                 options.IdleTimeout = TimeSpan.FromDays(7);
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
-                options.Cookie.SameSite = SameSiteMode.None; 
+                options.Cookie.SameSite = SameSiteMode.None;
             });
 
             builder.Services.AddHttpContextAccessor();
@@ -144,12 +151,18 @@ namespace API
                 options.AddPolicy("AllowSpecificOrigin",
                     policy =>
                     {
-                        policy.WithOrigins("https://localhost:3000", "http://localhost:3000")
+                        policy.WithOrigins(
+                            "https://localhost:3000",
+                            "http://localhost:3000",
+                            "https://localhost:3000/checkout",
+                            "http://localhost:3000/checkout"
+                            )
                               .AllowAnyHeader()
                               .AllowAnyMethod()
                               .AllowCredentials();
                     });
             });
+
 
             var app = builder.Build();
 
@@ -166,6 +179,7 @@ namespace API
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
+            app.UseCors("AllowSpecificOrigin");
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
@@ -175,8 +189,10 @@ namespace API
             app.UseSession(); // Ensure session is used before authorization
             app.UseAuthentication();
             app.UseAuthorization();
-            app.UseCors("AllowSpecificOrigin");
             app.UseMiddleware<RequestResponseMiddleware>();
+
+            app.UseHangfireDashboard();
+
 
             app.MapControllers();
             app.Run();

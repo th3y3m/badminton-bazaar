@@ -14,6 +14,5 @@ export const ROUTERS = {
         ORDERS: "/orders",
         REGISTER: "/register",
         CHECKOUT: "/checkout",
-        ERROR: "/*",
     }
 }

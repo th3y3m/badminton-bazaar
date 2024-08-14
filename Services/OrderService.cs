@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Repositories;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
@@ -17,22 +18,33 @@ namespace Services
         private readonly IOrderDetailRepository _orderDetailRepository;
         private readonly ICartService _cartService;
         private readonly IUserDetailService _userDetailService;
+        private readonly IProductVariantRepository _productVariantRepository;
 
-        public OrderService(IOrderRepository orderRepository, IOrderDetailRepository orderDetailRepository, ICartService cartService, IUserDetailService userDetailService)
+        public OrderService(IOrderRepository orderRepository, IOrderDetailRepository orderDetailRepository, ICartService cartService, IUserDetailService userDetailService, IProductVariantRepository productVariantRepository)
         {
             _orderRepository = orderRepository;
             _orderDetailRepository = orderDetailRepository;
             _cartService = cartService;
             _userDetailService = userDetailService;
+            _productVariantRepository = productVariantRepository;
         }
-
         public async Task<decimal> TotalPrice(string orderId)
         {
             try
             {
-                var getAll = await _orderDetailRepository.GetAll();
-                var orderDetails = getAll.Where(p => p.OrderId == orderId).ToList();
+                var getAllOrderDetails = await _orderDetailRepository.GetAll();
+                var orderDetails = getAllOrderDetails.Where(p => p.OrderId == orderId).ToList();
+
+                var order = await _orderRepository.GetById(orderId);
+
                 decimal totalPrice = 0;
+
+                if (order == null)
+                {
+                    return totalPrice;
+                }
+
+                totalPrice += order.Freight.GetValueOrDefault();
 
                 foreach (var orderDetail in orderDetails)
                 {
@@ -46,6 +58,31 @@ namespace Services
                 throw new Exception("An error occurred while calculating the total price.", ex);
             }
         }
+
+        //public async Task<decimal> TotalPrice(string orderId)
+        //{
+        //    try
+        //    {
+        //        var getAllOrderDetails = await _orderDetailRepository.GetAll();
+        //        var orderDetails = getAllOrderDetails.Where(p => p.OrderId == orderId).ToList();
+
+        //        var order = await _orderRepository.GetById(orderId);
+
+        //        decimal totalPrice = 0;
+
+        //        totalPrice += order.Freight;
+        //        foreach (var orderDetail in orderDetails)
+        //        {
+        //            totalPrice += orderDetail.UnitPrice * orderDetail.Quantity;
+        //        }
+
+        //        return totalPrice;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        throw new Exception("An error occurred while calculating the total price.", ex);
+        //    }
+        //}
 
         public async Task<PaginatedList<Order>> GetPaginatedOrders(
             DateOnly? start,
@@ -104,29 +141,35 @@ namespace Services
             }
         }
 
-        public async Task<Order?> AddOrder(string userId)
+        public async Task<Order> AddOrder(string userId, decimal freight, string address)
         {
             try
             {
-                List<CartItem> itemsInCart = _cartService.GetCart(userId);
-                UserDetail userDetail = await _userDetailService.GetUserById(userId);
+                var timeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                var nowUtc = DateTime.UtcNow;
+                List<CartItem> itemsInCart = await _cartService.GetCart(userId);
 
-                if (itemsInCart == null || userDetail.Address == null)
+                if (itemsInCart == null || itemsInCart.Count == 0)
                 {
-                    return null;
+                    throw new Exception("Cart is empty.");
                 }
 
-                decimal totalPrice = 0;
+                UserDetail userDetail = await _userDetailService.GetUserById(userId);
+                if (userDetail == null)
+                {
+                    throw new Exception($"User with ID {userId} not found.");
+                }
 
                 Order order = new Order
                 {
                     OrderId = "O" + GenerateId.GenerateRandomId(5),
-                    OrderDate = DateTime.Now,
+                    OrderDate = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone),
                     Status = "Pending",
                     UserId = userId,
-                    Freight = 0,
-                    ShipAddress = userDetail.Address
+                    Freight = freight,
+                    ShipAddress = address
                 };
+
                 await _orderRepository.Add(order);
 
                 foreach (var item in itemsInCart)
@@ -139,9 +182,10 @@ namespace Services
                         Quantity = item.Quantity,
                         UnitPrice = item.UnitPrice
                     };
-                    totalPrice += orderDetail.TotalPrice();
+
                     await _orderDetailRepository.Add(orderDetail);
                 }
+
                 return order;
             }
             catch (Exception ex)
@@ -165,6 +209,34 @@ namespace Services
             {
                 throw new Exception("An error occurred while canceling the order.", ex);
             }
+        }
+
+        public async Task AutomaticFailedOrder(string orderId)
+        {
+            try
+            {
+                var order = await _orderRepository.GetById(orderId);
+
+                if (order != null && order.Status != "Completed" && order.Status != "Failed")
+                {
+                    order.Status = "Failed";
+
+                    await _orderRepository.Update(order);
+                    var orderDetails = await _orderDetailRepository.GetByOrderId(orderId);
+                    foreach (var orderDetail in orderDetails)
+                    {
+                        var product = orderDetail.ProductVariantId;
+                        var productDetail = await _productVariantRepository.GetById(product);
+                        productDetail.StockQuantity += orderDetail.Quantity;
+                        await _productVariantRepository.Update(productDetail);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while automatically failing the order.", ex);
+            }
+           
         }
     }
 }

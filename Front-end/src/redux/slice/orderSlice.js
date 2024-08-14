@@ -34,9 +34,14 @@ export const fetchOrderPrice = createAsyncThunk(
 
 export const createNewOrder = createAsyncThunk(
     'orders/createOrder',
-    async (userId, thunkAPI) => {
-        const response = await createOrder(userId);
-        return response;
+    async ({ userId, freight, address }, thunkAPI) => {
+        try {
+            const response = await createOrder(userId, freight, address);
+            return response;
+        } catch (error) {
+            console.error(`Error creating order in dispatch: ${error.data}`);
+            throw error;
+        }
     }
 );
 
@@ -51,7 +56,7 @@ export const deleteOrder = createAsyncThunk(
 // Initial state
 const initialState = {
     orders: [],
-    singleOrder: null,
+    singleOrder: {},
     orderPrice: null,
     status: 'idle',
     error: null
@@ -102,7 +107,8 @@ const orderSlice = createSlice({
             })
             .addCase(createNewOrder.fulfilled, (state, action) => {
                 state.status = 'succeeded';
-                state.orders.push(action.payload);
+                // state.orders.push(action.payload);
+                state.singleOrder = action.payload;
             })
             .addCase(createNewOrder.rejected, (state, action) => {
                 state.status = 'failed';

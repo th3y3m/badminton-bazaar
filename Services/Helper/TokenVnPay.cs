@@ -43,7 +43,7 @@ namespace Services.Helper
             }, out SecurityToken validatedToken);
 
             var jwtToken = (JwtSecurityToken)validatedToken;
-            var bookingId = jwtToken.Claims.First(x => x.Type == "BookingId").Value;
+            var bookingId = jwtToken.Claims.First(x => x.Type == "OrderId").Value;
 
             return bookingId;
         }

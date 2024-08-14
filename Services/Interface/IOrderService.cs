@@ -19,7 +19,8 @@ namespace Services.Interface
             int pageIndex,
             int pageSize);
         Task<Order> GetOrderById(string id);
-        Task<Order?> AddOrder(string userId);
+        Task<Order> AddOrder(string userId, decimal freight, string address);
         Task CancelOrder(string orderId);
+        Task AutomaticFailedOrder(string orderId);
     }
 }

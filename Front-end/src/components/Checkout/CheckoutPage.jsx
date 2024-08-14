@@ -9,6 +9,12 @@ import { faMapLocation, faSpinner, faInfoCircle } from "@fortawesome/free-solid-
 import { fetchFreightPriceByDistance } from "../../redux/slice/freightPriceSlice";
 import { Tooltip } from "react-tooltip";
 import FreightPrice from "../Freight/Freight";
+import vnpay from "../../assets/vnpay.jpeg";
+import momo from "../../assets/momo.jpeg";
+import { createNewOrder } from "../../redux/slice/orderSlice";
+import { createPaymentToken, executePayment } from "../../redux/slice/paymentSlice";
+import { generatePaymentToken, processPayment } from "../../api/paymentAxios";
+import { createOrder } from "../../api/orderAxios";
 
 const CheckOutPage = () => {
     const dispatch = useDispatch();
@@ -94,6 +100,34 @@ const CheckOutPage = () => {
         setDistance(distance);
     };
 
+    const handleVnPayBtn = async () => {
+        try {
+            // dispatch(createNewOrder({ userId: user.id, freight: price, address: address }))
+            //     .then(async () => {
+            //         dispatch(createPaymentToken(order.orderId))
+            //     })
+            //     .then(async () => {
+            //         console.log("Payment token:", paymentToken);
+            //         dispatch(executePayment(paymentToken))
+            //     })
+            //     .then(async () => {
+            //         console.log("Redirecting to payment page:", paymentResult);
+            //     })
+            //     .catch((error) => {
+            //         console.error("Error creating order:", error);
+            //     });
+
+            const orderNew = await createOrder(user.id, price, address);
+            const paymentToken1 = await generatePaymentToken(orderNew.orderId);
+            const paymentUrl = await processPayment("Customer", paymentToken1);
+
+            window.location.href = paymentUrl;
+            return;
+        } catch (error) {
+            console.error("Error processing payment:", error);
+        }
+    }
+
     return (
         <div className="container mx-auto p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -152,9 +186,7 @@ const CheckOutPage = () => {
                             </div>
                         </div>
                     </div>
-                    <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                        Place Order
-                    </button>
+
                 </div>
                 <div className="p-4 bg-gray-50 shadow-md rounded">
                     <h1 className="text-2xl font-bold mb-4">ORDER SUMMARY</h1>
@@ -171,11 +203,13 @@ const CheckOutPage = () => {
                             <ProductInformationCard key={cartItem.itemId} cartItem={cartItem} />
                         ))}
                     </div>
-                    <div className="mt-4 text-lg font-semibold flex justify-end">
-                        <p className="mr-1 font-bold">Sub Total: ${totalPrice}</p>
+                    <div className="mt-4 text-lg font-semibold flex justify-between">
+                        <div className="mr-1 font-bold">Sub Total:</div>
+                        <div className="mr-1 font-bold">${totalPrice}</div>
                     </div>
-                    <div className="mt-4 text-lg font-semibold flex justify-end border-b border-gray-600">
-                        <div className="flex justify-start items-center">
+                    <div className="mt-4 text-lg font-semibold flex justify-between border-b border-gray-600">
+                        <div className="mr-1 font-bold">
+                            Freight:
                             <FontAwesomeIcon
                                 icon={faInfoCircle}
                                 data-tooltip-id="freight-tooltip"
@@ -185,10 +219,22 @@ const CheckOutPage = () => {
                                 <FreightPrice />
                             </Tooltip>
                         </div>
-                        <p className="mr-1 font-bold">Freight: ${price || 0}</p>
+                        <p className="mr-1 font-bold">${price || 0}</p>
                     </div>
-                    <div className="mt-4 text-lg font-semibold flex justify-end">
-                        <p className="mr-1 font-bold text-3xl">Total: ${totalPrice + (price || 0)}</p>
+                    <div className="mt-4 text-lg font-semibold flex justify-between">
+                        <p className="mr-1 font-bold text-3xl">Total:</p>
+                        <p className="mr-1 font-bold text-3xl">${totalPrice + (price || 0)}</p>
+                    </div>
+                    <div>
+                        <p className="text-2xl font-bold my-10">Payment Method</p>
+                        <div className="flex justify-center">
+                            <button className="mt-4 px-4 py-2" onClick={handleVnPayBtn}>
+                                <img src={vnpay} alt="vnpay" className="w-20" />
+                            </button>
+                            <button className="mt-4 px-4 py-2">
+                                <img src={momo} alt="momo" className="w-20" />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

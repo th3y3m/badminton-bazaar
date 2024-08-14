@@ -1,6 +1,8 @@
 ﻿using BusinessObjects;
+using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 using Services.Interface;
+using Services.Models;
 using System;
 using System.Threading.Tasks;
 
@@ -11,10 +13,13 @@ namespace API.Controllers
     public class OrderController : ControllerBase
     {
         private readonly IOrderService _orderService;
+        private readonly IBackgroundJobClient _backgroundJobClient;
 
-        public OrderController(IOrderService orderService)
+
+        public OrderController(IOrderService orderService, IBackgroundJobClient backgroundJobClient)
         {
             _orderService = orderService;
+            _backgroundJobClient = backgroundJobClient;
         }
 
         [HttpGet("GetPaginatedOrders")]
@@ -66,11 +71,22 @@ namespace API.Controllers
         }
 
         [HttpPost("CreateOrder")]
-        public async Task<IActionResult> CreateOrder([FromBody] string userId)
+        public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
         {
             try
             {
-                var newOrder = await _orderService.AddOrder(userId);
+                var newOrder = await _orderService.AddOrder(request.UserId, request.Freight, request.Address);
+
+                if (newOrder == null)
+                {
+                    return BadRequest("Failed to create order. Cart might be empty.");
+                }
+                newOrder.OrderDetails = null;
+
+                _backgroundJobClient.Schedule(
+                    () => _orderService.AutomaticFailedOrder(newOrder.OrderId),
+                    TimeSpan.FromMinutes(15));
+
                 return Ok(newOrder);
             }
             catch (Exception ex)

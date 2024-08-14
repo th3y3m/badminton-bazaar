@@ -107,7 +107,7 @@ namespace Services
                         await _paymentRepository.Add(payment);
 
 
-                        booking.Status = "complete";
+                        booking.Status = "Complete";
                         await _orderRepository.Update(booking);
 
 

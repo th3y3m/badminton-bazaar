@@ -12,7 +12,7 @@ export const fetchOrderDetail = createAsyncThunk(
 
 // Initial state
 const initialState = {
-    orderDetail: null,
+    orderDetail: [],
     status: 'idle',
     error: null
 };

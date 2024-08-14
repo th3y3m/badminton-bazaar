@@ -89,6 +89,20 @@ namespace Services
             }
         }
 
+        public async Task<Payment> GetPaymentByOrderId(string id)
+        {
+            try
+            {
+                var payments = await _paymentRepository.GetAll();
+                return payments.FirstOrDefault(p => p.OrderId == id);
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error retrieving payment by ID: {ex.Message}");
+            }
+        }
+
         public async Task AddPayment(Payment payment)
         {
             try

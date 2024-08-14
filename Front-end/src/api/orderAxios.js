@@ -4,6 +4,7 @@ const fetchPaginatedOrders = async (params) => {
     const {
         start,
         end,
+        userId,
         sortBy = "orderdate_asc",
         status = null,
         pageIndex = 1,
@@ -13,6 +14,7 @@ const fetchPaginatedOrders = async (params) => {
     const queryParams = new URLSearchParams();
     if (start) queryParams.append('start', start);
     if (end) queryParams.append('end', end);
+    if (userId) queryParams.append('userId', userId);
     if (sortBy) queryParams.append('sortBy', sortBy);
     if (status) queryParams.append('status', status);
     if (pageIndex) queryParams.append('pageIndex', pageIndex);

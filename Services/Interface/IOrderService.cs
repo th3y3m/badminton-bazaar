@@ -12,12 +12,13 @@ namespace Services.Interface
     {
         Task<decimal> TotalPrice(string orderId);
         Task<PaginatedList<Order>> GetPaginatedOrders(
-            DateOnly? start,
-            DateOnly? end,
-            string sortBy,
-            string status,
-            int pageIndex,
-            int pageSize);
+                    DateOnly? start,
+                    DateOnly? end,
+                    string userId,
+                    string sortBy,
+                    string status,
+                    int pageIndex,
+                    int pageSize);
         Task<Order> GetOrderById(string id);
         Task<Order> AddOrder(string userId, decimal freight, string address);
         Task CancelOrder(string orderId);

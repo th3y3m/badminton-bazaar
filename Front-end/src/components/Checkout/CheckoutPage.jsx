@@ -9,12 +9,11 @@ import { faMapLocation, faSpinner, faInfoCircle } from "@fortawesome/free-solid-
 import { fetchFreightPriceByDistance } from "../../redux/slice/freightPriceSlice";
 import { Tooltip } from "react-tooltip";
 import FreightPrice from "../Freight/Freight";
-import vnpay from "../../assets/vnpay.jpeg";
-import momo from "../../assets/momo.jpeg";
-import { createNewOrder } from "../../redux/slice/orderSlice";
-import { createPaymentToken, executePayment } from "../../redux/slice/paymentSlice";
+import vnpay from "../../assets/vnpay.png";
+import momo from "../../assets/momo.png";
 import { generatePaymentToken, processPayment } from "../../api/paymentAxios";
 import { createOrder } from "../../api/orderAxios";
+import { fetchUserDetail } from "../../redux/slice/userDetailSlice";
 
 const CheckOutPage = () => {
     const dispatch = useDispatch();
@@ -29,20 +28,27 @@ const CheckOutPage = () => {
 
     const price = useSelector((state) => state.freightPrice.priceByDistance);
 
-    const [address, setAddress] = useState(userDetail.address || "");
-    const [inputAddress, setInputAddress] = useState(userDetail.address || "");
+    const [address, setAddress] = useState("");
+    const [inputAddress, setInputAddress] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [distance, setDistance] = useState(null);
     const [totalPrice, setTotalPrice] = useState(0);
 
     useEffect(() => {
-        if (user?.id) {
-            console.log("Fetching cart for user:", user.id);
+        if (user && user.id) {
+            dispatch(fetchUserDetail(user.id));
             dispatch(fetchCart(user.id)).catch(error => {
                 console.error("Error fetching cart:", error);
             });
         }
-    }, [dispatch, user?.id]);
+    }, [dispatch, user.id]);
+
+    useEffect(() => {
+        if (userDetail && userDetail.address) {
+            setAddress(userDetail.address);
+            setInputAddress(userDetail.address);
+        }
+    }, [userDetail]);
 
     useEffect(() => {
         if (distance) {
@@ -52,7 +58,6 @@ const CheckOutPage = () => {
         }
     }, [dispatch, distance]);
 
-    // Calculate the total price whenever the cart changes
     useEffect(() => {
         const subtotal = cart.reduce((acc, item) => acc + item.quantity * item.unitPrice, 0);
         setTotalPrice(subtotal);
@@ -87,6 +92,7 @@ const CheckOutPage = () => {
                     }
                 } catch (error) {
                     console.error("Error during reverse geocoding:", error);
+                    setIsLoading(false);
                 }
             },
             () => {
@@ -102,27 +108,11 @@ const CheckOutPage = () => {
 
     const handleVnPayBtn = async () => {
         try {
-            // dispatch(createNewOrder({ userId: user.id, freight: price, address: address }))
-            //     .then(async () => {
-            //         dispatch(createPaymentToken(order.orderId))
-            //     })
-            //     .then(async () => {
-            //         console.log("Payment token:", paymentToken);
-            //         dispatch(executePayment(paymentToken))
-            //     })
-            //     .then(async () => {
-            //         console.log("Redirecting to payment page:", paymentResult);
-            //     })
-            //     .catch((error) => {
-            //         console.error("Error creating order:", error);
-            //     });
-
             const orderNew = await createOrder(user.id, price, address);
             const paymentToken1 = await generatePaymentToken(orderNew.orderId);
             const paymentUrl = await processPayment("Customer", paymentToken1);
 
             window.location.href = paymentUrl;
-            return;
         } catch (error) {
             console.error("Error processing payment:", error);
         }
@@ -186,7 +176,6 @@ const CheckOutPage = () => {
                             </div>
                         </div>
                     </div>
-
                 </div>
                 <div className="p-4 bg-gray-50 shadow-md rounded">
                     <h1 className="text-2xl font-bold mb-4">ORDER SUMMARY</h1>

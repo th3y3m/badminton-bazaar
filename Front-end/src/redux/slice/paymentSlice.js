@@ -5,7 +5,8 @@ import {
     processPayment,
     // processBalancePayment,
     fetchPaymentById,
-    fetchPaginatedPayments
+    fetchPaginatedPayments,
+    fetchPaymentByOrderId
 } from '../../api/paymentAxios';
 
 // Define async thunks
@@ -53,6 +54,14 @@ export const fetchPaymentDetails = createAsyncThunk(
     'payments/fetchPaymentById',
     async (paymentId, thunkAPI) => {
         const response = await fetchPaymentById(paymentId);
+        return response;
+    }
+);
+
+export const fetchPaymentDetailsByOrder = createAsyncThunk(
+    'payments/fetchPaymentById',
+    async (paymentId, thunkAPI) => {
+        const response = await fetchPaymentByOrderId(paymentId);
         return response;
     }
 );
@@ -138,6 +147,17 @@ const paymentSlice = createSlice({
                 state.paymentDetail = action.payload;
             })
             .addCase(fetchPaymentDetails.rejected, (state, action) => {
+                state.status = 'failed';
+                state.error = action.error.message;
+            })
+            .addCase(fetchPaymentDetailsByOrder.pending, (state) => {
+                state.status = 'loading';
+            })
+            .addCase(fetchPaymentDetailsByOrder.fulfilled, (state, action) => {
+                state.status = 'succeeded';
+                state.paymentDetail = action.payload;
+            })
+            .addCase(fetchPaymentDetailsByOrder.rejected, (state, action) => {
                 state.status = 'failed';
                 state.error = action.error.message;
             });

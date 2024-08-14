@@ -26,6 +26,7 @@ namespace API.Controllers
         public async Task<IActionResult> GetPaginatedOrders(
             [FromQuery] DateOnly? start,
             [FromQuery] DateOnly? end,
+            [FromQuery] string? userId = null,
             [FromQuery] string sortBy = "orderdate_asc",
             [FromQuery] string? status = null,
             [FromQuery] int pageIndex = 1,
@@ -33,7 +34,7 @@ namespace API.Controllers
         {
             try
             {
-                var paginatedOrders = await _orderService.GetPaginatedOrders(start, end, sortBy, status, pageIndex, pageSize);
+                var paginatedOrders = await _orderService.GetPaginatedOrders(start, end, userId, sortBy, status, pageIndex, pageSize);
                 return Ok(paginatedOrders);
             }
             catch (Exception ex)

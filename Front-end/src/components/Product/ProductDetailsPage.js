@@ -72,7 +72,6 @@ const ProductDetailsPage = () => {
     const averageReviewsStatus = useSelector((state) => state.review.status);
     const averageReviewsError = useSelector((state) => state.review.error);
 
-    const reviewDetail = useSelector((state) => state.review.reviewDetail);
     const reviewDetailStatus = useSelector((state) => state.review.status);
     const reviewDetailError = useSelector((state) => state.review.error);
 

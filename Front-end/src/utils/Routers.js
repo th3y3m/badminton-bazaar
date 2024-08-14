@@ -12,6 +12,7 @@ export const ROUTERS = {
         PAYMENTSUCCESSFUL: "/confirm",
         CART: "/cart",
         ORDERS: "/orders",
+        ORDERDETAILS: "/order-details",
         REGISTER: "/register",
         CHECKOUT: "/checkout",
     }

@@ -87,6 +87,7 @@ namespace Services
         public async Task<PaginatedList<Order>> GetPaginatedOrders(
             DateOnly? start,
             DateOnly? end,
+            string userId,
             string sortBy,
             string status,
             int pageIndex,
@@ -96,6 +97,11 @@ namespace Services
             {
                 var dbSet = await _orderRepository.GetDbSet();
                 var source = dbSet.AsNoTracking();
+
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    source = source.Where(p => p.UserId == userId);
+                }
 
                 if (start.HasValue && end.HasValue)
                 {

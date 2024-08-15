@@ -59,7 +59,7 @@ export const fetchPaymentDetails = createAsyncThunk(
 );
 
 export const fetchPaymentDetailsByOrder = createAsyncThunk(
-    'payments/fetchPaymentById',
+    'payments/fetchPaymentDetailsByOrder',
     async (paymentId, thunkAPI) => {
         const response = await fetchPaymentByOrderId(paymentId);
         return response;

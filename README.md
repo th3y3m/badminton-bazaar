@@ -69,6 +69,15 @@ Badminton Bazaar is a comprehensive shopping platform for badminton enthusiasts.
 - **Storage:** For storing images.
 
 ## 📸 Screenshots
+![API](https://github.com/th3y3m/badminton-bazaar/blob/main/Screenshots/API.jpeg)
+
+![HomePage](https://github.com/th3y3m/badminton-bazaar/blob/main/Screenshots/Home.jpeg)
+
+![ProductPage](https://github.com/th3y3m/badminton-bazaar/blob/main/Screenshots/Product.jpeg)
+
+![CartPage](https://github.com/th3y3m/badminton-bazaar/blob/main/Screenshots/Cart.jpeg)
+
+![CheckoutPage](https://github.com/th3y3m/badminton-bazaar/blob/main/Screenshots/Checkout.jpeg)
 
 ## 📬 Contact Us
 Feel free to reach out via [bazaarb43@gmail.com](mailto:bazaarb43@gmail.com) for any inquiries or support.

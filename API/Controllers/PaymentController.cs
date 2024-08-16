@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Services;
 using Services.Helper;
 using Services.Interface;
+using Services.Models;
 using System;
 using System.Threading.Tasks;
 
@@ -129,6 +130,20 @@ namespace API.Controllers
             {
                 var bookingId = TokenForPayment.ValidateToken(token);
                 var response = await _paymentService.ProcessBookingPayment(role, bookingId);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+        [HttpPost("ProcessPaymentMoMo")]
+        public async Task<IActionResult> ProcessPaymentMoMo(string role, string token)
+        {
+            try
+            {
+                var bookingId = TokenForPayment.ValidateToken(token);
+                var response = await _paymentService.ProcessBookingPaymentMoMo(role, bookingId);
                 return Ok(response);
             }
             catch (Exception ex)

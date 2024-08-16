@@ -26,6 +26,7 @@ namespace Services.Interface
         Task DeletePayment(string id);
 
         Task<string?> ProcessBookingPayment(string role, string orderId);
+        Task<string?> ProcessBookingPaymentMoMo(string role, string orderId);
         Task<Payment> GetPaymentByOrderId(string id);
     }
 }

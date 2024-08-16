@@ -16,14 +16,16 @@ namespace Services
         private readonly IPaymentRepository _paymentRepository;
         private readonly IOrderService _orderService;
         private readonly IVnpayService _vnpayService;
+        private readonly IMoMoService _moMoService;
         private readonly IUserDetailService _userDetailService;
 
-        public PaymentService(IPaymentRepository paymentRepository, IVnpayService vnpayService, IUserDetailService userDetailService, IOrderService orderService)
+        public PaymentService(IPaymentRepository paymentRepository, IVnpayService vnpayService, IUserDetailService userDetailService, IOrderService orderService, IMoMoService moMoService)
         {
             _paymentRepository = paymentRepository;
             _vnpayService = vnpayService;
             _userDetailService = userDetailService;
             _orderService = orderService;
+            _moMoService = moMoService;
         }
 
         public async Task<PaginatedList<Payment>> GetPaginatedPayments(
@@ -154,6 +156,28 @@ namespace Services
                 }
 
                 var paymentURL = _vnpayService.CreatePaymentUrl(price, role, order.OrderId);
+                return paymentURL;
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error processing booking payment: {ex.Message}");
+            }
+        }
+        public async Task<string?> ProcessBookingPaymentMoMo(string role, string orderId)
+        {
+            try
+            {
+                var order = await _orderService.GetOrderById(orderId);
+                var price = await _orderService.TotalPrice(orderId);
+                if (order == null)
+                {
+                    return null;
+                }
+
+                var paymentURL = await _moMoService.CreatePaymentUrl(price, order.OrderId, role);
+                //string paymentURL = await _moMoService.GenerateMomoUrl(order.OrderId, price);
+
                 return paymentURL;
             }
             catch (Exception ex)

@@ -31,8 +31,11 @@ namespace BusinessObjects
         [Required]
         public string PaymentStatus { get; set; }
 
-        [StringLength(50)]
+        [StringLength(500)]
         public string? PaymentSignature { get; set; }
+
+        [StringLength(100)] // New property
+        public string? PaymentMethod { get; set; }
 
         // Navigation property
         public virtual Order Order { get; set; }

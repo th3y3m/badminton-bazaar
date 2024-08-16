@@ -6,9 +6,9 @@ import noImg from "../../assets/red_cross.png"; // Add this import
 
 function PaymentSuccessful() {
   const query = new URLSearchParams(useLocation().search); // Parse the query string
-  const vnp_TxnRef = query.get('vnp_TxnRef'); // Get the value of vnp_TxnRef
+  const orderId = query.get('orderId'); // Get the value of vnp_TxnRef
 
-  if (vnp_TxnRef == null) {
+  if (orderId == null) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
         <div className="bg-white p-8 shadow-lg rounded-md text-center">
@@ -34,7 +34,7 @@ function PaymentSuccessful() {
         <img src={yesImg} alt="Payment Successful" className="mx-auto mb-4 w-24 h-24" />
         <h2 className="text-2xl font-bold text-green-600 mb-2">Thank You!</h2>
         <p className="text-lg leading-relaxed mb-6">
-          Your booking <strong>{vnp_TxnRef}</strong> has been successfully submitted. Thanks for choosing our service
+          Your booking <strong>{orderId}</strong> has been successfully submitted. Thanks for choosing our service
           <FaHeart className="inline-block text-red-500 text-lg ml-1" />
         </p>
         <div className="flex justify-around">

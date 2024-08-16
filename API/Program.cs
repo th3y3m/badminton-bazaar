@@ -3,6 +3,7 @@ using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Repositories;
@@ -141,9 +142,11 @@ namespace API
             builder.Services.AddScoped<IFreightPriceService, FreightPriceService>();
 
             builder.Services.AddScoped<IVnpayService, VnpayService>();
+            builder.Services.AddScoped<IMoMoService, MoMoService>();
 
             // Mail Settings Configuration
             builder.Services.Configure<MailSettings>(configuration.GetSection("MailSettings"));
+            builder.Services.Configure<MoMoSettings>(configuration.GetSection("MoMoSettings"));
 
             // CORS Configuration
             builder.Services.AddCors(options =>
@@ -153,9 +156,7 @@ namespace API
                     {
                         policy.WithOrigins(
                             "https://localhost:3000",
-                            "http://localhost:3000",
-                            "https://localhost:3000/checkout",
-                            "http://localhost:3000/checkout"
+                            "http://localhost:3000"
                             )
                               .AllowAnyHeader()
                               .AllowAnyMethod()

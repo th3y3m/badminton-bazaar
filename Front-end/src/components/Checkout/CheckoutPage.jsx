@@ -11,7 +11,7 @@ import { Tooltip } from "react-tooltip";
 import FreightPrice from "../Freight/Freight";
 import vnpay from "../../assets/vnpay.png";
 import momo from "../../assets/momo.png";
-import { generatePaymentToken, processPayment } from "../../api/paymentAxios";
+import { createPaymentMoMo, generatePaymentToken, processPayment, processPaymentMoMo } from "../../api/paymentAxios";
 import { createOrder } from "../../api/orderAxios";
 import { fetchUserDetail } from "../../redux/slice/userDetailSlice";
 
@@ -111,6 +111,18 @@ const CheckOutPage = () => {
             const orderNew = await createOrder(user.id, price, address);
             const paymentToken1 = await generatePaymentToken(orderNew.orderId);
             const paymentUrl = await processPayment("Customer", paymentToken1);
+
+            window.location.href = paymentUrl;
+        } catch (error) {
+            console.error("Error processing payment:", error);
+        }
+    }
+    const handleMoMoBtn = async () => {
+        try {
+            const orderNew = await createOrder(user.id, price, address);
+            // const momo = await createPaymentMoMo(totalPrice + (price || 0), orderNew.orderId);
+            const paymentToken1 = await generatePaymentToken(orderNew.orderId);
+            const paymentUrl = await processPaymentMoMo("Customer", paymentToken1);
 
             window.location.href = paymentUrl;
         } catch (error) {
@@ -220,7 +232,7 @@ const CheckOutPage = () => {
                             <button className="mt-4 px-4 py-2" onClick={handleVnPayBtn}>
                                 <img src={vnpay} alt="vnpay" className="w-20" />
                             </button>
-                            <button className="mt-4 px-4 py-2">
+                            <button className="mt-4 px-4 py-2" onClick={handleMoMoBtn}>
                                 <img src={momo} alt="momo" className="w-20" />
                             </button>
                         </div>

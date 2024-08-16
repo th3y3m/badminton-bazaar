@@ -69,6 +69,8 @@ namespace Services
         {
             try
             {
+                var timeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                var nowUtc = DateTime.UtcNow;
                 var json = HttpUtility.ParseQueryString(queryString);
                 var booking = await _orderRepository.GetById((json["vnp_TxnRef"]).ToString());
                 string vnp_ResponseCode = json["vnp_ResponseCode"].ToString();
@@ -99,10 +101,11 @@ namespace Services
                             PaymentId = "P" + GenerateId.GenerateRandomId(7),
                             OrderId = bookingid,
                             PaymentAmount = decimal.Parse(json["vnp_Amount"]) / 100000,
-                            PaymentDate = DateTime.Now,
+                            PaymentDate = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone),
                             PaymentMessage = "Complete",
                             PaymentStatus = "True",
                             PaymentSignature = json["vnp_BankTranNo"].ToString(),
+                            PaymentMethod = "VNPay"
                         };
                         await _paymentRepository.Add(payment);
 
@@ -115,7 +118,7 @@ namespace Services
                         return new PaymentStatusModel
                         {
                             IsSuccessful = true,
-                            RedirectUrl = $"https://localhost:3000/confirm?vnp_TxnRef={json["vnp_TxnRef"].ToString()}"
+                            RedirectUrl = $"https://localhost:3000/confirm?orderId={json["vnp_TxnRef"].ToString()}"
                         };
                     }
                     else
@@ -131,17 +134,17 @@ namespace Services
                                 PaymentId = "P" + GenerateId.GenerateRandomId(7),
                                 OrderId = bookingid,
                                 PaymentAmount = amount / 100000,
-                                PaymentDate = DateTime.Now,
+                                PaymentDate = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone),
                                 PaymentMessage = "Fail",
                                 PaymentStatus = "False",
-
+                                PaymentMethod = "VNPay"
                             };
                             await _paymentRepository.Add(payment);
                         }
                         return new PaymentStatusModel
                         {
                             IsSuccessful = false,
-                            RedirectUrl = $"https://localhost:3000/reject?vnp_TxnRef={json["vnp_TxnRef"].ToString()}"
+                            RedirectUrl = $"https://localhost:3000/reject?orderId={json["vnp_TxnRef"].ToString()}"
                         };
                     }
                 }

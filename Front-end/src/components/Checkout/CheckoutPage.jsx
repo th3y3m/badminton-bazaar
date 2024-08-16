@@ -11,7 +11,7 @@ import { Tooltip } from "react-tooltip";
 import FreightPrice from "../Freight/Freight";
 import vnpay from "../../assets/vnpay.png";
 import momo from "../../assets/momo.png";
-import { createPaymentMoMo, generatePaymentToken, processPayment, processPaymentMoMo } from "../../api/paymentAxios";
+import { generatePaymentToken, processPayment, processPaymentMoMo } from "../../api/paymentAxios";
 import { createOrder } from "../../api/orderAxios";
 import { fetchUserDetail } from "../../redux/slice/userDetailSlice";
 

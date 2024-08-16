@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { useEffect, useState } from "react";
 import ReactPaginate from "react-paginate";
+import { Modal } from "@mui/material";
 
 const OrdersPage = () => {
     const navigate = useNavigate();
@@ -15,6 +16,7 @@ const OrdersPage = () => {
     const [totalPage, setTotalPage] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
+    const [confirmModal, setConfirmModal] = useState(false);
 
     useEffect(() => {
         setIsLoading(true);
@@ -22,7 +24,7 @@ const OrdersPage = () => {
             try {
                 const data = await fetchPaginatedOrders({
                     userId: user.id,
-                    sortBy: "orderdate_asc",
+                    sortBy: "orderdate_desc",
                     status: null,
                     pageIndex: currentPage,
                     pageSize: 10
@@ -43,6 +45,9 @@ const OrdersPage = () => {
         let selectedPage = data.selected + 1;
         setCurrentPage(selectedPage);
     };
+    const handleCancelOrder = (id) => {
+        setConfirmModal(true);
+    };
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -52,7 +57,7 @@ const OrdersPage = () => {
                     <h3 className="font-semibold">Order Id</h3>
                     <h3 className="font-semibold">Order Date</h3>
                     <h3 className="font-semibold col-span-2">Ship Address</h3>
-                    <h3 className="font-semibold">Total Price</h3>
+                    <h3 className="font-semibold">Shipped Date</h3>
                     <h3 className="font-semibold">Status</h3>
                     <span></span>
                 </div>
@@ -64,16 +69,25 @@ const OrdersPage = () => {
                     orders.items.map((order) => (
                         <div key={order.orderId} className="grid grid-cols-7 gap-4 text-center bg-white p-4 border-b border-gray-200">
                             <p>{order.orderId}</p>
-                            <p>{order.orderDate}</p>
+                            <p>{new Date(order.orderDate).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
                             <p className="col-span-2">{order.shipAddress}</p>
-                            <p>{order.totalPrice}</p>
+                            <p>{new Date(order.shippedDate).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
                             <p>{order.status}</p>
-                            <button
-                                onClick={() => navigate(`/order-details/${order.orderId}`)}
-                                className="text-blue-500 hover:underline"
-                            >
-                                View
-                            </button>
+                            <div>
+
+                                <button
+                                    onClick={() => navigate(`/order-details/${order.orderId}`)}
+                                    className="text-blue-500 hover:underline"
+                                >
+                                    View
+                                </button>
+                                <button
+                                    onClick={() => handleCancelOrder(order.orderId)}
+                                    className="text-red-700 hover:underline"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
                         </div>
                     ))
                 ) : (
@@ -102,6 +116,26 @@ const OrdersPage = () => {
                     />
                 </div>
             )}
+            <Modal open={confirmModal}>
+                <div className="bg-white p-8 rounded-lg w-96">
+                    <h2 className="text-xl font-bold mb-4">Cancel Order</h2>
+                    <p>Are you sure you want to cancel this order?</p>
+                    <div className="flex justify-end mt-4">
+                        <button
+                            onClick={() => setConfirmModal(false)}
+                            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg mr-4"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={() => setConfirmModal(false)}
+                            className="bg-red-500 text-white px-4 py-2 rounded-lg"
+                        >
+                            Confirm
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };

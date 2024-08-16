@@ -173,7 +173,8 @@ namespace Services
                     Status = "Pending",
                     UserId = userId,
                     Freight = freight,
-                    ShipAddress = address
+                    ShipAddress = address,
+                    ShippedDate = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone).Date + TimeSpan.FromDays(7)
                 };
 
                 await _orderRepository.Add(order);

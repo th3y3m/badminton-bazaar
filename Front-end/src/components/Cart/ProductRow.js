@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchProduct } from '../../redux/slice/productSlice';
-import { fetchProductVariant } from '../../redux/slice/productVariantSlice';
 import { addToCookie, deleteAUnitItem, fetchCart, fetchNumberOfItems, removeItem } from '../../redux/slice/cartSlice';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";

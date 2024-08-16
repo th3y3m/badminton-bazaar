@@ -15,6 +15,7 @@ import PaymentFailed from "./components/Payment/PaymentFailed";
 import PaymentSuccessful from "./components/Payment/PaymentSuccessful";
 import ErrorPage from "./components/Error/ErrorPage";
 import OrdersPage from "./components/Orders/OrdersPage";
+import OrderDetail from "./components/Orders/OrderDetails";
 
 const ProtectedRoute = ({ component: Component, allowedRoles, ...rest }) => {
     const userRole = localStorage.getItem('userRole');
@@ -40,7 +41,7 @@ const renderUserRouter = () => {
         { path: ROUTERS.USER.PRODUCTS, component: ProductPage },
         { path: ROUTERS.USER.PAYMENTSUCCESSFUL, component: PaymentSuccessful },
         { path: ROUTERS.USER.ORDERS, component: OrdersPage },
-        { path: ROUTERS.USER.ORDERDETAILS + "/:id", component: OrdersPage },
+        { path: ROUTERS.USER.ORDERDETAILS + "/:id", component: OrderDetail },
     ];
 
     return (

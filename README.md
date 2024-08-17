@@ -34,7 +34,9 @@ Badminton Bazaar is a comprehensive shopping platform for badminton enthusiasts.
 ## 🚀 Features
 - **User Authentication & Authorization:** Secure authentication and authorization using ASP.NET Identity and JWT tokens.
 - **Product Management:** Comprehensive product catalog with the ability to filter and search for badminton tools.
-- **Payment Gateway Integration:** Supports VN Pay payment options.
+- **Payment Gateway Integration:** Supports multiple payment options, including:
+  - VN Pay
+  - MOMO
 - **Admin Dashboard:** Manage bookings, courts, and users from an easy-to-use admin interface.
 - **Shopping Cart & Checkout:** Seamless shopping cart experience with quantity management, order summary, and multi-step checkout process.
 - **Map Integration:** Integrated Leaflet maps to show store locations and product availability.
@@ -59,6 +61,7 @@ Badminton Bazaar is a comprehensive shopping platform for badminton enthusiasts.
 
 ### Payment Integrations
 - **VN Pay**
+- **MoMo**
 
 ### Firebase
 - **Storage:** For storing images.

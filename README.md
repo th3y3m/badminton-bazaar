@@ -40,7 +40,6 @@ Badminton Bazaar is a comprehensive shopping platform for badminton enthusiasts.
 - **Admin Dashboard:** Manage bookings, courts, and users from an easy-to-use admin interface.
 - **Shopping Cart & Checkout:** Seamless shopping cart experience with quantity management, order summary, and multi-step checkout process.
 - **Map Integration:** Integrated Leaflet maps to show store locations and product availability.
-- **Responsive UI:** Built with React and MUI, styled with Tailwind CSS for a clean, responsive design across devices.
 - **State Management:** Efficient state management using Redux Toolkit for consistent and scalable application logic.
 
 ## 🛠️ Technologies Used

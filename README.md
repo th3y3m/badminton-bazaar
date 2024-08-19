@@ -5,7 +5,7 @@
 
 Welcome to **Badminton Bazaar**! 🎉
 
-Badminton Bazaar is a comprehensive shopping platform for badminton enthusiasts. It offers a wide range of badminton equipment, including rackets, shuttlecocks, apparel, and accessories. Built with modern web technologies, Badminton Bazaar ensures a smooth and secure shopping experience for users, featuring payment integrations, user authentication, and map-based store locators.
+Badminton Bazaar is a web application designed to provide a seamless shopping experience for badminton enthusiasts. It offers a wide range of badminton equipment, including rackets, shuttlecocks, apparel, and accessories. Built with modern web technologies, Badminton Bazaar ensures a smooth and secure shopping experience for users, featuring payment integrations, user authentication, and map-based store locators.
 
 ## 🔧 Technologies & Tools
 ![ASP.NET Core](https://img.shields.io/badge/ASP.NET_Core-5C2D91?style=for-the-badge&logo=dot-net&logoColor=white)

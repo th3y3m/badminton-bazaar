@@ -15,5 +15,18 @@ export const ROUTERS = {
         ORDERDETAILS: "/order-details",
         REGISTER: "/register",
         CHECKOUT: "/checkout",
+    },
+    ADMIN: {
+        HOME: "/admin",
+        PRODUCTS: "/admin/products",
+        PRODUCTDETAILS: "/admin/product-details",
+        NEWS: "/admin/news",
+        NEWSDETAILS: "/admin/news-details",
+        ORDERS: "/admin/orders",
+        ORDERDETAILS: "/admin/order-details",
+        USERS: "/admin/users",
+        USERDETAILS: "/admin/user-details",
+        LOGIN: "/admin/login",
+        REGISTER: "/admin/register",
     }
 }

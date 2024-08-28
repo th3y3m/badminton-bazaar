@@ -28,5 +28,13 @@ namespace Services.Interface
         Task<string?> ProcessBookingPayment(string role, string orderId);
         Task<string?> ProcessBookingPaymentMoMo(string role, string orderId);
         Task<Payment> GetPaymentByOrderId(string id);
+        Task<decimal> GetTotalRevenue();
+        Task<(decimal revenue, decimal changePercentage)> GetTodayRevenue();
+        Task<(decimal revenue, decimal changePercentage)> GetThisWeekRevenue();
+        Task<(decimal revenue, decimal changePercentage)> GetThisMonthRevenue();
+        Task<(decimal revenue, decimal changePercentage)> GetThisYearRevenue();
+        Task<decimal[]> GetRevenueFromStartOfWeek();
+        Task<decimal[]> GetRevenueFromStartOfMonth();
+        Task<decimal[]> GetRevenueFromStartOfYear();
     }
 }

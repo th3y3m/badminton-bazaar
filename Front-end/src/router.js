@@ -16,6 +16,15 @@ import PaymentSuccessful from "./components/Payment/PaymentSuccessful";
 import ErrorPage from "./components/Error/ErrorPage";
 import OrdersPage from "./components/Orders/OrdersPage";
 import OrderDetail from "./components/Orders/OrderDetails";
+import AdminHomePage from "./components/admin/Home/AdminHomePage";
+import AdminProductPage from "./components/admin/Product/AdminProductPage";
+import AdminProductDetailsPage from "./components/admin/Product/AdminProductDetailsPage";
+import AdminNewsList from "./components/admin/News/AdminNewsList";
+import AdminNewsPage from "./components/admin/News/AdminNewsPage";
+import AdminOrdersPage from "./components/admin/Order/AdminOrdersPage";
+import AdminOrderDetail from "./components/admin/Order/AdminOrderDetail";
+import AdminUsersPage from "./components/admin/User/AdminUsersPage";
+import AdminUserDetailPage from "./components/admin/User/AdminUserDetailPage";
 
 const ProtectedRoute = ({ component: Component, allowedRoles, ...rest }) => {
     const userRole = localStorage.getItem('userRole');
@@ -63,11 +72,46 @@ const renderUserRouter = () => {
     );
 };
 
+const renderAdminRouter = () => {
+    const adminRouters = [
+        { path: ROUTERS.ADMIN.HOME, component: AdminHomePage },
+        { path: ROUTERS.ADMIN.PRODUCTS, component: AdminProductPage },
+        { path: ROUTERS.ADMIN.PRODUCTDETAILS + "/:id", component: AdminProductDetailsPage },
+        { path: ROUTERS.ADMIN.NEWS, component: AdminNewsList },
+        { path: ROUTERS.ADMIN.NEWSDETAILS + "/:id", component: AdminNewsPage },
+        { path: ROUTERS.ADMIN.ORDERS, component: AdminOrdersPage },
+        { path: ROUTERS.ADMIN.ORDERDETAILS + "/:id", component: AdminOrderDetail },
+        { path: ROUTERS.ADMIN.USERS, component: AdminUsersPage },
+        { path: ROUTERS.ADMIN.USERDETAILS + "/:id", component: AdminUserDetailPage },
+    ];
+
+    return (
+        <Routes>
+            {adminRouters.map((item, key) => (
+                <Route
+                    key={key}
+                    path={item.path}
+                    element={
+                        <ProtectedRoute component={item.component} allowedRoles={['Admin']} />
+                    }
+                />
+            ))}
+            {/* 404 Error Page Route */}
+            <Route path="*" element={<ErrorPage />} />
+        </Routes>
+    );
+};
+
 const RouterCustom = () => {
     return (
         <Routes>
+            {/* User Routes */}
             <Route path={ROUTERS.USER.LOGIN} element={<Login />} />
             <Route path="/*" element={renderUserRouter()} />
+
+            {/* Admin Routes */}
+            <Route path={ROUTERS.ADMIN.LOGIN} element={<AdminLogin />} />
+            <Route path="/admin/*" element={renderAdminRouter()} />
         </Routes>
     );
 };

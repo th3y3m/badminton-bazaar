@@ -34,7 +34,9 @@ const Login = () => {
     }
 
     useEffect(() => {
-        if (userLogin && userLogin.token) {
+        if (userLogin && userLogin.role == "Admin") {
+            // navigate(ROUTERS.ADMIN.HOME);
+        } else {
             navigate(ROUTERS.USER.HOME);
         }
     }, [userLogin]);

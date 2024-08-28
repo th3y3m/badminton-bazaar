@@ -186,6 +186,218 @@ namespace Services
                 throw new Exception($"Error processing booking payment: {ex.Message}");
             }
         }
+
+        public async Task<(decimal revenue, decimal changePercentage)> GetTodayRevenue()
+        {
+            try
+            {
+                var timeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                var nowUtc = DateTime.UtcNow;
+                var payments = await _paymentRepository.GetAll();
+                var today = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone).Date;
+                var todayPayments = payments.Where(p => p.PaymentDate.Date == today && p.PaymentStatus == "Complete").ToList();
+                var revenue = todayPayments.Sum(p => p.PaymentAmount);
+                var changePercentage = 0.0m;
+                if (todayPayments.Count > 0)
+                {
+                    var yesterday = today.AddDays(-1);
+                    var yesterdayPayments = payments.Where(p => p.PaymentDate.Date == yesterday && p.PaymentStatus == "Complete").ToList();
+                    var yesterdayRevenue = yesterdayPayments.Sum(p => p.PaymentAmount);
+                    changePercentage = (revenue - yesterdayRevenue) / yesterdayRevenue * 100;
+                }
+
+                return (revenue, changePercentage);
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error retrieving today's revenue: {ex.Message}");
+            }
+        }
+
+        public async Task<(decimal revenue, decimal changePercentage)> GetThisWeekRevenue()
+        {
+            try
+            {
+                var timeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                var nowUtc = DateTime.UtcNow;
+                var payments = await _paymentRepository.GetAll();
+                var today = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone).Date;
+                var firstDayOfWeek = today.AddDays(-(int)today.DayOfWeek);
+                var thisWeekPayments = payments.Where(p => p.PaymentDate.Date >= firstDayOfWeek && p.PaymentStatus == "Complete").ToList();
+                var revenue = thisWeekPayments.Sum(p => p.PaymentAmount);
+                var changePercentage = 0.0m;
+                if (thisWeekPayments.Count > 0)
+                {
+                    var lastWeek = firstDayOfWeek.AddDays(-7);
+                    var lastWeekPayments = payments.Where(p => p.PaymentDate.Date >= lastWeek && p.PaymentDate.Date < firstDayOfWeek && p.PaymentStatus == "Complete").ToList();
+                    var lastWeekRevenue = lastWeekPayments.Sum(p => p.PaymentAmount);
+                    changePercentage = (revenue - lastWeekRevenue) / lastWeekRevenue * 100;
+                }
+
+                return (revenue, changePercentage);
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error retrieving this week's revenue: {ex.Message}");
+            }
+        }
+
+        //GetThisMonthRevenue
+        public async Task<(decimal revenue, decimal changePercentage)> GetThisMonthRevenue()
+        {
+            try
+            {
+                var timeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                var nowUtc = DateTime.UtcNow;
+                var payments = await _paymentRepository.GetAll();
+                var today = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone).Date;
+                var firstDayOfMonth = new DateTime(today.Year, today.Month, 1);
+                var thisMonthPayments = payments.Where(p => p.PaymentDate.Date >= firstDayOfMonth && p.PaymentStatus == "Complete").ToList();
+                var revenue = thisMonthPayments.Sum(p => p.PaymentAmount);
+                var changePercentage = 0.0m;
+                if (thisMonthPayments.Count > 0)
+                {
+                    var lastMonth = firstDayOfMonth.AddMonths(-1);
+                    var lastMonthPayments = payments.Where(p => p.PaymentDate.Date >= lastMonth && p.PaymentDate.Date < firstDayOfMonth && p.PaymentStatus == "Complete").ToList();
+                    var lastMonthRevenue = lastMonthPayments.Sum(p => p.PaymentAmount);
+                    changePercentage = (revenue - lastMonthRevenue) / lastMonthRevenue * 100;
+                }
+
+                return (revenue, changePercentage);
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error retrieving this month's revenue: {ex.Message}");
+            }
+        }
+
+        //GetThisYearRevenue
+
+        public async Task<(decimal revenue, decimal changePercentage)> GetThisYearRevenue()
+        {
+            try
+            {
+                var timeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                var nowUtc = DateTime.UtcNow;
+                var payments = await _paymentRepository.GetAll();
+                var today = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone).Date;
+                var firstDayOfYear = new DateTime(today.Year, 1, 1);
+                var thisYearPayments = payments.Where(p => p.PaymentDate.Date >= firstDayOfYear && p.PaymentStatus == "Complete").ToList();
+                var revenue = thisYearPayments.Sum(p => p.PaymentAmount);
+                var changePercentage = 0.0m;
+                if (thisYearPayments.Count > 0)
+                {
+                    var lastYear = firstDayOfYear.AddYears(-1);
+                    var lastYearPayments = payments.Where(p => p.PaymentDate.Date >= lastYear && p.PaymentDate.Date < firstDayOfYear && p.PaymentStatus == "Complete").ToList();
+                    var lastYearRevenue = lastYearPayments.Sum(p => p.PaymentAmount);
+                    changePercentage = (revenue - lastYearRevenue) / lastYearRevenue * 100;
+                }
+
+                return (revenue, changePercentage);
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error retrieving this year's revenue: {ex.Message}");
+            }
+        }
+
+        public async Task<decimal> GetTotalRevenue()
+        {
+            try
+            {
+                var payments = await _paymentRepository.GetAll();
+                return payments.Where(p => p.PaymentStatus == "Complete").Sum(p => p.PaymentAmount);
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error retrieving total revenue: {ex.Message}");
+            }
+        }
+        public async Task<decimal[]> GetRevenueFromStartOfWeek()
+        {
+            try
+            {
+                var timeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                var nowUtc = DateTime.UtcNow;
+                var payments = await _paymentRepository.GetAll();
+                var today = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone).Date;
+                var firstDayOfWeek = today.AddDays(-(int)today.DayOfWeek);
+                var revenue = new decimal[7];
+                for (int i = 0; i < 7; i++)
+                {
+                    var day = firstDayOfWeek.AddDays(i);
+                    var dayPayments = payments.Where(p => p.PaymentDate.Date == day && p.PaymentStatus == "Complete").ToList();
+                    revenue[i] = dayPayments.Sum(p => p.PaymentAmount);
+                }
+
+                return revenue;
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error retrieving revenue from start of week: {ex.Message}");
+            }
+        }
+
+        public async Task<decimal[]> GetRevenueFromStartOfMonth()
+        {
+            try
+            {
+                var timeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                var nowUtc = DateTime.UtcNow;
+                var payments = await _paymentRepository.GetAll();
+                var today = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone).Date;
+                var firstDayOfMonth = new DateTime(today.Year, today.Month, 1);
+                var revenue = new decimal[DateTime.DaysInMonth(today.Year, today.Month)];
+                for (int i = 0; i < revenue.Length; i++)
+                {
+                    var day = firstDayOfMonth.AddDays(i);
+                    var dayPayments = payments.Where(p => p.PaymentDate.Date == day && p.PaymentStatus == "Complete").ToList();
+                    revenue[i] = dayPayments.Sum(p => p.PaymentAmount);
+                }
+
+                return revenue;
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error retrieving revenue from start of month: {ex.Message}");
+            }
+
+        }
+
+        public async Task<decimal[]> GetRevenueFromStartOfYear()
+        {
+            try
+            {
+                var timeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                var nowUtc = DateTime.UtcNow;
+                var payments = await _paymentRepository.GetAll();
+                var today = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone).Date;
+                var firstDayOfYear = new DateTime(today.Year, 1, 1);
+                var revenue = new decimal[12];
+                for (int i = 0; i < 12; i++)
+                {
+                    var month = firstDayOfYear.AddMonths(i);
+                    var monthPayments = payments.Where(p => p.PaymentDate.Month == month.Month && p.PaymentDate.Year == month.Year && p.PaymentStatus == "Complete").ToList();
+                    revenue[i] = monthPayments.Sum(p => p.PaymentAmount);
+                }
+
+                return revenue;
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (e.g., log it)
+                throw new Exception($"Error retrieving revenue from start of year: {ex.Message}");
+            }
+        }
+
+
         //public async Task<ResponseModel> ProcessBookingPaymentByBalance(string orderId)
         //{
         //    try

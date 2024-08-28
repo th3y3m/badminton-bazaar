@@ -90,5 +90,19 @@ namespace API.Controllers
                 return StatusCode(500, $"Error unbanning user: {ex.Message}");
             }
         }
+
+        [HttpGet("count")]
+        public async Task<IActionResult> CountUsers()
+        {
+            try
+            {
+                var count = await _userService.CountUsers();
+                return Ok(count);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error counting users: {ex.Message}");
+            }
+        }
     }
 }

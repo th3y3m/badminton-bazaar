@@ -29,4 +29,4 @@ export const ROUTERS = {
         LOGIN: "/admin/login",
         REGISTER: "/admin/register",
     }
-}
+};

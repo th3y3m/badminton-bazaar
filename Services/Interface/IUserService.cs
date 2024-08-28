@@ -23,6 +23,7 @@ namespace Services.Interface
         Task BanUser(string id);
         Task UnbanUser(string id);
         Task DeleteUser(string id);
-        Task GetAllUsers();
+        Task<List<IdentityUser>> GetAllUsers();
+        Task<int> CountUsers();
     }
 }

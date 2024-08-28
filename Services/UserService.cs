@@ -132,11 +132,11 @@ namespace Services
             }
         }
 
-        public async Task GetAllUsers()
+        public async Task<List<IdentityUser>> GetAllUsers()
         {
             try
             {
-                await _userRepository.GetAll();
+                return await _userRepository.GetAll();
             }
             catch (Exception ex)
             {
@@ -166,6 +166,20 @@ namespace Services
             {
                 throw new Exception($"Error unbanning user: {ex.Message}");
             }
+        }
+
+        public async Task<int> CountUsers()
+        {
+            try
+            {
+                List<IdentityUser> users = await GetAllUsers();
+                return users.Count;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error counting users: {ex.Message}");
+            }
+
         }
     }
 }

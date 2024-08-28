@@ -1,14 +1,10 @@
 ﻿using BusinessObjects;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.WebUtilities;
-using Repositories;
-using Services;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
 using System.IdentityModel.Tokens.Jwt;
-using System.Text;
 
 namespace API.Controllers
 {
@@ -65,7 +61,8 @@ namespace API.Controllers
                         return Ok(new
                         {
                             Id = user.Id,
-                            Token = GenerateJWT.GenerateToken(user, userRole)
+                            Token = GenerateJWT.GenerateToken(user, userRole),
+                            Role = userRole
                         });
                     }
                     else
@@ -90,7 +87,7 @@ namespace API.Controllers
 
         [HttpPost]
         [Route("register")]
-        public async Task<IActionResult> RegisterAdmin([FromBody] RegisterModel model)
+        public async Task<IActionResult> Register([FromBody] RegisterModel model)
         {
             var userExists = await _userManager.FindByEmailAsync(model.Email);
             if (userExists != null)
@@ -114,6 +111,45 @@ namespace API.Controllers
 
 
             await _userManager.AddToRoleAsync(user, "Customer");
+
+            UserDetail userDetail = new UserDetail()
+            {
+                UserId = user.Id,
+                Point = 0,
+                FullName = model.FullName,
+                ProfilePicture = "https://firebasestorage.googleapis.com/v0/b/storage-8b808.appspot.com/o/OIP.jpeg?alt=media&token=60195a0a-2fd6-4c66-9e3a-0f7f80eb8473"
+            };
+            await _userDetailService.AddUserDetail(userDetail);
+
+            return Ok(new ResponseModel { Status = "Success", Message = "User created successfully!" });
+        } 
+        
+        [HttpPost]
+        [Route("registerAdmin")]
+        public async Task<IActionResult> RegisterAdmin([FromBody] RegisterModel model)
+        {
+            var userExists = await _userManager.FindByEmailAsync(model.Email);
+            if (userExists != null)
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel { Status = "Error", Message = "User already exists!" });
+
+            IdentityUser user = new IdentityUser()
+            {
+                Email = model.Email,
+                SecurityStamp = Guid.NewGuid().ToString(),
+                UserName = model.Email
+            };
+            var result = await _userManager.CreateAsync(user, model.Password);
+            if (!result.Succeeded)
+            {
+                var errors = result.Errors.Select(e => e.Description);
+                return StatusCode(StatusCodes.Status400BadRequest, new ResponseModel { Status = "Error", Message = string.Join(" ", errors) });
+            }
+
+            if (!await _roleManager.RoleExistsAsync("Admin"))
+                await _roleManager.CreateAsync(new IdentityRole("Admin"));
+
+
+            await _userManager.AddToRoleAsync(user, "Admin");
 
             UserDetail userDetail = new UserDetail()
             {
@@ -297,89 +333,89 @@ namespace API.Controllers
 
 
 
-        //[HttpPost]
-        //[Route("google-login")]
-        //public async Task<IActionResult> GoogleLogin(string token)
-        //{
-        //    var handler = new JwtSecurityTokenHandler();
-        //    var jsonToken = handler.ReadToken(token) as JwtSecurityToken;
-        //    var email = jsonToken.Claims.First(claim => claim.Type == "email").Value;
-        //    var name = jsonToken.Claims.First(claim => claim.Type == "name").Value;
-        //    var picture = jsonToken.Claims.First(claim => claim.Type == "picture").Value;
+        [HttpPost]
+        [Route("google-login")]
+        public async Task<IActionResult> GoogleLogin(string token)
+        {
+            var handler = new JwtSecurityTokenHandler();
+            var jsonToken = handler.ReadToken(token) as JwtSecurityToken;
+            var email = jsonToken.Claims.First(claim => claim.Type == "email").Value;
+            var name = jsonToken.Claims.First(claim => claim.Type == "name").Value;
+            var picture = jsonToken.Claims.First(claim => claim.Type == "picture").Value;
 
-        //    var user = await _userManager.FindByEmailAsync(email);
-        //    if (user == null)
-        //    {
-        //        user = new IdentityUser
-        //        {
-        //            Email = email,
-        //            UserName = email,
-        //            SecurityStamp = Guid.NewGuid().ToString()
-        //        };
-        //        await _userManager.CreateAsync(user);
-        //        UserDetail userDetail = new UserDetail()
-        //        {
-        //            UserId = user.Id,
-        //            Point = 0,
-        //            FullName = name,
-        //            ProfilePicture = picture
-        //            //Id = user.Id
-        //        };
-        //        _userDetailService.AddUserDetail(userDetail);
-        //        await _userManager.AddToRoleAsync(user, "Customer");
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                user = new IdentityUser
+                {
+                    Email = email,
+                    UserName = email,
+                    SecurityStamp = Guid.NewGuid().ToString()
+                };
+                await _userManager.CreateAsync(user);
+                UserDetail userDetail = new UserDetail()
+                {
+                    UserId = user.Id,
+                    Point = 0,
+                    FullName = name,
+                    ProfilePicture = picture
+                    //Id = user.Id
+                };
+                _userDetailService.AddUserDetail(userDetail);
+                await _userManager.AddToRoleAsync(user, "Customer");
 
-        //    }
+            }
 
-        //    var roles = await _userManager.GetRolesAsync(user);
-        //    var userRole = roles.FirstOrDefault();
+            var roles = await _userManager.GetRolesAsync(user);
+            var userRole = roles.FirstOrDefault();
 
-        //    return Ok(new
-        //    {
-        //        Token = GenerateJWT.GenerateToken(user, userRole)
-        //    });
-        //}
+            return Ok(new
+            {
+                Token = GenerateJWT.GenerateToken(user, userRole)
+            });
+        }
 
-        ////Facebook Login
-        //[HttpPost]
-        //[Route("facebook-login")]
-        //public async Task<IActionResult> FacebookLogin(string token)
-        //{
-        //    var handler = new JwtSecurityTokenHandler();
-        //    var jsonToken = handler.ReadToken(token) as JwtSecurityToken;
-        //    var email = jsonToken.Claims.First(claim => claim.Type == "email").Value;
-        //    var name = jsonToken.Claims.First(claim => claim.Type == "name").Value;
-        //    var picture = jsonToken.Claims.First(claim => claim.Type == "picture").Value;
+        //Facebook Login
+        [HttpPost]
+        [Route("facebook-login")]
+        public async Task<IActionResult> FacebookLogin(string token)
+        {
+            var handler = new JwtSecurityTokenHandler();
+            var jsonToken = handler.ReadToken(token) as JwtSecurityToken;
+            var email = jsonToken.Claims.First(claim => claim.Type == "email").Value;
+            var name = jsonToken.Claims.First(claim => claim.Type == "name").Value;
+            var picture = jsonToken.Claims.First(claim => claim.Type == "picture").Value;
 
-        //    var user = await _userManager.FindByEmailAsync(email);
-        //    if (user == null)
-        //    {
-        //        user = new IdentityUser
-        //        {
-        //            Email = email,
-        //            UserName = email,
-        //            SecurityStamp = Guid.NewGuid().ToString()
-        //        };
-        //        await _userManager.CreateAsync(user);
-        //        UserDetail userDetail = new UserDetail()
-        //        {
-        //            UserId = user.Id,
-        //            Point = 0,
-        //            FullName = name,
-        //            ProfilePicture = picture
-        //        };
-        //        _userDetailService.AddUserDetail(userDetail);
-        //        await _userManager.AddToRoleAsync(user, "Customer");
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                user = new IdentityUser
+                {
+                    Email = email,
+                    UserName = email,
+                    SecurityStamp = Guid.NewGuid().ToString()
+                };
+                await _userManager.CreateAsync(user);
+                UserDetail userDetail = new UserDetail()
+                {
+                    UserId = user.Id,
+                    Point = 0,
+                    FullName = name,
+                    ProfilePicture = picture
+                };
+                _userDetailService.AddUserDetail(userDetail);
+                await _userManager.AddToRoleAsync(user, "Customer");
 
-        //    }
+            }
 
-        //    var roles = await _userManager.GetRolesAsync(user);
-        //    var userRole = roles.FirstOrDefault();
+            var roles = await _userManager.GetRolesAsync(user);
+            var userRole = roles.FirstOrDefault();
 
-        //    return Ok(new
-        //    {
-        //        Token = GenerateJWT.GenerateToken(user, userRole)
-        //    });
-        //}
+            return Ok(new
+            {
+                Token = GenerateJWT.GenerateToken(user, userRole)
+            });
+        }
 
 
 

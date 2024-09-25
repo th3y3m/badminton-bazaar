@@ -27,5 +27,6 @@ namespace Services.Interface
         Task<List<ProductVariant>> GetAll();
         Task<bool> CheckStock(List<CartItem> productVariants);
         Task<bool> CheckStock(CartItem cartItem);
+        Task Update(ProductVariant productVariantModel);
     }
 }

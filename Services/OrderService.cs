@@ -18,15 +18,15 @@ namespace Services
         private readonly IOrderDetailRepository _orderDetailRepository;
         private readonly ICartService _cartService;
         private readonly IUserDetailService _userDetailService;
-        private readonly IProductVariantRepository _productVariantRepository;
+        private readonly IProductVariantService _productVariantService;
 
-        public OrderService(IOrderRepository orderRepository, IOrderDetailRepository orderDetailRepository, ICartService cartService, IUserDetailService userDetailService, IProductVariantRepository productVariantRepository)
+        public OrderService(IOrderRepository orderRepository, IOrderDetailRepository orderDetailRepository, ICartService cartService, IUserDetailService userDetailService, IProductVariantService productVariantService)
         {
             _orderRepository = orderRepository;
             _orderDetailRepository = orderDetailRepository;
             _cartService = cartService;
             _userDetailService = userDetailService;
-            _productVariantRepository = productVariantRepository;
+            _productVariantService = productVariantService;
         }
         public async Task<decimal> TotalPrice(string orderId)
         {
@@ -191,6 +191,9 @@ namespace Services
                     };
 
                     await _orderDetailRepository.Add(orderDetail);
+                    var product = await _productVariantService.GetById(item.ItemId);
+                    product.StockQuantity -= item.Quantity;
+                    await _productVariantService.Update(product);
                 }
 
                 return order;
@@ -233,9 +236,9 @@ namespace Services
                     foreach (var orderDetail in orderDetails)
                     {
                         var product = orderDetail.ProductVariantId;
-                        var productDetail = await _productVariantRepository.GetById(product);
+                        var productDetail = await _productVariantService.GetById(product);
                         productDetail.StockQuantity += orderDetail.Quantity;
-                        await _productVariantRepository.Update(productDetail);
+                        await _productVariantService.Update(productDetail);
                     }
                 }
             }

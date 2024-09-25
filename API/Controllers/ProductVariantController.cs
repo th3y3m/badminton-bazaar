@@ -1,6 +1,7 @@
 ﻿using BusinessObjects;
 using Firebase.Storage;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Services;
 using Services.Helper;
 using Services.Interface;
@@ -13,10 +14,12 @@ namespace API.Controllers
     public class ProductVariantController : Controller
     {
         private readonly IProductVariantService _productVariantService;
+        private readonly IHubContext<ProductHub> _hubContext;
 
-        public ProductVariantController(IProductVariantService productVariantService)
+        public ProductVariantController(IProductVariantService productVariantService, IHubContext<ProductHub> hubContext)
         {
             _productVariantService = productVariantService;
+            _hubContext = hubContext;
         }
 
         [HttpGet]

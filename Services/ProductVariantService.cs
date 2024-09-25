@@ -1,4 +1,5 @@
 ﻿using BusinessObjects;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Repositories;
 using Repositories.Interfaces;
@@ -16,10 +17,13 @@ namespace Services
     public class ProductVariantService : IProductVariantService
     {
         private readonly IProductVariantRepository _productVariantRepository;
+        private readonly IHubContext<ProductHub> _hubContext;
 
-        public ProductVariantService(IProductVariantRepository productVariantRepository)
+
+        public ProductVariantService(IProductVariantRepository productVariantRepository, IHubContext<ProductHub> hubContext)
         {
             _productVariantRepository = productVariantRepository;
+            _hubContext = hubContext;
         }
 
         public async Task<ProductVariant> Add(ProductVariantModel productVariantModel)
@@ -57,6 +61,8 @@ namespace Services
                     throw new Exception("Product variant not found");
                 }
 
+                bool stockChanged = productVariant.StockQuantity != productVariantModel.StockQuantity;
+
                 productVariant.ProductId = productVariantModel.ProductId;
                 productVariant.SizeId = productVariantModel.SizeId;
                 productVariant.ColorId = productVariantModel.ColorId;
@@ -66,12 +72,30 @@ namespace Services
                 productVariant.VariantImageURL = productVariantModel.ProductImageUrl != null ? productVariantModel.ProductImageUrl[0].FileName : null;
 
                 await _productVariantRepository.Update(productVariant);
+
+                if (stockChanged)
+                {
+                    await UpdateProductStock(productVariant.ProductVariantId, productVariant.StockQuantity);
+                }
             }
             catch (Exception ex)
             {
                 throw new Exception($"Error updating product variant: {ex.Message}");
             }
         }
+        public async Task Update(ProductVariant productVariantModel)
+        {
+            try
+            {
+                await _productVariantRepository.Update(productVariantModel);
+                await UpdateProductStock(productVariantModel.ProductVariantId, productVariantModel.StockQuantity);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error updating product variant: {ex.Message}");
+            }
+        }
+
 
         public async Task<ProductVariant> GetById(string id)
         {
@@ -186,18 +210,48 @@ namespace Services
             try
             {
 
-                    var variant = await GetById(cartItem.ItemId);
-                    if (variant.StockQuantity < cartItem.Quantity)
-                    {
-                        return false;
-                    }
-                
+                var variant = await GetById(cartItem.ItemId);
+                if (variant.StockQuantity < cartItem.Quantity)
+                {
+                    return false;
+                }
+
                 return true;
             }
             catch (Exception ex)
             {
                 throw new Exception($"Error checking stock: {ex.Message}");
             }
+        }
+
+        public async Task UpdateProductStock(string productId, int newStockQuantity)
+        {
+            // Update the product stock in the database
+            var product = await GetById(productId);
+            if (product != null)
+            {
+                product.StockQuantity = newStockQuantity;
+                await _productVariantRepository.Update(product);
+            }
+
+            // Notify clients about the stock update
+            await _hubContext.Clients.All.SendAsync("ReceiveProductStockUpdate", productId, newStockQuantity);
+        }
+
+        public async Task UpdateMultipleProductStocks(Dictionary<string, int> productStockUpdates)
+        {
+            foreach (var update in productStockUpdates)
+            {
+                var product = await GetById(update.Key);
+                if (product != null)
+                {
+                    product.StockQuantity = update.Value;
+                    await _productVariantRepository.Update(product);
+                }
+            }
+
+            // Notify clients about the stock updates
+            await _hubContext.Clients.All.SendAsync("ReceiveMultipleProductStockUpdates", productStockUpdates);
         }
     }
 }

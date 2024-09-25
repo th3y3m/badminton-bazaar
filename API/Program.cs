@@ -31,10 +31,9 @@ namespace API
                 options.UseSqlServer(connectionString);
             });
 
-            //Hangfire
+            // Hangfire
             builder.Services.AddHangfire(config =>
-            config.UseSqlServerStorage(configuration.GetConnectionString("BadmintonBazaarDb")));
-
+                config.UseSqlServerStorage(configuration.GetConnectionString("BadmintonBazaarDb")));
             builder.Services.AddHangfireServer();
 
             // Add services to the container
@@ -124,7 +123,6 @@ namespace API
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IFreightPriceRepository, FreightPriceRepository>();
 
-
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<ICategoryService, CategoryService>();
             builder.Services.AddScoped<IColorService, ColorService>();
@@ -157,13 +155,15 @@ namespace API
                         policy.WithOrigins(
                             "https://localhost:3000",
                             "http://localhost:3000"
-                            )
-                              .AllowAnyHeader()
-                              .AllowAnyMethod()
-                              .AllowCredentials();
+                        )
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
                     });
             });
 
+            // Register SignalR
+            builder.Services.AddSignalR();
 
             var app = builder.Build();
 
@@ -194,6 +194,8 @@ namespace API
 
             app.UseHangfireDashboard();
 
+            // Map SignalR hubs
+            app.MapHub<ProductHub>("/productHub");
 
             app.MapControllers();
             app.Run();

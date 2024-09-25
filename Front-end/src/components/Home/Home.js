@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { HubConnectionBuilder } from '@microsoft/signalr';
 import SlideImage from './Slide/SlideImage';
 import { numOfProductRemaining as fetchProductRemaining } from '../../api/productAxios';
 import Product from '../Product/Product';
@@ -31,6 +32,41 @@ const HomePage = () => {
     const newsListError = useSelector((state) => state.news.error);
 
     const [productRemaining, setProductRemaining] = useState({});
+    const [connection, setConnection] = useState(null);
+
+    useEffect(() => {
+        const newConnection = new HubConnectionBuilder()
+            .withUrl("https://localhost:7173/productHub")
+            .withAutomaticReconnect()
+            .build();
+
+        setConnection(newConnection);
+    }, []);
+
+    useEffect(() => {
+        console.log('Connecting to SignalR...');
+        if (connection) {
+            connection.start()
+                .then(result => {
+                    console.log('Connected to SignalR!');
+
+                    connection.on('ReceiveProductStockUpdate', (productId, newStockQuantity) => {
+                        console.log('Stock update received:', productId, newStockQuantity);
+                        setProductRemaining(prevState => {
+                            const updatedState = {
+                                ...prevState,
+                                [productId]: newStockQuantity
+                            };
+                            console.log('Updated productRemaining:', updatedState);
+                            return updatedState;
+                        });
+                    });
+
+                })
+                .catch(e => console.log('Connection failed: ', e));
+        }
+    }, [connection]);
+
 
     useEffect(() => {
         const getTopSellerProduct = async () => {
@@ -53,7 +89,7 @@ const HomePage = () => {
             }
         }
         getTopSellerProduct();
-    }, [topSellerList]);
+    }, [topSellerList, productRemaining]);
 
     useEffect(() => {
         dispatch(fetchBannerNews({

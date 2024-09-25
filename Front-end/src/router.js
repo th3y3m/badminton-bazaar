@@ -110,7 +110,7 @@ const RouterCustom = () => {
             <Route path="/*" element={renderUserRouter()} />
 
             {/* Admin Routes */}
-            <Route path={ROUTERS.ADMIN.LOGIN} element={<AdminLogin />} />
+            {/* <Route path={ROUTERS.ADMIN.LOGIN} element={<AdminLogin />} /> */}
             <Route path="/admin/*" element={renderAdminRouter()} />
         </Routes>
     );

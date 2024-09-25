@@ -60,7 +60,7 @@ namespace API.Middlewares
             // Read the stream as text
             var buffer = new byte[Convert.ToInt32(request.ContentLength)];
             await request.Body.ReadAsync(buffer, 0, buffer.Length);
-            var bodyAsText = Encoding.UTF8.GetString(buffer);
+            var bodyAsText = Encoding.UTF8.GetString(buffer).Replace(Environment.NewLine, "").Replace("\n", "").Replace("\r", "");
             request.Body.Seek(0, SeekOrigin.Begin);
 
             var headers = string.Join("; ", request.Headers.Select(h => $"{h.Key}: {h.Value}"));

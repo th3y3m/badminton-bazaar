@@ -196,6 +196,8 @@ namespace Services
                     await _productVariantService.Update(product);
                 }
 
+                _cartService.DeleteCartInCookie(userId);
+
                 return order;
             }
             catch (Exception ex)

@@ -87,9 +87,12 @@ const HomePage = () => {
             } catch (error) {
                 console.error("Error fetching top seller:", error);
             }
+        };
+
+        if (topSellerList.length > 0) {
+            getTopSellerProduct();
         }
-        getTopSellerProduct();
-    }, [topSellerList, productRemaining]);
+    }, [topSellerList]);
 
     useEffect(() => {
         dispatch(fetchBannerNews({

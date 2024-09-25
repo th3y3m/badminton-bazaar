@@ -17,13 +17,15 @@ namespace Services
     public class ProductVariantService : IProductVariantService
     {
         private readonly IProductVariantRepository _productVariantRepository;
+        private readonly IProductService _productService;
         private readonly IHubContext<ProductHub> _hubContext;
 
 
-        public ProductVariantService(IProductVariantRepository productVariantRepository, IHubContext<ProductHub> hubContext)
+        public ProductVariantService(IProductVariantRepository productVariantRepository, IHubContext<ProductHub> hubContext, IProductService productService)
         {
             _productVariantRepository = productVariantRepository;
             _hubContext = hubContext;
+            _productService = productService;
         }
 
         public async Task<ProductVariant> Add(ProductVariantModel productVariantModel)
@@ -87,7 +89,6 @@ namespace Services
         {
             try
             {
-                await _productVariantRepository.Update(productVariantModel);
                 await UpdateProductStock(productVariantModel.ProductVariantId, productVariantModel.StockQuantity);
             }
             catch (Exception ex)
@@ -226,16 +227,26 @@ namespace Services
 
         public async Task UpdateProductStock(string productId, int newStockQuantity)
         {
-            // Update the product stock in the database
-            var product = await GetById(productId);
-            if (product != null)
+            try
             {
+
+                var product = await GetById(productId);
+                if (product == null)
+                {
+                    return;
+                }
                 product.StockQuantity = newStockQuantity;
                 await _productVariantRepository.Update(product);
+                var newStock = await _productService.ProductRemaining(product.ProductId);
+
+                await _hubContext.Clients.All.SendAsync("ReceiveProductStockUpdate", product.ProductId, newStock);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error updating product stock: {ex.Message}");
             }
 
-            // Notify clients about the stock update
-            await _hubContext.Clients.All.SendAsync("ReceiveProductStockUpdate", productId, newStockQuantity);
+
         }
 
         public async Task UpdateMultipleProductStocks(Dictionary<string, int> productStockUpdates)

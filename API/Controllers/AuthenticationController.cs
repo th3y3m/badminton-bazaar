@@ -32,8 +32,8 @@ namespace API.Controllers
         {
             //if (ValidatePassword.ValidatePass(model.Password) == false)
             //    return StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel { Status = "Error", Message = "Password format is incorrect." });
-            if (model.Email == null || model.Password == null || model.Email == "" || model.Password == "")
-                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel { Status = "Error", Message = "Email or password is empty." });
+            if (string.IsNullOrWhiteSpace(model.Email) || string.IsNullOrWhiteSpace(model.Password))
+                return StatusCode(StatusCodes.Status400BadRequest, new ResponseModel { Status = "Error", Message = "Email or password is empty." });
             //var ip = Utils.GetIpAddress(HttpContext);
             var user = await _userManager.FindByEmailAsync(model.Email);
 

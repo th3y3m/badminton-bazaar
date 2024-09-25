@@ -63,9 +63,13 @@ namespace API.Middlewares
             var bodyAsText = Encoding.UTF8.GetString(buffer).Replace(Environment.NewLine, "").Replace("\n", "").Replace("\r", "");
             request.Body.Seek(0, SeekOrigin.Begin);
 
-            var headers = string.Join("; ", request.Headers.Select(h => $"{h.Key}: {h.Value}"));
+            var headers = string.Join("; ", request.Headers.Select(h => $"{h.Key}: {h.Value.ToString().Replace(Environment.NewLine, "").Replace("\n", "").Replace("\r", "")}"));
 
-            return $"Method: {request.Method}, Path: {request.Path}, QueryString: {request.QueryString}, Headers: [{headers}], Body: {bodyAsText}";
+            var sanitizedMethod = request.Method.Replace(Environment.NewLine, "").Replace("\n", "").Replace("\r", "");
+            var sanitizedPath = request.Path.ToString().Replace(Environment.NewLine, "").Replace("\n", "").Replace("\r", "");
+            var sanitizedQueryString = request.QueryString.ToString().Replace(Environment.NewLine, "").Replace("\n", "").Replace("\r", "");
+
+            return $"Method: {sanitizedMethod}, Path: {sanitizedPath}, QueryString: {sanitizedQueryString}, Headers: [{headers}], Body: {bodyAsText}";
         }
 
         private async Task<string> FormatResponse(HttpResponse response)

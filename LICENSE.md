@@ -22,4 +22,4 @@ SOFTWARE.
 
 **Badminton Bazaar - Badminton Store Management**
 
-&copy; 2024 Court Callers
+&copy; 2024 th3y3m

@@ -28,7 +28,6 @@ Badminton Bazaar is a web application designed to provide a seamless shopping ex
     <li><a href="#-technologies-used">Technologies Used</a></li>
     <li><a href="#-screenshots">Screenshots</a></li>
     <li><a href="#-contact-us">Contact Us</a></li>
-    <li><a href="#-acknowledgements">Acknowledgements</a></li>
   </ol>
 </details>
 

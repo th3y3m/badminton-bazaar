@@ -736,7 +736,3 @@ sketch
 # Additional files built by Visual Studio
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudio,visualstudiocode,csharp,react,aspnetcore
-
-# Ignore specific appsettings files inside the API folder
-/API/appsettings.Development.json
-/API/appsettings.json

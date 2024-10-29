@@ -2,13 +2,11 @@
 ![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)
 [![CodeQL](https://github.com/th3y3m/badminton-bazaar/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/th3y3m/badminton-bazaar/actions/workflows/github-code-scanning/codeql)
 
-# Badminton Bazaar - Badminton Shopping Website 🎾🏸
+# 🏸 Badminton Bazaar - Badminton Shopping Website
 
-Welcome to **Badminton Bazaar**! 🎉
+Welcome to **Badminton Bazaar**! Badminton Bazaar is a web application designed to provide a seamless shopping experience for badminton enthusiasts. It offers a wide range of badminton equipment, including rackets, shuttlecocks, apparel, and accessories. Built with modern web technologies, Badminton Bazaar ensures a smooth and secure shopping experience for users, featuring payment integrations, user authentication, and map-based store locators.
 
-Badminton Bazaar is a web application designed to provide a seamless shopping experience for badminton enthusiasts. It offers a wide range of badminton equipment, including rackets, shuttlecocks, apparel, and accessories. Built with modern web technologies, Badminton Bazaar ensures a smooth and secure shopping experience for users, featuring payment integrations, user authentication, and map-based store locators.
-
-## 🔧 Technologies & Tools
+## 🛠️ Technologies & Tools
 ![ASP.NET Core](https://img.shields.io/badge/ASP.NET_Core-5C2D91?style=for-the-badge&logo=dot-net&logoColor=white)
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![Redux Toolkit](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
@@ -20,6 +18,8 @@ Badminton Bazaar is a web application designed to provide a seamless shopping ex
 ![Hangfire](https://img.shields.io/badge/Hangfire-FF5722?style=for-the-badge&logo=hangfire&logoColor=white)
 ![Leaflet](https://img.shields.io/badge/Leaflet-199900?style=for-the-badge&logo=leaflet&logoColor=white)
 ![MUI](https://img.shields.io/badge/MUI-007FFF?style=for-the-badge&logo=mui&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![Elasticsearch](https://img.shields.io/badge/Elasticsearch-005571?style=for-the-badge&logo=elasticsearch&logoColor=white)
 
 <details>
   <summary>Table of Contents</summary>
@@ -41,8 +41,11 @@ Badminton Bazaar is a web application designed to provide a seamless shopping ex
 - **Shopping Cart & Checkout:** Seamless shopping cart experience with quantity management, order summary, and multi-step checkout process.
 - **Map Integration:** Integrated Leaflet maps to show store locations and product availability.
 - **State Management:** Efficient state management using Redux Toolkit for consistent and scalable application logic.
+- **Caching:** Implemented Redis for caching frequently accessed data to improve performance.
+- **Search:** Integrated Elasticsearch for advanced search capabilities.
 
 ## 🛠️ Technologies Used
+
 ### Frontend
 - **React:** For building the user interface.
 - **Redux Toolkit:** For state management.
@@ -57,6 +60,8 @@ Badminton Bazaar is a web application designed to provide a seamless shopping ex
 - **ASP.NET Identity:** For managing user roles and authentication.
 - **JWT:** For securing API endpoints with token-based authentication.
 - **Hangfire:** For background job processing and scheduling.
+- **Redis:** For caching frequently accessed data.
+- **Elasticsearch:** For advanced search capabilities.
 
 ### Payment Integrations
 - **VN Pay**
@@ -67,19 +72,16 @@ Badminton Bazaar is a web application designed to provide a seamless shopping ex
 
 ## 📸 Screenshots
 ![API](https://github.com/th3y3m/badminton-bazaar/blob/main/Screenshots/API.jpeg)
-
 ![HomePage](https://github.com/th3y3m/badminton-bazaar/blob/main/Screenshots/Home.jpeg)
-
 ![ProductPage](https://github.com/th3y3m/badminton-bazaar/blob/main/Screenshots/Product.jpeg)
-
 ![CartPage](https://github.com/th3y3m/badminton-bazaar/blob/main/Screenshots/Cart.jpeg)
-
 ![CheckoutPage](https://github.com/th3y3m/badminton-bazaar/blob/main/Screenshots/Checkout.jpeg)
 
-## 📬 Contact Us
+## 📞 Contact Us
 Feel free to reach out via [bazaarb43@gmail.com](mailto:bazaarb43@gmail.com) for any inquiries or support.
 
 ---
-#### Connect me via: truongtanhuy3006@gmail.com
 
-##### &#169; 2024 th3y3m
+#### 📧 Connect with me via: truongtanhuy3006@gmail.com
+
+##### © 2024 th3y3m

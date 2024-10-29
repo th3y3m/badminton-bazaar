@@ -12,13 +12,15 @@ using Services;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
+using StackExchange.Redis;
 using System.Text;
+using Nest;
 
 namespace API
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -141,10 +143,22 @@ namespace API
 
             builder.Services.AddScoped<IVnpayService, VnpayService>();
             builder.Services.AddScoped<IMoMoService, MoMoService>();
+            builder.Services.AddScoped<IElasticsearchService, ElasticsearchService>();
 
             // Mail Settings Configuration
             builder.Services.Configure<MailSettings>(configuration.GetSection("MailSettings"));
             builder.Services.Configure<MoMoSettings>(configuration.GetSection("MoMoSettings"));
+
+            builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect("localhost:6379"));
+
+            var settings = new ConnectionSettings(new Uri("http://localhost:9200"))
+                .DefaultIndex("products");
+            builder.Services.AddSingleton<IElasticClient>(new ElasticClient(settings));
+
+            var client = new ElasticClient(settings);
+
+            var indexHelper = new ElasticsearchService(client);
+            await indexHelper.CreateIndexAsync("products");
 
             // CORS Configuration
             builder.Services.AddCors(options =>

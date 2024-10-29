@@ -1,9 +1,12 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Nest;
+using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
+using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,12 +19,18 @@ namespace Services
         private readonly IProductRepository _productRepository;
         private readonly IProductVariantRepository _productVariantRepository;
         private readonly IOrderDetailRepository _orderDetailRepository;
+        private readonly IConnectionMultiplexer _redisConnection;
+        private readonly IDatabase _redisDb;
+        private readonly IElasticsearchService _elasticsearchService;
 
-        public ProductService(IProductRepository productRepository, IProductVariantRepository productVariantRepository, IOrderDetailRepository orderDetailRepository)
+        public ProductService(IProductRepository productRepository, IProductVariantRepository productVariantRepository, IOrderDetailRepository orderDetailRepository, IConnectionMultiplexer redisConnection, IElasticsearchService elasticClient)
         {
             _productRepository = productRepository;
             _productVariantRepository = productVariantRepository;
             _orderDetailRepository = orderDetailRepository;
+            _redisConnection = redisConnection;
+            _redisDb = _redisConnection.GetDatabase();
+            _elasticsearchService = elasticClient;
         }
 
         public async Task<PaginatedList<Product>> GetPaginatedProducts(
@@ -39,11 +48,6 @@ namespace Services
             {
                 var dbSet = await _productRepository.GetDbSet();
                 var source = dbSet.AsNoTracking();
-
-                if (!string.IsNullOrEmpty(searchQuery))
-                {
-                    source = source.Where(p => p.ProductName.ToLower().Contains(searchQuery.ToLower()));
-                }
 
                 if (start.HasValue && end.HasValue)
                 {
@@ -75,10 +79,15 @@ namespace Services
                     _ => source
                 };
 
-                var count = source.Count();
                 var items = source.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
 
-                return new PaginatedList<Product>(items, count, pageIndex, pageSize);
+                if (!string.IsNullOrEmpty(searchQuery) && items != null)
+                {
+                    await _elasticsearchService.IndexProductsAsync(items);
+                    items = await _elasticsearchService.SearchProductsByNameAsync(searchQuery);
+                }
+
+                return new PaginatedList<Product>(items, items.Count, pageIndex, pageSize);
             }
             catch (Exception ex)
             {
@@ -149,7 +158,15 @@ namespace Services
         {
             try
             {
-                return await _productRepository.GetById(productId);
+                var cachedProduct = await _redisDb.StringGetAsync($"product:{productId}");
+
+                if (!cachedProduct.IsNullOrEmpty)
+                    return JsonConvert.DeserializeObject<Product>(cachedProduct);
+
+                var product = await _productRepository.GetById(productId);
+                await _redisDb.StringSetAsync($"product:{productId}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
+
+                return product;
             }
             catch (Exception ex)
             {

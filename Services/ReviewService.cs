@@ -140,7 +140,7 @@ namespace Services
                 review.ReviewDate = DateTime.Now;
 
                 await _reviewRepository.Update(review);
-                await _redisDb.StringSetAsync($"review:{id}", JsonConvert.SerializeObject(review), TimeSpan.FromHours(1));
+                await _redisDb.StringSetAsync($"review:{reviewId}", JsonConvert.SerializeObject(review), TimeSpan.FromHours(1));
 
                 return review;
             }

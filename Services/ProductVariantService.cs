@@ -83,7 +83,7 @@ namespace Services
                 productVariant.VariantImageURL = productVariantModel.ProductImageUrl != null ? productVariantModel.ProductImageUrl[0].FileName : null;
 
                 await _productVariantRepository.Update(productVariant);
-                await _redisDb.StringSetAsync($"productVariant:{id}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
+                await _redisDb.StringSetAsync($"productVariant:{id}", JsonConvert.SerializeObject(productVariant), TimeSpan.FromHours(1));
 
                 if (stockChanged)
                 {

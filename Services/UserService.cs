@@ -1,6 +1,7 @@
 ﻿using BusinessObjects;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Nest;
 using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Helper;
@@ -12,14 +13,16 @@ namespace Services
     public class UserService : IUserService
     {
         private readonly IUserRepository _userRepository;
+        private readonly UserManager<IdentityUser> _userManager;
         private readonly IConnectionMultiplexer _redisConnection;
         private readonly IDatabase _redisDb;
 
-        public UserService(IUserRepository userRepository, IConnectionMultiplexer redisConnection)
+        public UserService(IUserRepository userRepository, IConnectionMultiplexer redisConnection, UserManager<IdentityUser> userManager)
         {
             _userRepository = userRepository;
             _redisConnection = redisConnection;
             _redisDb = _redisConnection.GetDatabase();
+            _userManager = userManager;
         }
 
         public async Task<PaginatedList<IdentityUser>> GetPaginatedUsers(
@@ -31,7 +34,8 @@ namespace Services
         {
             try
             {
-                var dbSet = await _userRepository.GetDbSet();
+                //var dbSet = await _userRepository.GetDbSet();
+                var dbSet = _userManager.Users;
                 var source = dbSet.AsNoTracking();
 
                 // Apply search filter
@@ -74,7 +78,8 @@ namespace Services
 
                 if (!cachedUser.IsNullOrEmpty)
                     return JsonConvert.DeserializeObject<IdentityUser>(cachedUser);
-                var user = await _userRepository.GetById(id);
+
+                var user = _userManager.FindByIdAsync(id).Result;
                 await _redisDb.StringSetAsync($"user:{id}", JsonConvert.SerializeObject(user), TimeSpan.FromHours(1));
                 return user;
             }
@@ -88,7 +93,9 @@ namespace Services
         {
             try
             {
-                await _userRepository.Update(user);
+                await _userManager.UpdateAsync(user);
+
+                await _redisDb.StringSetAsync($"user:{user.Id}", JsonConvert.SerializeObject(user), TimeSpan.FromHours(1));
             }
             catch (Exception ex)
             {
@@ -100,7 +107,13 @@ namespace Services
         {
             try
             {
-                await _userRepository.Add(user);
+                var result = await _userManager.CreateAsync(user);
+                if (!result.Succeeded)
+                {
+                    throw new Exception("Failed to create user");
+                }
+                await _redisDb.StringSetAsync($"user:{user.Id}", JsonConvert.SerializeObject(user), TimeSpan.FromHours(1));
+
                 return user;
             }
             catch (Exception ex)
@@ -113,7 +126,7 @@ namespace Services
         {
             try
             {
-                var existingUser = await _userRepository.GetById(userId);
+                var existingUser = await _userManager.FindByIdAsync(userId);
                 if (existingUser == null)
                 {
                     return null;
@@ -123,7 +136,12 @@ namespace Services
                 existingUser.UserName = user.UserName;
                 existingUser.PhoneNumber = user.PhoneNumber;
 
-                await _userRepository.Update(existingUser);
+                var result = await _userManager.UpdateAsync(existingUser);
+                if (!result.Succeeded)
+                {
+                    throw new Exception("Failed to update user");
+                }
+                await _redisDb.StringSetAsync($"user:{userId}", JsonConvert.SerializeObject(existingUser), TimeSpan.FromHours(1));
                 return existingUser;
             }
             catch (Exception ex)
@@ -136,7 +154,11 @@ namespace Services
         {
             try
             {
-                await _userRepository.Delete(id);
+                var result = await _userManager.DeleteAsync(await _userManager.FindByIdAsync(id));
+                if (!result.Succeeded)
+                {
+                    throw new Exception("Failed to delete user");
+                }
             }
             catch (Exception ex)
             {
@@ -148,7 +170,7 @@ namespace Services
         {
             try
             {
-                return await _userRepository.GetAll();
+                return await _userManager.Users.ToListAsync();
             }
             catch (Exception ex)
             {
@@ -184,7 +206,7 @@ namespace Services
         {
             try
             {
-                List<IdentityUser> users = await GetAllUsers();
+                List<IdentityUser> users = await _userManager.Users.ToListAsync();
                 return users.Count;
             }
             catch (Exception ex)

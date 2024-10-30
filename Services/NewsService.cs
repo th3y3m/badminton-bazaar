@@ -117,7 +117,7 @@ namespace Services
                     Status = newsModel.Status
                 };
                 await _newsRepository.Add(news);
-                await _redisDb.StringSetAsync($"news:{news.NewId}", JsonConvert.SerializeObject(id), TimeSpan.FromHours(1));
+                await _redisDb.StringSetAsync($"news:{news.NewId}", JsonConvert.SerializeObject(news), TimeSpan.FromHours(1));
                 return news;
             }
             catch (Exception ex)

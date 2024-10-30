@@ -1,9 +1,11 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
+using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,14 +20,18 @@ namespace Services
         private readonly IVnpayService _vnpayService;
         private readonly IMoMoService _moMoService;
         private readonly IUserDetailService _userDetailService;
+        private readonly IConnectionMultiplexer _redisConnection;
+        private readonly IDatabase _redisDb;
 
-        public PaymentService(IPaymentRepository paymentRepository, IVnpayService vnpayService, IUserDetailService userDetailService, IOrderService orderService, IMoMoService moMoService)
+        public PaymentService(IPaymentRepository paymentRepository, IVnpayService vnpayService, IUserDetailService userDetailService, IOrderService orderService, IMoMoService moMoService, IConnectionMultiplexer redisConnection)
         {
             _paymentRepository = paymentRepository;
             _vnpayService = vnpayService;
             _userDetailService = userDetailService;
             _orderService = orderService;
             _moMoService = moMoService;
+            _redisConnection = redisConnection;
+            _redisDb = _redisConnection.GetDatabase();
         }
 
         public async Task<PaginatedList<Payment>> GetPaginatedPayments(
@@ -82,7 +88,13 @@ namespace Services
         {
             try
             {
-                return await _paymentRepository.GetById(id);
+                var cachedPayment = await _redisDb.StringGetAsync($"payment:{id}");
+
+                if (!cachedPayment.IsNullOrEmpty)
+                    return JsonConvert.DeserializeObject<Payment>(cachedPayment);
+                var payment = await _paymentRepository.GetById(id);
+                await _redisDb.StringSetAsync($"payment:{id}", JsonConvert.SerializeObject(payment), TimeSpan.FromHours(1));
+                return payment;
             }
             catch (Exception ex)
             {

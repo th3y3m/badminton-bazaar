@@ -1,19 +1,25 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
+using StackExchange.Redis;
 
 namespace Services
 {
     public class SupplierService : ISupplierService
     {
         private readonly ISupplierRepository _supplierRepository;
+        private readonly IConnectionMultiplexer _redisConnection;
+        private readonly IDatabase _redisDb;
 
-        public SupplierService(ISupplierRepository supplierRepository)
+        public SupplierService(ISupplierRepository supplierRepository, IConnectionMultiplexer redisConnection)
         {
             _supplierRepository = supplierRepository;
+            _redisConnection = redisConnection;
+            _redisDb = _redisConnection.GetDatabase();
         }
 
         public async Task<PaginatedList<Supplier>> GetPaginatedSuppliers(
@@ -64,7 +70,13 @@ namespace Services
         {
             try
             {
-                return await _supplierRepository.GetById(id);
+                var cachedSupplier = await _redisDb.StringGetAsync($"supplier:{id}");
+
+                if (!cachedSupplier.IsNullOrEmpty)
+                    return JsonConvert.DeserializeObject<Supplier>(cachedSupplier);
+                var supplier = await _supplierRepository.GetById(id);
+                await _redisDb.StringSetAsync($"supplier:{id}", JsonConvert.SerializeObject(supplier), TimeSpan.FromHours(1));
+                return supplier;
             }
             catch (Exception ex)
             {

@@ -1,9 +1,11 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
+using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,10 +16,14 @@ namespace Services
     public class NewsService : INewsService
     {
         private readonly INewsRepository _newsRepository;
+        private readonly IConnectionMultiplexer _redisConnection;
+        private readonly IDatabase _redisDb;
 
-        public NewsService(INewsRepository newsRepository)
+        public NewsService(INewsRepository newsRepository, IConnectionMultiplexer redisConnection)
         {
             _newsRepository = newsRepository;
+            _redisConnection = redisConnection;
+            _redisDb = _redisConnection.GetDatabase();
         }
 
         public async Task<PaginatedList<News>> GetPaginatedNews(
@@ -79,7 +85,13 @@ namespace Services
         {
             try
             {
-                return await _newsRepository.GetById(id);
+                var cachedNews = await _redisDb.StringGetAsync($"news:{id}");
+
+                if (!cachedNews.IsNullOrEmpty)
+                    return JsonConvert.DeserializeObject<News>(cachedNews);
+                var news = await _newsRepository.GetById(id);
+                await _redisDb.StringSetAsync($"news:{id}", JsonConvert.SerializeObject(id), TimeSpan.FromHours(1));
+                return news;
             }
             catch (Exception ex)
             {

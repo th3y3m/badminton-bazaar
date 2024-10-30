@@ -130,7 +130,7 @@ namespace Services
                 product.SupplierId = productModel.SupplierId;
                 product.ProductDescription = productModel.ProductDescription;
                 product.BasePrice = productModel.BasePrice;
-                product.ImageUrl = productModel.ImageUrl;
+                product.ImageUrl = productModel.ImageUrl ?? string.Empty;
                 product.Status = productModel.Status;
 
                 await _productRepository.Update(product);

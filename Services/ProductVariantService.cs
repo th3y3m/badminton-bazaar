@@ -1,11 +1,13 @@
 ﻿using BusinessObjects;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using Repositories;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
+using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,13 +21,17 @@ namespace Services
         private readonly IProductVariantRepository _productVariantRepository;
         private readonly IProductService _productService;
         private readonly IHubContext<ProductHub> _hubContext;
+        private readonly IConnectionMultiplexer _redisConnection;
+        private readonly IDatabase _redisDb;
 
 
-        public ProductVariantService(IProductVariantRepository productVariantRepository, IHubContext<ProductHub> hubContext, IProductService productService)
+        public ProductVariantService(IProductVariantRepository productVariantRepository, IHubContext<ProductHub> hubContext, IProductService productService, IConnectionMultiplexer redisConnection)
         {
             _productVariantRepository = productVariantRepository;
             _hubContext = hubContext;
             _productService = productService;
+            _redisConnection = redisConnection;
+            _redisDb = _redisConnection.GetDatabase();
         }
 
         public async Task<ProductVariant> Add(ProductVariantModel productVariantModel)
@@ -102,7 +108,13 @@ namespace Services
         {
             try
             {
-                return await _productVariantRepository.GetById(id);
+                var cachedProduct = await _redisDb.StringGetAsync($"productVariant:{id}");
+
+                if (!cachedProduct.IsNullOrEmpty)
+                    return JsonConvert.DeserializeObject<ProductVariant>(cachedProduct);
+                var product = await _productVariantRepository.GetById(id);
+                await _redisDb.StringSetAsync($"productVariant:{id}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
+                return product;
             }
             catch (Exception ex)
             {

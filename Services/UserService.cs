@@ -1,19 +1,25 @@
 ﻿using BusinessObjects;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
+using StackExchange.Redis;
 
 namespace Services
 {
     public class UserService : IUserService
     {
         private readonly IUserRepository _userRepository;
+        private readonly IConnectionMultiplexer _redisConnection;
+        private readonly IDatabase _redisDb;
 
-        public UserService(IUserRepository userRepository)
+        public UserService(IUserRepository userRepository, IConnectionMultiplexer redisConnection)
         {
             _userRepository = userRepository;
+            _redisConnection = redisConnection;
+            _redisDb = _redisConnection.GetDatabase();
         }
 
         public async Task<PaginatedList<IdentityUser>> GetPaginatedUsers(
@@ -64,7 +70,13 @@ namespace Services
         {
             try
             {
-                return await _userRepository.GetById(id);
+                var cachedUser = await _redisDb.StringGetAsync($"user:{id}");
+
+                if (!cachedUser.IsNullOrEmpty)
+                    return JsonConvert.DeserializeObject<IdentityUser>(cachedUser);
+                var user = await _userRepository.GetById(id);
+                await _redisDb.StringSetAsync($"user:{id}", JsonConvert.SerializeObject(user), TimeSpan.FromHours(1));
+                return user;
             }
             catch (Exception ex)
             {

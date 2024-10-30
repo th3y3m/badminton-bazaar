@@ -1,9 +1,11 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
+using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,10 +16,14 @@ namespace Services
     public class CategoryService : ICategoryService
     {
         private readonly ICategoryRepository _categoryRepository;
+        private readonly IConnectionMultiplexer _redisConnection;
+        private readonly IDatabase _redisDb;
 
-        public CategoryService(ICategoryRepository categoryRepository)
+        public CategoryService(ICategoryRepository categoryRepository, IConnectionMultiplexer redisConnection)
         {
             _categoryRepository = categoryRepository;
+            _redisConnection = redisConnection;
+            _redisDb = _redisConnection.GetDatabase();
         }
 
         public async Task<PaginatedList<Category>> GetPaginatedCategories(
@@ -65,7 +71,13 @@ namespace Services
         {
             try
             {
-                return await _categoryRepository.GetById(id);
+                var cachedCategory = await _redisDb.StringGetAsync($"category:{id}");
+
+                if (!cachedCategory.IsNullOrEmpty)
+                    return JsonConvert.DeserializeObject<Category>(cachedCategory);
+                var category = await _categoryRepository.GetById(id);
+                await _redisDb.StringSetAsync($"category:{id}", JsonConvert.SerializeObject(category), TimeSpan.FromHours(1));
+                return category;
             }
             catch (Exception ex)
             {

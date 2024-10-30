@@ -1,19 +1,25 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
+using StackExchange.Redis;
 
 namespace Services
 {
     public class ReviewService : IReviewService
     {
         private readonly IReviewRepository _reviewRepository;
+        private readonly IConnectionMultiplexer _redisConnection;
+        private readonly IDatabase _redisDb;
 
-        public ReviewService(IReviewRepository reviewRepository)
+        public ReviewService(IReviewRepository reviewRepository, IConnectionMultiplexer redisConnection)
         {
             _reviewRepository = reviewRepository;
+            _redisConnection = redisConnection;
+            _redisDb = _redisConnection.GetDatabase();
         }
 
         public async Task<PaginatedList<Review>> GetPaginatedReviews(
@@ -76,7 +82,13 @@ namespace Services
         {
             try
             {
-                return await _reviewRepository.GetById(id);
+                var cachedReview = await _redisDb.StringGetAsync($"review:{id}");
+
+                if (!cachedReview.IsNullOrEmpty)
+                    return JsonConvert.DeserializeObject<Review>(cachedReview);
+                var review = await _reviewRepository.GetById(id);
+                await _redisDb.StringSetAsync($"review:{id}", JsonConvert.SerializeObject(review), TimeSpan.FromHours(1));
+                return review;
             }
             catch (Exception ex)
             {

@@ -1,9 +1,11 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
+using StackExchange.Redis;
 
 namespace Services
 {
@@ -11,11 +13,15 @@ namespace Services
     {
         private readonly IUserDetailRepository _userDetailRepository;
         private readonly IReviewService _reviewService;
+        private readonly IConnectionMultiplexer _redisConnection;
+        private readonly IDatabase _redisDb;
 
-        public UserDetailService(IUserDetailRepository userDetailRepository, IReviewService reviewService)
+        public UserDetailService(IUserDetailRepository userDetailRepository, IReviewService reviewService, IConnectionMultiplexer redisConnection)
         {
             _userDetailRepository = userDetailRepository;
             _reviewService = reviewService;
+            _redisConnection = redisConnection;
+            _redisDb = _redisConnection.GetDatabase();
         }
 
         public async Task<PaginatedList<UserDetail>> GetPaginatedUsers(
@@ -59,7 +65,14 @@ namespace Services
         {
             try
             {
-                return await _userDetailRepository.GetById(id);
+                var cachedUserDetail = await _redisDb.StringGetAsync($"userDetail:{id}");
+
+                if (!cachedUserDetail.IsNullOrEmpty)
+                    return JsonConvert.DeserializeObject<UserDetail>(cachedUserDetail);
+
+                var userDetail = await _userDetailRepository.GetById(id);
+                await _redisDb.StringSetAsync($"userDetail:{id}", JsonConvert.SerializeObject(userDetail), TimeSpan.FromHours(1));
+                return userDetail;
             }
             catch (Exception ex)
             {

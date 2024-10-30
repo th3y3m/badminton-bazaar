@@ -1,10 +1,12 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using Repositories;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
+using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,14 +21,18 @@ namespace Services
         private readonly ICartService _cartService;
         private readonly IUserDetailService _userDetailService;
         private readonly IProductVariantService _productVariantService;
+        private readonly IConnectionMultiplexer _redisConnection;
+        private readonly IDatabase _redisDb;
 
-        public OrderService(IOrderRepository orderRepository, IOrderDetailRepository orderDetailRepository, ICartService cartService, IUserDetailService userDetailService, IProductVariantService productVariantService)
+        public OrderService(IOrderRepository orderRepository, IOrderDetailRepository orderDetailRepository, ICartService cartService, IUserDetailService userDetailService, IProductVariantService productVariantService, IConnectionMultiplexer redisConnection)
         {
             _orderRepository = orderRepository;
             _orderDetailRepository = orderDetailRepository;
             _cartService = cartService;
             _userDetailService = userDetailService;
             _productVariantService = productVariantService;
+            _redisConnection = redisConnection;
+            _redisDb = _redisConnection.GetDatabase();
         }
         public async Task<decimal> TotalPrice(string orderId)
         {
@@ -84,7 +90,7 @@ namespace Services
         //    }
         //}
 
-        public async Task<PaginatedList<Order>> GetPaginatedOrders(
+        public async Task<PaginatedList<BusinessObjects.Order>> GetPaginatedOrders(
             DateOnly? start,
             DateOnly? end,
             string userId,
@@ -127,7 +133,7 @@ namespace Services
                 var count = await source.CountAsync();
                 var items = await source.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync();
 
-                return new PaginatedList<Order>(items, count, pageIndex, pageSize);
+                return new PaginatedList<BusinessObjects.Order>(items, count, pageIndex, pageSize);
             }
             catch (Exception ex)
             {
@@ -135,11 +141,17 @@ namespace Services
             }
         }
 
-        public async Task<Order> GetOrderById(string id)
+        public async Task<BusinessObjects.Order> GetOrderById(string id)
         {
             try
             {
-                return await _orderRepository.GetById(id);
+                var cachedOrder = await _redisDb.StringGetAsync($"order:{id}");
+
+                if (!cachedOrder.IsNullOrEmpty)
+                    return JsonConvert.DeserializeObject<BusinessObjects.Order>(cachedOrder);
+                var order = await _orderRepository.GetById(id);
+                await _redisDb.StringSetAsync($"order:{id}", JsonConvert.SerializeObject(order), TimeSpan.FromHours(1));
+                return order;
             }
             catch (Exception ex)
             {
@@ -147,7 +159,7 @@ namespace Services
             }
         }
 
-        public async Task<Order> AddOrder(string userId, decimal freight, string address)
+        public async Task<BusinessObjects.Order> AddOrder(string userId, decimal freight, string address)
         {
             try
             {
@@ -166,7 +178,7 @@ namespace Services
                     throw new Exception($"User with ID {userId} not found.");
                 }
 
-                Order order = new Order
+                BusinessObjects.Order order = new BusinessObjects.Order
                 {
                     OrderId = "O" + GenerateId.GenerateRandomId(5),
                     OrderDate = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone),
@@ -210,7 +222,7 @@ namespace Services
         {
             try
             {
-                Order order = await _orderRepository.GetById(orderId);
+                BusinessObjects.Order order = await _orderRepository.GetById(orderId);
                 if (order != null)
                 {
                     order.Status = "Cancelled";

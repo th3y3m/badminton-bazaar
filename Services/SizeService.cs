@@ -1,9 +1,11 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
+using StackExchange.Redis;
 
 namespace Services
 {
@@ -11,11 +13,15 @@ namespace Services
     {
         private readonly ISizeRepository _sizeRepository;
         private readonly IProductVariantRepository _productVariantRepository;
+        private readonly IConnectionMultiplexer _redisConnection;
+        private readonly IDatabase _redisDb;
 
-        public SizeService(ISizeRepository sizeRepository, IProductVariantRepository productVariantRepository)
+        public SizeService(ISizeRepository sizeRepository, IProductVariantRepository productVariantRepository, IConnectionMultiplexer redisConnection)
         {
             _sizeRepository = sizeRepository;
             _productVariantRepository = productVariantRepository;
+            _redisConnection = redisConnection;
+            _redisDb = _redisConnection.GetDatabase();
         }
 
         public async Task<List<SizeModel>> GetSizesOfProduct(string productId)
@@ -79,7 +85,13 @@ namespace Services
         {
             try
             {
-                return await _sizeRepository.GetById(id);
+                var cachedSize = await _redisDb.StringGetAsync($"size:{id}");
+
+                if (!cachedSize.IsNullOrEmpty)
+                    return JsonConvert.DeserializeObject<Size>(cachedSize);
+                var size = await _sizeRepository.GetById(id);
+                await _redisDb.StringSetAsync($"size:{id}", JsonConvert.SerializeObject(size), TimeSpan.FromHours(1));
+                return size;
             }
             catch (Exception ex)
             {

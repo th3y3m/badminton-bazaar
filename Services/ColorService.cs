@@ -1,9 +1,11 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
+using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,11 +17,15 @@ namespace Services
     {
         private readonly IColorRepository _colorRepository;
         private readonly IProductVariantRepository _productVariantRepository;
+        private readonly IConnectionMultiplexer _redisConnection;
+        private readonly IDatabase _redisDb;
 
-        public ColorService(IColorRepository colorRepository, IProductVariantRepository productVariantRepository)
+        public ColorService(IColorRepository colorRepository, IProductVariantRepository productVariantRepository, IConnectionMultiplexer redisConnection)
         {
             _colorRepository = colorRepository;
             _productVariantRepository = productVariantRepository;
+            _redisConnection = redisConnection;
+            _redisDb = _redisConnection.GetDatabase();
         }
 
         public async Task<List<ColorModel>> GetColorsOfProduct(string productId)
@@ -87,7 +93,14 @@ namespace Services
         {
             try
             {
-                return await _colorRepository.GetById(id);
+                var cachedColor = await _redisDb.StringGetAsync($"color:{id}");
+
+                if (!cachedColor.IsNullOrEmpty)
+                    return JsonConvert.DeserializeObject<Color>(cachedColor);
+                var color = await _colorRepository.GetById(id);
+
+                await _redisDb.StringSetAsync($"color:{id}", JsonConvert.SerializeObject(color), TimeSpan.FromHours(1));
+                return color;
             }
             catch (Exception ex)
             {

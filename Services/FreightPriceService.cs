@@ -4,18 +4,24 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BusinessObjects;
+using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Interface;
+using StackExchange.Redis;
 
 namespace Services
 {
     public class FreightPriceService : IFreightPriceService
     {
         private readonly IFreightPriceRepository _freightPriceRepository;
+        private readonly IConnectionMultiplexer _redisConnection;
+        private readonly IDatabase _redisDb;
 
-        public FreightPriceService(IFreightPriceRepository freightPriceRepository)
+        public FreightPriceService(IFreightPriceRepository freightPriceRepository, IConnectionMultiplexer redisConnection)
         {
             _freightPriceRepository = freightPriceRepository;
+            _redisConnection = redisConnection;
+            _redisDb = _redisConnection.GetDatabase();
         }
 
         public async Task Add(FreightPrice freightPrice)
@@ -48,7 +54,13 @@ namespace Services
         {
             try
             {
-                return await _freightPriceRepository.GetById(id);
+                var cachedFreightPrice = await _redisDb.StringGetAsync($"freightPrice:{id}");
+
+                if (!cachedFreightPrice.IsNullOrEmpty)
+                    return JsonConvert.DeserializeObject<FreightPrice>(cachedFreightPrice);
+                var freightPrice = await _freightPriceRepository.GetById(id);
+                await _redisDb.StringSetAsync($"freightPrice:{id}", JsonConvert.SerializeObject(freightPrice), TimeSpan.FromHours(1));
+                return freightPrice; 
             }
             catch (Exception ex)
             {

@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Nest;
 using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Helper;
@@ -98,6 +99,7 @@ namespace Services
                     Status = categoryModel.Status,
                 };
                 await _categoryRepository.Add(category);
+                await _redisDb.StringSetAsync($"category:{category.CategoryId}", JsonConvert.SerializeObject(category), TimeSpan.FromHours(1));
                 return category;
             }
             catch (Exception ex)
@@ -120,6 +122,7 @@ namespace Services
                 category.Description = categoryModel.Description;
                 category.Status = categoryModel.Status;
                 await _categoryRepository.Update(category);
+                await _redisDb.StringSetAsync($"category:{id}", JsonConvert.SerializeObject(category), TimeSpan.FromHours(1));
                 return category;
             }
             catch (Exception ex)
@@ -134,6 +137,8 @@ namespace Services
             try
             {
                 await _categoryRepository.Delete(id);
+                var category = await GetCategoryById(id);
+                await _redisDb.StringSetAsync($"category:{id}", JsonConvert.SerializeObject(category), TimeSpan.FromHours(1));
             }
             catch (Exception ex)
             {

@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Nest;
 using Newtonsoft.Json;
 using Repositories;
 using Repositories.Interfaces;
@@ -190,6 +191,7 @@ namespace Services
                 };
 
                 await _orderRepository.Add(order);
+                await _redisDb.StringSetAsync($"order:{order.OrderId}", JsonConvert.SerializeObject(order), TimeSpan.FromHours(1));
 
                 foreach (var item in itemsInCart)
                 {
@@ -227,6 +229,7 @@ namespace Services
                 {
                     order.Status = "Cancelled";
                     await _orderRepository.Update(order);
+                    await _redisDb.StringSetAsync($"order:{orderId}", JsonConvert.SerializeObject(order), TimeSpan.FromHours(1));
                 }
             }
             catch (Exception ex)

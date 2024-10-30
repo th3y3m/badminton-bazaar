@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Nest;
 using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Helper;
@@ -116,6 +117,7 @@ namespace Services
                     Status = newsModel.Status
                 };
                 await _newsRepository.Add(news);
+                await _redisDb.StringSetAsync($"news:{news.NewId}", JsonConvert.SerializeObject(id), TimeSpan.FromHours(1));
                 return news;
             }
             catch (Exception ex)
@@ -142,6 +144,7 @@ namespace Services
                 news.Status = newsModel.Status;
 
                 await _newsRepository.Update(news);
+                await _redisDb.StringSetAsync($"news:{id}", JsonConvert.SerializeObject(id), TimeSpan.FromHours(1));
                 return news;
             }
             catch (Exception ex)
@@ -160,6 +163,7 @@ namespace Services
                     throw new Exception("News not found.");
                 }
                 await _newsRepository.Delete(id);
+                await _redisDb.StringSetAsync($"news:{id}", JsonConvert.SerializeObject(id), TimeSpan.FromHours(1));
                 return news;
             }
             catch (Exception ex)

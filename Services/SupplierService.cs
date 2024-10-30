@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Nest;
 using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Helper;
@@ -96,6 +97,8 @@ namespace Services
                     Status = supplierModel.Status
                 };
                 await _supplierRepository.Add(supplier);
+                await _redisDb.StringSetAsync($"supplier:{supplier.SupplierId}", JsonConvert.SerializeObject(supplier), TimeSpan.FromHours(1));
+
                 return supplier;
             }
             catch (Exception ex)
@@ -118,6 +121,9 @@ namespace Services
                 supplier.Address = supplierModel.Address;
                 supplier.Status = supplierModel.Status;
                 await _supplierRepository.Update(supplier);
+
+                await _redisDb.StringSetAsync($"supplier:{id}", JsonConvert.SerializeObject(supplier), TimeSpan.FromHours(1));
+
                 return supplier;
             }
             catch (Exception ex)

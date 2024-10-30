@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BusinessObjects;
+using Nest;
 using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Interface;
@@ -29,6 +30,7 @@ namespace Services
             try
             {
                 await _freightPriceRepository.Add(freightPrice);
+                await _redisDb.StringSetAsync($"freightPrice:{freightPrice.PriceId}", JsonConvert.SerializeObject(freightPrice), TimeSpan.FromHours(1));
             }
             catch (Exception ex)
             {
@@ -42,6 +44,7 @@ namespace Services
             try
             {
                 await _freightPriceRepository.Update(freightPrice);
+                await _redisDb.StringSetAsync($"freightPrice:{freightPrice.PriceId}", JsonConvert.SerializeObject(freightPrice), TimeSpan.FromHours(1));
             }
             catch (Exception ex)
             {
@@ -87,6 +90,7 @@ namespace Services
             try
             {
                 await _freightPriceRepository.Delete(id);
+                await _redisDb.KeyDeleteAsync($"freightPrice:{id}");
             }
             catch (Exception ex)
             {

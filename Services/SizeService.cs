@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Nest;
 using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Helper;
@@ -61,6 +62,7 @@ namespace Services
                     SizeName = sizeName
                 };
                 await _sizeRepository.Add(size);
+                await _redisDb.StringSetAsync($"size:{size.SizeId}", JsonConvert.SerializeObject(size), TimeSpan.FromHours(1));
                 return size;
             }
             catch (Exception ex)
@@ -74,6 +76,8 @@ namespace Services
             try
             {
                 await _sizeRepository.Update(size);
+                await _redisDb.StringSetAsync($"size:{size.SizeId}", JsonConvert.SerializeObject(size), TimeSpan.FromHours(1));
+
             }
             catch (Exception ex)
             {

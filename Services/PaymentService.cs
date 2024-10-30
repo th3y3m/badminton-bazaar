@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Nest;
 using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Helper;
@@ -10,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using static Nest.JoinField;
 
 namespace Services
 {
@@ -122,6 +124,7 @@ namespace Services
             try
             {
                 await _paymentRepository.Add(payment);
+                await _redisDb.StringSetAsync($"payment:{payment.PaymentId}", JsonConvert.SerializeObject(payment), TimeSpan.FromHours(1));
             }
             catch (Exception ex)
             {
@@ -135,6 +138,7 @@ namespace Services
             try
             {
                 await _paymentRepository.Update(payment);
+                await _redisDb.StringSetAsync($"payment:{payment.PaymentId}", JsonConvert.SerializeObject(payment), TimeSpan.FromHours(1));
             }
             catch (Exception ex)
             {
@@ -148,6 +152,8 @@ namespace Services
             try
             {
                 await _paymentRepository.Delete(id);
+                var payment = await GetPaymentById(id);
+                await _redisDb.StringSetAsync($"payment:{id}", JsonConvert.SerializeObject(payment), TimeSpan.FromHours(1));
             }
             catch (Exception ex)
             {

@@ -1,6 +1,7 @@
 ﻿using BusinessObjects;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Nest;
 using Newtonsoft.Json;
 using Repositories;
 using Repositories.Interfaces;
@@ -50,6 +51,8 @@ namespace Services
                     VariantImageURL = productVariantModel.ProductImageUrl != null ? productVariantModel.ProductImageUrl[0].FileName : null
                 };
                 await _productVariantRepository.Add(productVariant);
+                await _redisDb.StringSetAsync($"productVariant:{productVariant.ProductVariantId}", JsonConvert.SerializeObject(productVariant), TimeSpan.FromHours(1));
+
                 return productVariant;
             }
             catch (Exception ex)
@@ -80,6 +83,7 @@ namespace Services
                 productVariant.VariantImageURL = productVariantModel.ProductImageUrl != null ? productVariantModel.ProductImageUrl[0].FileName : null;
 
                 await _productVariantRepository.Update(productVariant);
+                await _redisDb.StringSetAsync($"productVariant:{id}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
 
                 if (stockChanged)
                 {

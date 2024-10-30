@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Nest;
 using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Helper;
@@ -85,6 +86,8 @@ namespace Services
             try
             {
                 await _userDetailRepository.Add(userDetail);
+                await _redisDb.StringSetAsync($"userDetail:{userDetail.UserId}", JsonConvert.SerializeObject(userDetail), TimeSpan.FromHours(1));
+
             }
             catch (Exception ex)
             {
@@ -107,6 +110,8 @@ namespace Services
                 user.Address = userDetail.Address;
                 user.ProfilePicture = userDetail.ProfilePicture;
                 await _userDetailRepository.Update(user);
+                await _redisDb.StringSetAsync($"userDetail:{id}", JsonConvert.SerializeObject(userDetail), TimeSpan.FromHours(1));
+
             }
             catch (Exception ex)
             {

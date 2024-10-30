@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Nest;
 using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Helper;
@@ -67,6 +68,7 @@ namespace Services
                 };
 
                 await _colorRepository.Add(color);
+                await _redisDb.StringSetAsync($"color:{color.ColorId}", JsonConvert.SerializeObject(color), TimeSpan.FromHours(1));
                 return color;
             }
             catch (Exception ex)
@@ -81,6 +83,8 @@ namespace Services
             try
             {
                 await _colorRepository.Update(color);
+
+                await _redisDb.StringSetAsync($"color:{color.ColorId}", JsonConvert.SerializeObject(color), TimeSpan.FromHours(1));
             }
             catch (Exception ex)
             {
@@ -127,6 +131,7 @@ namespace Services
             try
             {
                 await _colorRepository.Delete(id);
+                await _redisDb.KeyDeleteAsync($"color:{id}");
             }
             catch (Exception ex)
             {

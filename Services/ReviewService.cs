@@ -1,5 +1,6 @@
 ﻿using BusinessObjects;
 using Microsoft.EntityFrameworkCore;
+using Nest;
 using Newtonsoft.Json;
 using Repositories.Interfaces;
 using Services.Helper;
@@ -111,6 +112,7 @@ namespace Services
                 };
 
                 await _reviewRepository.Add(review);
+                await _redisDb.StringSetAsync($"review:{review.ReviewId}", JsonConvert.SerializeObject(review), TimeSpan.FromHours(1));
 
                 return review;
             }
@@ -138,6 +140,7 @@ namespace Services
                 review.ReviewDate = DateTime.Now;
 
                 await _reviewRepository.Update(review);
+                await _redisDb.StringSetAsync($"review:{id}", JsonConvert.SerializeObject(review), TimeSpan.FromHours(1));
 
                 return review;
             }

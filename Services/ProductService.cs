@@ -111,6 +111,7 @@ namespace Services
                     Status = productModel.Status
                 };
                 await _productRepository.Add(product);
+                await _redisDb.StringSetAsync($"product:{product.ProductId}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
                 return product;
             }
             catch (Exception ex)
@@ -134,6 +135,7 @@ namespace Services
                 product.Status = productModel.Status;
 
                 await _productRepository.Update(product);
+                await _redisDb.StringSetAsync($"product:{product.ProductId}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
                 return product;
             }
             catch (Exception ex)
@@ -147,6 +149,8 @@ namespace Services
             try
             {
                 await _productRepository.Delete(productId);
+                var product = await GetProductById(productId);
+                await _redisDb.StringSetAsync($"product:{product.ProductId}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
             }
             catch (Exception ex)
             {

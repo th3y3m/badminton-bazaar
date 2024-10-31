@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Services.Interface;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace API.Controllers
 {
@@ -36,16 +37,20 @@ namespace API.Controllers
         }
 
         [HttpGet("{id}")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetUserById(string id)
         {
             try
             {
                 var identityUser = await _userService.GetUserById(id);
+
+                if (identityUser == null)
+                    return NotFound();
                 return Ok(identityUser);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error retrieving user by ID: {ex.Message}");
+                return StatusCode(500, $"Error retrieving user by ID: {ex.Message}"); // Handle exceptions
             }
         }
 

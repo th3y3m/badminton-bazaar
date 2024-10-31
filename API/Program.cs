@@ -15,6 +15,7 @@ using Services.Models;
 using StackExchange.Redis;
 using System.Text;
 using Nest;
+using System.Threading.RateLimiting;
 
 namespace API
 {
@@ -59,6 +60,26 @@ namespace API
 
             builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
                 options.TokenLifespan = TimeSpan.FromHours(24));
+
+            builder.Services.AddRateLimiter(options =>
+            {
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+                options.OnRejected = async (context, token) =>
+                {
+                    context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                    await context.HttpContext.Response.WriteAsync("Too many requests. Please try again later.", token);
+                };
+
+                options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: httpContext.User.Identity?.Name ?? httpContext.Request.Headers.Host.ToString(),
+                        factory: partition => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = 10,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueLimit = 2
+                        }));
+            });
 
             // JWT Authentication Configuration
             builder.Services.AddAuthentication(options =>
@@ -192,6 +213,7 @@ namespace API
                 app.UseHsts();
             }
 
+            app.UseRateLimiter();
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseCors("AllowSpecificOrigin");
@@ -201,7 +223,7 @@ namespace API
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
             });
             app.UseRouting();
-            app.UseSession(); // Ensure session is used before authorization
+            app.UseSession();
             app.UseAuthentication();
             app.UseAuthorization();
             app.UseMiddleware<RequestResponseMiddleware>();

@@ -18,6 +18,7 @@ namespace API.Controllers
         }
 
         [HttpGet]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetPaginatedNews(
             [FromQuery] bool? status,
             [FromQuery] bool? isHomePageBanner,
@@ -39,6 +40,7 @@ namespace API.Controllers
         }
 
         [HttpGet("{id}")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetNewsById(string id)
         {
             try

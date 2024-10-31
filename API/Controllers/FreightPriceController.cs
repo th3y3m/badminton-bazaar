@@ -16,6 +16,7 @@ namespace API.Controllers
         }
 
         [HttpGet]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetAll()
         {
             try
@@ -31,6 +32,7 @@ namespace API.Controllers
         }
 
         [HttpGet("{id}")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetById(string id)
         {
             try
@@ -89,6 +91,7 @@ namespace API.Controllers
             }
         }
         [HttpGet("GetPriceByDistance")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetPriceByDistance(decimal km)
         {
             try

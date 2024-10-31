@@ -22,6 +22,7 @@ namespace API.Controllers
         }
 
         [HttpGet]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetPaginatedProducts(
             [FromQuery] decimal? start,
             [FromQuery] decimal? end,
@@ -45,6 +46,7 @@ namespace API.Controllers
         }
 
         [HttpGet("{id}")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetProductById(string id)
         {
             try
@@ -92,6 +94,7 @@ namespace API.Controllers
         }
 
         [HttpPut]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> UpdateProduct([FromBody] ProductModel productModel, [FromQuery] string productId)
         {
             try
@@ -149,6 +152,7 @@ namespace API.Controllers
         }
 
         [HttpGet("TopSeller/{numberOfProducts}")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetTopSeller(int numberOfProducts)
         {
             try
@@ -177,6 +181,7 @@ namespace API.Controllers
         }
 
         [HttpGet("GetRelatedProduct/{productId}")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetRelatedProduct(string productId)
         {
             try

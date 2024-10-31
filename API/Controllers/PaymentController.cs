@@ -21,6 +21,7 @@ namespace API.Controllers
         }
 
         [HttpGet]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetPaginatedPayments(
             [FromQuery] string searchQuery = "",
             [FromQuery] string sortBy = "paymentdate_asc",
@@ -41,6 +42,7 @@ namespace API.Controllers
         }
 
         [HttpGet("{id}")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetPaymentById(string id)
         {
             try
@@ -54,6 +56,7 @@ namespace API.Controllers
             }
         }
         [HttpGet("GetPaymentByOrderId/{id}")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetPaymentByOrderId(string id)
         {
             try

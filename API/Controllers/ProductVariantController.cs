@@ -23,6 +23,7 @@ namespace API.Controllers
         }
 
         [HttpGet]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetPaginatedProducts(
             [FromQuery] string sortBy = "price_asc",
             [FromQuery] bool? status = true,
@@ -44,6 +45,7 @@ namespace API.Controllers
         }
 
         [HttpGet("{id}")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetProductById(string id)
         {
             try

@@ -18,6 +18,7 @@ namespace API.Controllers
         }
 
         [HttpGet]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetPaginatedCategories(
             [FromQuery] string searchQuery = "",
             [FromQuery] string sortBy = "categoryname_asc",
@@ -38,6 +39,7 @@ namespace API.Controllers
         }
 
         [HttpGet("{id}")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetCategoryById(string id)
         {
             try

@@ -17,6 +17,7 @@ namespace API.Controllers
         }
 
         [HttpGet("GetOrderDetailByOrderId/{orderId}")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetOrderDetailByOrderId(string orderId)
         {
             try

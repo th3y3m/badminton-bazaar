@@ -18,6 +18,7 @@ namespace API.Controllers
         }
 
         [HttpGet]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetPaginatedProducts(
             [FromQuery] string searchQuery = "",
             [FromQuery] string sortBy = "name_asc",
@@ -97,6 +98,7 @@ namespace API.Controllers
         }
 
         [HttpGet("count")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> CountUsers()
         {
             try

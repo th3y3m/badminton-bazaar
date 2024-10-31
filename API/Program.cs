@@ -75,7 +75,7 @@ namespace API
                         partitionKey: httpContext.User.Identity?.Name ?? httpContext.Request.Headers.Host.ToString(),
                         factory: partition => new FixedWindowRateLimiterOptions
                         {
-                            PermitLimit = 10,
+                            PermitLimit = 60,
                             Window = TimeSpan.FromMinutes(1),
                             QueueLimit = 2
                         }));

@@ -16,6 +16,7 @@ namespace API.Controllers
         }
 
         [HttpGet]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetPaginatedReviews(
             [FromQuery] string? userId,
             [FromQuery] string? productId,
@@ -37,6 +38,7 @@ namespace API.Controllers
         }
 
         [HttpGet("{id}")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetReviewById(string id)
         {
             try
@@ -93,6 +95,7 @@ namespace API.Controllers
         }
 
         [HttpGet("GetAverageRating/{productId}")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetAverageRating(string productId)
         {
             try

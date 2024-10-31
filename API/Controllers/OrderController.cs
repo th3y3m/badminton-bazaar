@@ -23,6 +23,7 @@ namespace API.Controllers
         }
 
         [HttpGet("GetPaginatedOrders")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetPaginatedOrders(
             [FromQuery] DateOnly? start,
             [FromQuery] DateOnly? end,
@@ -44,6 +45,7 @@ namespace API.Controllers
         }
 
         [HttpGet("Price/{orderId}")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> TotalPrice(string orderId)
         {
             try
@@ -58,6 +60,7 @@ namespace API.Controllers
         }
 
         [HttpGet("{orderId}")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetOrderById(string orderId)
         {
             try

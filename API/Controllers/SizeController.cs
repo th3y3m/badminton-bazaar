@@ -15,6 +15,7 @@ namespace API.Controllers
         }
 
         [HttpGet]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetPaginatedSizes(
             [FromQuery] string searchQuery = "",
             [FromQuery] string sortBy = "size_asc",
@@ -33,6 +34,7 @@ namespace API.Controllers
         }
 
         [HttpGet("{id}")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetSizeById(string id)
         {
             try
@@ -61,6 +63,7 @@ namespace API.Controllers
         }
 
         [HttpGet("GetSizesOfProduct/{id}")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetSizesOfProduct(string id)
         {
             try

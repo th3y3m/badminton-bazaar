@@ -16,6 +16,10 @@ using StackExchange.Redis;
 using System.Text;
 using Nest;
 using System.Threading.RateLimiting;
+using Polly;
+using Polly.Extensions.Http;
+using Polly.Retry;
+using Polly.CircuitBreaker;
 
 namespace API
 {
@@ -27,12 +31,25 @@ namespace API
 
             ConfigurationManager configuration = builder.Configuration;
 
+            // Polly Policies
+            var retryPolicy = HttpPolicyExtensions
+                .HandleTransientHttpError()
+                .OrResult(msg => msg.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+
+            var circuitBreakerPolicy = HttpPolicyExtensions
+                .HandleTransientHttpError()
+                .CircuitBreakerAsync(2, TimeSpan.FromMinutes(1));
+
             // Configure DbContext
             builder.Services.AddDbContext<Repositories.DbContext>(options =>
             {
-                var connectionString = configuration.GetConnectionString("BadmintonBazaarDb");
-                options.UseSqlServer(connectionString);
+                options.UseSqlServer(configuration.GetConnectionString("BadmintonBazaarDb"));
             });
+
+            builder.Services.AddHttpClient("DatabaseClient")
+                .AddPolicyHandler(retryPolicy)
+                .AddPolicyHandler(circuitBreakerPolicy);
 
             // Hangfire
             builder.Services.AddHangfire(config =>
@@ -170,9 +187,38 @@ namespace API
             builder.Services.Configure<MailSettings>(configuration.GetSection("MailSettings"));
             builder.Services.Configure<MoMoSettings>(configuration.GetSection("MoMoSettings"));
 
-            builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect("localhost:6379"));
+            // Configure Redis with Polly
+            builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+            {
+                var configurationOptions = new ConfigurationOptions
+                {
+                    EndPoints = { "localhost:6379" },
+                    ConnectTimeout = 5000,
+                    AbortOnConnectFail = false
+                };
 
-            var settings = new ConnectionSettings(new Uri("http://localhost:9200"))
+                var retryPolicy = Polly.Policy
+                    .Handle<RedisConnectionException>()
+                    .WaitAndRetry(5, retryAttempt => TimeSpan.FromSeconds(retryAttempt), (exception, timeSpan, retryCount, context) =>
+                    {
+                        Console.WriteLine($"Retrying Redis connection. Attempt {retryCount}. Error: {exception.Message}");
+                    });
+
+                return retryPolicy.Execute(() => ConnectionMultiplexer.Connect(configurationOptions));
+            });
+
+            builder.Services.AddHttpClient("RedisClient")
+                .AddPolicyHandler(retryPolicy)
+                .AddPolicyHandler(circuitBreakerPolicy);
+
+            builder.Services.AddHttpClient("ElasticClient", client =>
+            {
+                client.BaseAddress = new Uri("http://localhost:9200");
+            })
+            .AddPolicyHandler(retryPolicy)
+            .AddPolicyHandler(circuitBreakerPolicy);
+
+            var settings = new ConnectionSettings(new Uri("http://localhost:9200")) 
                 .DefaultIndex("products");
             builder.Services.AddSingleton<IElasticClient>(new ElasticClient(settings));
 

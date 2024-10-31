@@ -1,7 +1,10 @@
 ﻿using BusinessObjects;
+using Elasticsearch.Net;
 using Microsoft.EntityFrameworkCore;
 using Nest;
 using Newtonsoft.Json;
+using Polly.Retry;
+using Polly;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
@@ -11,6 +14,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Data.SqlClient;
+using Polly.Timeout;
+using Polly.Wrap;
 
 namespace Services
 {
@@ -22,6 +28,12 @@ namespace Services
         private readonly IConnectionMultiplexer _redisConnection;
         private readonly IDatabase _redisDb;
         private readonly IElasticsearchService _elasticsearchService;
+        private readonly AsyncRetryPolicy _dbRetryPolicy;
+        private readonly AsyncRetryPolicy _retryPolicy;
+        private readonly AsyncTimeoutPolicy _dbTimeoutPolicy;
+        private readonly AsyncTimeoutPolicy _timeoutPolicy;
+        private readonly AsyncPolicyWrap _dbPolicyWrap;
+        private readonly AsyncPolicyWrap _policyWrap;
 
         public ProductService(IProductRepository productRepository, IProductVariantRepository productVariantRepository, IOrderDetailRepository orderDetailRepository, IConnectionMultiplexer redisConnection, IElasticsearchService elasticClient)
         {
@@ -31,22 +43,50 @@ namespace Services
             _redisConnection = redisConnection;
             _redisDb = _redisConnection.GetDatabase();
             _elasticsearchService = elasticClient;
+            _retryPolicy = Polly.Policy.Handle<SqlException>()
+                                   .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                                   (exception, timeSpan, retryCount, context) =>
+                                   {
+                                       Console.WriteLine($"Retry {retryCount} for {context.PolicyKey} at {timeSpan} due to: {exception}.");
+                                   });
+            _dbRetryPolicy = Polly.Policy.Handle<SqlException>()
+                                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                                (exception, timeSpan, retryCount, context) =>
+                                {
+                                    Console.WriteLine($"[Db Retry] Attempt {retryCount} after {timeSpan} due to: {exception.Message}");
+                                });
+            _dbTimeoutPolicy = Polly.Policy.TimeoutAsync(10, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+           {
+               Console.WriteLine($"[Db Timeout] Operation timed out after {timeSpan}");
+               return Task.CompletedTask;
+           });
+
+            _timeoutPolicy = Polly.Policy.TimeoutAsync(2, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+           {
+               Console.WriteLine($"[Redis Timeout] Operation timed out after {timeSpan}");
+               return Task.CompletedTask;
+           });
+            _dbPolicyWrap = Polly.Policy.WrapAsync(_dbRetryPolicy, _dbTimeoutPolicy);
+            _policyWrap = Polly.Policy.WrapAsync(_retryPolicy, _timeoutPolicy);
         }
 
         public async Task<PaginatedList<Product>> GetPaginatedProducts(
-            string searchQuery,
-            decimal? start,
-            decimal? end,
-            string sortBy,
-            bool? status,
-            string supplierId,
-            string categoryId,
-            int pageIndex,
-            int pageSize)
+    string searchQuery,
+    decimal? start,
+    decimal? end,
+    string sortBy,
+    bool? status,
+    string supplierId,
+    string categoryId,
+    int pageIndex,
+    int pageSize)
         {
             try
             {
-                var dbSet = await _productRepository.GetDbSet();
+                DbSet<Product> dbSet = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _productRepository.GetDbSet()
+                );
+
                 var source = dbSet.AsNoTracking();
 
                 if (start.HasValue && end.HasValue)
@@ -79,12 +119,31 @@ namespace Services
                     _ => source
                 };
 
-                var items = source.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
+                List<Product> items = await source
+                    .Skip((pageIndex - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
 
-                if (!string.IsNullOrEmpty(searchQuery) && items != null)
+                if (!string.IsNullOrEmpty(searchQuery) && items.Any())
                 {
-                    await _elasticsearchService.IndexProductsAsync(items);
-                    items = await _elasticsearchService.SearchProductsByNameAsync(searchQuery);
+                    if (_elasticsearchService == null)
+                    {
+                        items = items
+                            .Where(p => p.ProductName.ToLower().Contains(searchQuery.ToLower()))
+                            .ToList();
+                    }
+                    else
+                    {
+                        await _policyWrap.ExecuteAsync(async () =>
+                        {
+                            await _elasticsearchService.IndexProductsAsync(items);
+                        });
+
+                        items = await _policyWrap.ExecuteAsync(async () =>
+                        {
+                            return await _elasticsearchService.SearchProductsByNameAsync(searchQuery);
+                        });
+                    }
                 }
 
                 return new PaginatedList<Product>(items, items.Count, pageIndex, pageSize);
@@ -110,8 +169,17 @@ namespace Services
                     ImageUrl = productModel.ImageUrl,
                     Status = productModel.Status
                 };
-                await _productRepository.Add(product);
-                await _redisDb.StringSetAsync($"product:{product.ProductId}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
+
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _productRepository.Add(product)   
+                );
+
+                // Use Polly retry policy for Redis set operation
+                await _retryPolicy.ExecuteAsync(async () =>
+                {
+                    await _redisDb.StringSetAsync($"product:{product.ProductId}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
+                });
+
                 return product;
             }
             catch (Exception ex)
@@ -134,8 +202,15 @@ namespace Services
                 product.ImageUrl = productModel.ImageUrl ?? string.Empty;
                 product.Status = productModel.Status;
 
-                await _productRepository.Update(product);
-                await _redisDb.StringSetAsync($"product:{product.ProductId}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _productRepository.Update(product)
+                );
+
+                await _policyWrap.ExecuteAsync(async () =>
+                {
+                    await _redisDb.StringSetAsync($"product:{product.ProductId}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
+                });
+
                 return product;
             }
             catch (Exception ex)
@@ -148,9 +223,16 @@ namespace Services
         {
             try
             {
-                await _productRepository.Delete(productId);
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                {
+                    await _productRepository.Delete(productId);
+                });
                 var product = await GetProductById(productId);
-                await _redisDb.StringSetAsync($"product:{product.ProductId}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
+
+                await _policyWrap.ExecuteAsync(async () =>
+                {
+                    await _redisDb.StringSetAsync($"product:{product.ProductId}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
+                });
             }
             catch (Exception ex)
             {
@@ -160,22 +242,53 @@ namespace Services
 
         public async Task<Product> GetProductById(string productId)
         {
-            try
+            Product product = null;
+
+            // Check Redis cache first
+            if (_redisConnection != null && _redisConnection.IsConnected)
             {
-                var cachedProduct = await _redisDb.StringGetAsync($"product:{productId}");
+                try
+                {
+                    RedisValue cachedProduct = RedisValue.Null;
+                    await _policyWrap.ExecuteAsync(async () =>
+                    {
+                        cachedProduct = await _redisDb.StringGetAsync($"product:{productId}");
+                    });
 
-                if (!cachedProduct.IsNullOrEmpty)
-                    return JsonConvert.DeserializeObject<Product>(cachedProduct);
-
-                var product = await _productRepository.GetById(productId);
-                await _redisDb.StringSetAsync($"product:{productId}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
-
-                return product;
+                    if (!cachedProduct.IsNullOrEmpty)
+                    {
+                        return JsonConvert.DeserializeObject<Product>(cachedProduct);
+                    }
+                }
+                catch (RedisConnectionException ex)
+                {
+                    Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                }
             }
-            catch (Exception ex)
+
+            // Fetch from database with retry policy
+            await _dbPolicyWrap.ExecuteAsync(async () =>
             {
-                throw new Exception($"Error retrieving product by ID: {ex.Message}");
+                product = await _productRepository.GetById(productId);
+            });
+
+            // Cache result in Redis if connected
+            if (_redisConnection != null && _redisConnection.IsConnected)
+            {
+                try
+                {
+                    await _policyWrap.ExecuteAsync(async () =>
+                    {
+                        await _redisDb.StringSetAsync($"product:{productId}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
+                    });
+                }
+                catch (RedisConnectionException ex)
+                {
+                    Console.WriteLine($"Failed to set Redis cache: {ex.Message}");
+                }
             }
+
+            return product;
         }
 
         public async Task<int> GetSelledProduct(string productId)

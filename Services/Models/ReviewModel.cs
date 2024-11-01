@@ -5,25 +5,39 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using FluentValidation;
 
 namespace Services.Models
 {
     public class ReviewModel
     {
-        [Required]
-        [StringLength(255)]
         public string ReviewText { get; set; }
 
-        [Required]
-        [Range(1, 5, ErrorMessage = "Rating must be between 1 and 5.")]
         public int Rating { get; set; }
 
-        [Required]
-        [StringLength(450)]
         public string UserId { get; set; }
 
-        [Required]
-        [StringLength(10)]
         public string ProductId { get; set; }
+    }
+
+    public class ReviewModelValidator : AbstractValidator<ReviewModel>
+    {
+        public ReviewModelValidator()
+        {
+            RuleFor(x => x.ReviewText)
+                .NotEmpty().WithMessage("Review Text is required")
+                .MaximumLength(255).WithMessage("Review Text must be less than 255 characters");
+
+            RuleFor(x => x.Rating)
+                .InclusiveBetween(1, 5).WithMessage("Rating must be between 1 and 5");
+
+            RuleFor(x => x.UserId)
+                .NotEmpty().WithMessage("User ID is required")
+                .MaximumLength(450).WithMessage("User ID must be less than 450 characters");
+
+            RuleFor(x => x.ProductId)
+                .NotEmpty().WithMessage("Product ID is required")
+                .MaximumLength(10).WithMessage("Product ID must be less than 10 characters");
+        }
     }
 }

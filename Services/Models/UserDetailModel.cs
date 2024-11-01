@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using FluentValidation;
 
 namespace Services.Models
 {
@@ -20,5 +21,21 @@ namespace Services.Models
         public string? ProfilePicture { get; set; }
 
         public IFormFile? ImageUrl { get; set; }
+    }
+
+    public class UserDetailModelValidator : AbstractValidator<UserDetailModel>
+    {
+        public UserDetailModelValidator()
+        {
+            RuleFor(x => x.FullName)
+                .NotEmpty().WithMessage("Full Name is required")
+                .MaximumLength(50).WithMessage("Full Name must be less than 50 characters");
+
+            RuleFor(x => x.Address)
+                .MaximumLength(500).WithMessage("Address must be less than 500 characters");
+
+            RuleFor(x => x.ProfilePicture)
+                .MaximumLength(int.MaxValue).WithMessage("Profile Picture URL length is too long");
+        }
     }
 }

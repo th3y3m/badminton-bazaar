@@ -30,10 +30,6 @@ namespace API.Controllers
         [Route("login")]
         public async Task<IActionResult> Login([FromBody] LoginModel model)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
             if (string.IsNullOrWhiteSpace(model.Email) || string.IsNullOrWhiteSpace(model.Password))
                 return StatusCode(StatusCodes.Status400BadRequest, new ResponseModel { Status = "Error", Message = "Email or password is empty." });
             //var ip = Utils.GetIpAddress(HttpContext);

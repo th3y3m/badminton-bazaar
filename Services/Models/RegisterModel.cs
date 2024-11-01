@@ -1,4 +1,5 @@
-﻿using System;
+﻿using FluentValidation;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -9,18 +10,33 @@ namespace Services.Models
 {
     public class RegisterModel
     {
-        [Required(ErrorMessage = "Full Name is required")]
         public string FullName { get; set; }
 
-
-        [Required(ErrorMessage = "Email is required")]
-        [EmailAddress(ErrorMessage = "Invalid Email Address")]
         public string Email { get; set; }
 
-        [Required(ErrorMessage = "Password is required")]
         public string Password { get; set; }
 
-        [Required(ErrorMessage = "Confirm Password is required")]
         public string ConfirmPassword { get; set; }
+    }
+
+    public class RegisterModelValidator : AbstractValidator<RegisterModel>
+    {
+        public RegisterModelValidator()
+        {
+            RuleFor(x => x.FullName)
+                .NotEmpty().WithMessage("Full Name is required");
+
+            RuleFor(x => x.Email)
+                .NotEmpty().WithMessage("Email is required")
+                .EmailAddress().WithMessage("Invalid Email Address");
+
+            RuleFor(x => x.Password)
+                .NotEmpty().WithMessage("Password is required")
+                .MinimumLength(6).WithMessage("Password must be at least 6 characters long");
+
+            RuleFor(x => x.ConfirmPassword)
+                .NotEmpty().WithMessage("Confirm Password is required")
+                .Equal(x => x.Password).WithMessage("Passwords do not match");
+        }
     }
 }

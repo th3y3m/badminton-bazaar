@@ -71,15 +71,15 @@ namespace Services
         }
 
         public async Task<PaginatedList<Product>> GetPaginatedProducts(
-    string searchQuery,
-    decimal? start,
-    decimal? end,
-    string sortBy,
-    bool? status,
-    string supplierId,
-    string categoryId,
-    int pageIndex,
-    int pageSize)
+            string searchQuery,
+            decimal? start,
+            decimal? end,
+            string sortBy,
+            bool? status,
+            string supplierId,
+            string categoryId,
+            int pageIndex,
+            int pageSize)
         {
             try
             {

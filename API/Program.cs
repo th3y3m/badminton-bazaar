@@ -20,6 +20,8 @@ using Polly;
 using Polly.Extensions.Http;
 using Polly.Retry;
 using Polly.CircuitBreaker;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 
 namespace API
 {
@@ -171,6 +173,10 @@ namespace API
             // Mail Settings Configuration
             builder.Services.Configure<MailSettings>(configuration.GetSection("MailSettings"));
             builder.Services.Configure<MoMoSettings>(configuration.GetSection("MoMoSettings"));
+
+            // Register FluentValidation
+            builder.Services.AddFluentValidationAutoValidation();
+            builder.Services.AddValidatorsFromAssemblyContaining<LoginModelValidator>();
 
             // Configure Redis with Polly
             builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>

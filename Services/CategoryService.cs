@@ -1,16 +1,16 @@
 ﻿using BusinessObjects;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Nest;
 using Newtonsoft.Json;
+using Polly;
+using Polly.Retry;
+using Polly.Timeout;
+using Polly.Wrap;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
 using StackExchange.Redis;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Services
 {
@@ -19,12 +19,43 @@ namespace Services
         private readonly ICategoryRepository _categoryRepository;
         private readonly IConnectionMultiplexer _redisConnection;
         private readonly IDatabase _redisDb;
+        private readonly AsyncRetryPolicy _dbRetryPolicy;
+        private readonly AsyncRetryPolicy _redisRetryPolicy;
+        private readonly AsyncTimeoutPolicy _dbTimeoutPolicy;
+        private readonly AsyncTimeoutPolicy _redisTimeoutPolicy;
+        private readonly AsyncPolicyWrap _dbPolicyWrap;
+        private readonly AsyncPolicyWrap _redisPolicyWrap;
 
         public CategoryService(ICategoryRepository categoryRepository, IConnectionMultiplexer redisConnection)
         {
             _categoryRepository = categoryRepository;
             _redisConnection = redisConnection;
             _redisDb = _redisConnection.GetDatabase();
+            _redisRetryPolicy = Policy.Handle<SqlException>()
+                       .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                       (exception, timeSpan, retryCount, context) =>
+                       {
+                           Console.WriteLine($"Retry {retryCount} for {context.PolicyKey} at {timeSpan} due to: {exception}.");
+                       });
+            _dbRetryPolicy = Policy.Handle<SqlException>()
+                                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                                (exception, timeSpan, retryCount, context) =>
+                                {
+                                    Console.WriteLine($"[Db Retry] Attempt {retryCount} after {timeSpan} due to: {exception.Message}");
+                                });
+            _dbTimeoutPolicy = Policy.TimeoutAsync(10, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+            {
+                Console.WriteLine($"[Db Timeout] Operation timed out after {timeSpan}");
+                return Task.CompletedTask;
+            });
+
+            _redisTimeoutPolicy = Policy.TimeoutAsync(2, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+            {
+                Console.WriteLine($"[Redis Timeout] Operation timed out after {timeSpan}");
+                return Task.CompletedTask;
+            });
+            _dbPolicyWrap = Policy.WrapAsync(_dbRetryPolicy, _dbTimeoutPolicy);
+            _redisPolicyWrap = Policy.WrapAsync(_redisRetryPolicy, _redisTimeoutPolicy);
         }
 
         public async Task<PaginatedList<Category>> GetPaginatedCategories(
@@ -36,7 +67,9 @@ namespace Services
         {
             try
             {
-                var dbSet = await _categoryRepository.GetDbSet();
+                var dbSet = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _categoryRepository.GetDbSet()
+                );
                 var source = dbSet.AsNoTracking();
 
                 if (!string.IsNullOrEmpty(searchQuery))
@@ -72,12 +105,42 @@ namespace Services
         {
             try
             {
-                var cachedCategory = await _redisDb.StringGetAsync($"category:{id}");
+                RedisValue cachedCategory = RedisValue.Null;
 
-                if (!cachedCategory.IsNullOrEmpty)
-                    return JsonConvert.DeserializeObject<Category>(cachedCategory);
-                var category = await _categoryRepository.GetById(id);
-                await _redisDb.StringSetAsync($"category:{id}", JsonConvert.SerializeObject(category), TimeSpan.FromHours(1));
+                if (_redisConnection != null || _redisConnection.IsConnecting)
+                {
+                    try
+                    {
+                        cachedCategory = await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringGetAsync($"category:{id}")
+                        );
+                        if (!cachedCategory.IsNullOrEmpty)
+                            return JsonConvert.DeserializeObject<Category>(cachedCategory);
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
+
+                var category = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _categoryRepository.GetById(id)
+                );
+
+                if (_redisConnection != null || _redisConnection.IsConnecting)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"category:{id}", JsonConvert.SerializeObject(category), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
+
                 return category;
             }
             catch (Exception ex)
@@ -98,8 +161,25 @@ namespace Services
                     Description = categoryModel.Description,
                     Status = categoryModel.Status,
                 };
-                await _categoryRepository.Add(category);
-                await _redisDb.StringSetAsync($"category:{category.CategoryId}", JsonConvert.SerializeObject(category), TimeSpan.FromHours(1));
+
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _categoryRepository.Add(category)
+                );
+
+                if (_redisConnection != null || _redisConnection.IsConnecting)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"category:{category.CategoryId}", JsonConvert.SerializeObject(category), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
+
                 return category;
             }
             catch (Exception ex)
@@ -121,8 +201,15 @@ namespace Services
                 category.CategoryName = categoryModel.CategoryName;
                 category.Description = categoryModel.Description;
                 category.Status = categoryModel.Status;
-                await _categoryRepository.Update(category);
-                await _redisDb.StringSetAsync($"category:{id}", JsonConvert.SerializeObject(category), TimeSpan.FromHours(1));
+
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _categoryRepository.Update(category)
+                );
+
+                await _redisPolicyWrap.ExecuteAsync(async () =>
+                     await _redisDb.StringSetAsync($"category:{id}", JsonConvert.SerializeObject(category), TimeSpan.FromHours(1))
+                );
+
                 return category;
             }
             catch (Exception ex)
@@ -136,9 +223,17 @@ namespace Services
         {
             try
             {
-                await _categoryRepository.Delete(id);
-                var category = await GetCategoryById(id);
-                await _redisDb.StringSetAsync($"category:{id}", JsonConvert.SerializeObject(category), TimeSpan.FromHours(1));
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _categoryRepository.Delete(id)
+                );
+
+                Category category = await _dbPolicyWrap.ExecuteAsync(async () =>
+                     await GetCategoryById(id)
+                );
+
+                await _redisPolicyWrap.ExecuteAsync(async () =>
+                    await _redisDb.StringSetAsync($"category:{id}", JsonConvert.SerializeObject(category), TimeSpan.FromHours(1))
+                );
             }
             catch (Exception ex)
             {

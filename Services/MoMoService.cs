@@ -17,6 +17,12 @@ using Newtonsoft.Json;
 using System.Diagnostics;
 using System.Runtime;
 using Microsoft.Extensions.Options;
+using Microsoft.Data.SqlClient;
+using Polly.Timeout;
+using Polly.Retry;
+using Polly.Wrap;
+using Polly;
+using StackExchange.Redis;
 
 namespace Services
 {
@@ -244,7 +250,16 @@ namespace Services
         //}
         private readonly ILogger<MoMoService> _logger;
         private readonly IOrderRepository _orderRepository;
+        private readonly IOrderService _orderService;
         private readonly IPaymentRepository _paymentRepository;
+        private readonly AsyncRetryPolicy _dbRetryPolicy;
+        private readonly AsyncRetryPolicy _redisRetryPolicy;
+        private readonly AsyncTimeoutPolicy _dbTimeoutPolicy;
+        private readonly AsyncTimeoutPolicy _redisTimeoutPolicy;
+        private readonly AsyncPolicyWrap _dbPolicyWrap;
+        private readonly AsyncPolicyWrap _redisPolicyWrap;
+        private readonly IConnectionMultiplexer _redisConnection;
+        private readonly IDatabase _redisDb;
 
         // MoMo API URLs and keys
         private readonly string endpoint = "https://test-payment.momo.vn/v2/gateway/api/create";
@@ -254,11 +269,38 @@ namespace Services
         private readonly string returnUrl = "https://localhost:7173/MomoAPI/paymentconfirm";
         private readonly string notifyUrl = "https://localhost:7173/MomoAPI/ipn";
 
-        public MoMoService(ILogger<MoMoService> logger, IOrderRepository orderRepository, IPaymentRepository paymentRepository)
+        public MoMoService(ILogger<MoMoService> logger, IOrderRepository orderRepository, IPaymentRepository paymentRepository, IConnectionMultiplexer redisConnection, IOrderService orderService)
         {
             _logger = logger;
+            _redisConnection = redisConnection;
+            _redisDb = _redisConnection.GetDatabase();
             _orderRepository = orderRepository;
             _paymentRepository = paymentRepository;
+            _redisRetryPolicy = Policy.Handle<SqlException>()
+                                   .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                                   (exception, timeSpan, retryCount, context) =>
+                                   {
+                                       Console.WriteLine($"Retry {retryCount} for {context.PolicyKey} at {timeSpan} due to: {exception}.");
+                                   });
+            _dbRetryPolicy = Policy.Handle<SqlException>()
+                                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                                (exception, timeSpan, retryCount, context) =>
+                                {
+                                    Console.WriteLine($"[Db Retry] Attempt {retryCount} after {timeSpan} due to: {exception.Message}");
+                                });
+            _dbTimeoutPolicy = Policy.TimeoutAsync(10, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+            {
+                Console.WriteLine($"[Db Timeout] Operation timed out after {timeSpan}");
+                return Task.CompletedTask;
+            });
+            _redisTimeoutPolicy = Policy.TimeoutAsync(2, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+            {
+                Console.WriteLine($"[Redis Timeout] Operation timed out after {timeSpan}");
+                return Task.CompletedTask;
+            });
+            _dbPolicyWrap = Policy.WrapAsync(_dbRetryPolicy, _dbTimeoutPolicy);
+            _redisPolicyWrap = Policy.WrapAsync(_redisRetryPolicy, _redisTimeoutPolicy);
+            _orderService = orderService;
         }
 
         public async Task<string> CreatePaymentUrl(decimal amount, string orderId, string orderInfo)
@@ -347,7 +389,7 @@ namespace Services
                 //    return new PaymentStatusModel { IsSuccessful = false, RedirectUrl = "https://localhost:3000/reject" };
                 //}
 
-                var order = await _orderRepository.GetById(orderId);
+                var order = await _orderService.GetOrderById(orderId);
                 if (order == null || order.Status == "Completed")
                 {
                     return new PaymentStatusModel { IsSuccessful = false, RedirectUrl = "https://localhost:3000/reject" };
@@ -366,10 +408,14 @@ namespace Services
                         PaymentSignature = signature,
                         PaymentMethod = "MoMo"
                     };
-                    await _paymentRepository.Add(payment);
+
+                    await _dbPolicyWrap.ExecuteAsync(async () => await _paymentRepository.Add(payment));
 
                     order.Status = "Completed";
-                    await _orderRepository.Update(order);
+
+                    await _dbPolicyWrap.ExecuteAsync(async () =>
+                        await _orderRepository.Update(order)
+                    );
 
                     return new PaymentStatusModel
                     {
@@ -380,7 +426,10 @@ namespace Services
                 else
                 {
                     order.Status = "Failed";
-                    await _orderRepository.Update(order);
+                    await _dbPolicyWrap.ExecuteAsync(async () =>
+                        await _orderRepository.Update(order)
+                    );
+
                     var payment = new Payment
                     {
                         PaymentId = "P" + HashUtil.GenerateRandomId(7),
@@ -392,7 +441,11 @@ namespace Services
                         PaymentSignature = signature,
                         PaymentMethod = "MoMo"
                     };
-                    await _paymentRepository.Add(payment);
+
+                    await _dbPolicyWrap.ExecuteAsync(async () =>
+                        await _paymentRepository.Add(payment)
+                    );
+
                     return new PaymentStatusModel
                     {
                         IsSuccessful = false,

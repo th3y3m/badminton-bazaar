@@ -1,16 +1,16 @@
 ﻿using BusinessObjects;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Nest;
 using Newtonsoft.Json;
+using Polly;
+using Polly.Retry;
+using Polly.Timeout;
+using Polly.Wrap;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
 using StackExchange.Redis;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Services
 {
@@ -19,12 +19,44 @@ namespace Services
         private readonly INewsRepository _newsRepository;
         private readonly IConnectionMultiplexer _redisConnection;
         private readonly IDatabase _redisDb;
+        private readonly AsyncRetryPolicy _dbRetryPolicy;
+        private readonly AsyncRetryPolicy _redisRetryPolicy;
+        private readonly AsyncTimeoutPolicy _dbTimeoutPolicy;
+        private readonly AsyncTimeoutPolicy _redisTimeoutPolicy;
+        private readonly AsyncPolicyWrap _dbPolicyWrap;
+        private readonly AsyncPolicyWrap _redisPolicyWrap;
 
         public NewsService(INewsRepository newsRepository, IConnectionMultiplexer redisConnection)
         {
             _newsRepository = newsRepository;
             _redisConnection = redisConnection;
             _redisDb = _redisConnection.GetDatabase();
+            _redisRetryPolicy = Policy.Handle<SqlException>()
+                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                (exception, timeSpan, retryCount, context) =>
+                {
+                    Console.WriteLine($"Retry {retryCount} for {context.PolicyKey} at {timeSpan} due to: {exception}.");
+                });
+            _dbRetryPolicy = Policy.Handle<SqlException>()
+                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                (exception, timeSpan, retryCount, context) =>
+                {
+                    Console.WriteLine($"[Db Retry] Attempt {retryCount} after {timeSpan} due to: {exception.Message}");
+                });
+            _dbTimeoutPolicy = Policy.TimeoutAsync(10, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+            {
+                Console.WriteLine($"[Db Timeout] Operation timed out after {timeSpan}");
+                return Task.CompletedTask;
+            });
+
+            _redisTimeoutPolicy = Policy.TimeoutAsync(2, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+            {
+                Console.WriteLine($"[Redis Timeout] Operation timed out after {timeSpan}");
+                return Task.CompletedTask;
+            });
+
+            _dbPolicyWrap = Policy.WrapAsync(_dbRetryPolicy, _dbTimeoutPolicy);
+            _redisPolicyWrap = Policy.WrapAsync(_redisRetryPolicy, _redisTimeoutPolicy);
         }
 
         public async Task<PaginatedList<News>> GetPaginatedNews(
@@ -38,7 +70,10 @@ namespace Services
         {
             try
             {
-                var dbSet = await _newsRepository.GetDbSet();
+                var dbSet = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _newsRepository.GetDbSet()
+                );
+
                 var source = dbSet.AsNoTracking();
 
                 if (IsHomepageBanner.HasValue)
@@ -86,12 +121,42 @@ namespace Services
         {
             try
             {
-                var cachedNews = await _redisDb.StringGetAsync($"news:{id}");
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    RedisValue cachedNews = RedisValue.Null;
+                    try
+                    {
+                        cachedNews = await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringGetAsync($"news:{id}")
+                        );
+                        if (!cachedNews.IsNullOrEmpty)
+                            return JsonConvert.DeserializeObject<News>(cachedNews);
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
 
-                if (!cachedNews.IsNullOrEmpty)
-                    return JsonConvert.DeserializeObject<News>(cachedNews);
-                var news = await _newsRepository.GetById(id);
-                await _redisDb.StringSetAsync($"news:{id}", JsonConvert.SerializeObject(id), TimeSpan.FromHours(1));
+                var news = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _newsRepository.GetById(id)
+                );
+
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    RedisValue cachedNews = RedisValue.Null;
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"news:{id}", JsonConvert.SerializeObject(news), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
+
                 return news;
             }
             catch (Exception ex)
@@ -116,8 +181,26 @@ namespace Services
                     IsHomepageBanner = newsModel.IsHomepageBanner,
                     Status = newsModel.Status
                 };
-                await _newsRepository.Add(news);
-                await _redisDb.StringSetAsync($"news:{news.NewId}", JsonConvert.SerializeObject(news), TimeSpan.FromHours(1));
+
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                {
+                    await _newsRepository.Add(news);
+                });
+
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"news:{news.NewId}", JsonConvert.SerializeObject(news), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
+
                 return news;
             }
             catch (Exception ex)
@@ -143,8 +226,24 @@ namespace Services
                 news.IsHomepageBanner = newsModel.IsHomepageBanner;
                 news.Status = newsModel.Status;
 
-                await _newsRepository.Update(news);
-                await _redisDb.StringSetAsync($"news:{id}", JsonConvert.SerializeObject(id), TimeSpan.FromHours(1));
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                {
+                    await _newsRepository.Update(news);
+                });
+
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"news:{id}", JsonConvert.SerializeObject(news), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
                 return news;
             }
             catch (Exception ex)
@@ -157,13 +256,28 @@ namespace Services
         {
             try
             {
-                var news = await _newsRepository.GetById(id);
-                if (news == null)
+                await _dbPolicyWrap.ExecuteAsync(async () =>
                 {
-                    throw new Exception("News not found.");
+                    await _newsRepository.Delete(id);
+                });
+
+                News news = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _newsRepository.GetById(id)
+                );
+
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"news:{id}", JsonConvert.SerializeObject(news), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
                 }
-                await _newsRepository.Delete(id);
-                await _redisDb.StringSetAsync($"news:{id}", JsonConvert.SerializeObject(id), TimeSpan.FromHours(1));
                 return news;
             }
             catch (Exception ex)
@@ -176,9 +290,13 @@ namespace Services
         {
             try
             {
-                var news = await _newsRepository.GetById(id);
+                var news = await GetNewsById(id);
                 news.Views++;
-                await _newsRepository.Update(news);
+
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                {
+                    await _newsRepository.Update(news);
+                });
             }
             catch (Exception ex)
             {
@@ -190,7 +308,10 @@ namespace Services
         {
             try
             {
-                var news = await _newsRepository.GetAll();
+                var news = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _newsRepository.GetAll()
+                );
+
                 return news.Where(p => p.IsHomepageSlideshow == true).ToList();
             }
             catch (Exception ex)
@@ -203,7 +324,9 @@ namespace Services
         {
             try
             {
-                var news = await _newsRepository.GetAll();
+                var news = await _dbPolicyWrap.ExecuteAsync(async () =>
+                      await _newsRepository.GetAll()
+                );
                 return news.Where(p => p.IsHomepageBanner == true).ToList();
             }
             catch (Exception ex)

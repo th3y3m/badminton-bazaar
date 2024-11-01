@@ -1,7 +1,11 @@
 ﻿using BusinessObjects;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Nest;
 using Newtonsoft.Json;
+using Polly;
+using Polly.Retry;
+using Polly.Timeout;
+using Polly.Wrap;
 using Repositories;
 using Repositories.Interfaces;
 using Services.Helper;
@@ -24,6 +28,12 @@ namespace Services
         private readonly IProductVariantService _productVariantService;
         private readonly IConnectionMultiplexer _redisConnection;
         private readonly IDatabase _redisDb;
+        private readonly AsyncRetryPolicy _dbRetryPolicy;
+        private readonly AsyncRetryPolicy _redisRetryPolicy;
+        private readonly AsyncTimeoutPolicy _dbTimeoutPolicy;
+        private readonly AsyncTimeoutPolicy _redisTimeoutPolicy;
+        private readonly AsyncPolicyWrap _dbPolicyWrap;
+        private readonly AsyncPolicyWrap _redisPolicyWrap;
 
         public OrderService(IOrderRepository orderRepository, IOrderDetailRepository orderDetailRepository, ICartService cartService, IUserDetailService userDetailService, IProductVariantService productVariantService, IConnectionMultiplexer redisConnection)
         {
@@ -34,15 +44,44 @@ namespace Services
             _productVariantService = productVariantService;
             _redisConnection = redisConnection;
             _redisDb = _redisConnection.GetDatabase();
+            _redisRetryPolicy = Policy.Handle<SqlException>()
+                                   .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                                   (exception, timeSpan, retryCount, context) =>
+                                   {
+                                       Console.WriteLine($"Retry {retryCount} for {context.PolicyKey} at {timeSpan} due to: {exception}.");
+                                   });
+            _dbRetryPolicy = Policy.Handle<SqlException>()
+                                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                                (exception, timeSpan, retryCount, context) =>
+                                {
+                                    Console.WriteLine($"[Db Retry] Attempt {retryCount} after {timeSpan} due to: {exception.Message}");
+                                });
+            _dbTimeoutPolicy = Policy.TimeoutAsync(10, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+            {
+                Console.WriteLine($"[Db Timeout] Operation timed out after {timeSpan}");
+                return Task.CompletedTask;
+            });
+            _redisTimeoutPolicy = Policy.TimeoutAsync(2, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+            {
+                Console.WriteLine($"[Redis Timeout] Operation timed out after {timeSpan}");
+                return Task.CompletedTask;
+            });
+            _dbPolicyWrap = Policy.WrapAsync(_dbRetryPolicy, _dbTimeoutPolicy);
+            _redisPolicyWrap = Policy.WrapAsync(_redisRetryPolicy, _redisTimeoutPolicy);
         }
         public async Task<decimal> TotalPrice(string orderId)
         {
             try
             {
-                var getAllOrderDetails = await _orderDetailRepository.GetAll();
+                var getAllOrderDetails = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _orderDetailRepository.GetAll()
+                );
+
                 var orderDetails = getAllOrderDetails.Where(p => p.OrderId == orderId).ToList();
 
-                var order = await _orderRepository.GetById(orderId);
+                var order = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _orderRepository.GetById(orderId)
+                );
 
                 decimal totalPrice = 0;
 
@@ -102,7 +141,10 @@ namespace Services
         {
             try
             {
-                var dbSet = await _orderRepository.GetDbSet();
+                var dbSet = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _orderRepository.GetDbSet()
+                );
+
                 var source = dbSet.AsNoTracking();
 
                 if (!string.IsNullOrEmpty(userId))
@@ -146,12 +188,42 @@ namespace Services
         {
             try
             {
-                var cachedOrder = await _redisDb.StringGetAsync($"order:{id}");
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        var cachedOrder = await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringGetAsync($"order:{id}")
+                        );
 
-                if (!cachedOrder.IsNullOrEmpty)
-                    return JsonConvert.DeserializeObject<BusinessObjects.Order>(cachedOrder);
-                var order = await _orderRepository.GetById(id);
-                await _redisDb.StringSetAsync($"order:{id}", JsonConvert.SerializeObject(order), TimeSpan.FromHours(1));
+                        if (!cachedOrder.IsNullOrEmpty)
+                            return JsonConvert.DeserializeObject<BusinessObjects.Order>(cachedOrder);
+
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
+
+                var order = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _orderRepository.GetById(id)
+                );
+
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"order:{id}", JsonConvert.SerializeObject(order), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
+
                 return order;
             }
             catch (Exception ex)
@@ -189,9 +261,23 @@ namespace Services
                     ShipAddress = address,
                     ShippedDate = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone).Date + TimeSpan.FromDays(7)
                 };
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _orderRepository.Add(order)
+                );
 
-                await _orderRepository.Add(order);
-                await _redisDb.StringSetAsync($"order:{order.OrderId}", JsonConvert.SerializeObject(order), TimeSpan.FromHours(1));
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"order:{order.OrderId}", JsonConvert.SerializeObject(order), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
 
                 foreach (var item in itemsInCart)
                 {
@@ -224,12 +310,34 @@ namespace Services
         {
             try
             {
-                BusinessObjects.Order order = await _orderRepository.GetById(orderId);
+                BusinessObjects.Order order = null;
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                {
+                    order = await _orderRepository.GetById(orderId);
+                });
+
                 if (order != null)
                 {
                     order.Status = "Cancelled";
-                    await _orderRepository.Update(order);
-                    await _redisDb.StringSetAsync($"order:{orderId}", JsonConvert.SerializeObject(order), TimeSpan.FromHours(1));
+
+                    await _dbPolicyWrap.ExecuteAsync(async () =>
+                    {
+                        await _orderRepository.Update(order);
+                    });
+
+                    if (_redisConnection != null || _redisConnection.IsConnected)
+                    {
+                        try
+                        {
+                            await _redisPolicyWrap.ExecuteAsync(async () =>
+                                await _redisDb.StringSetAsync($"order:{order.OrderId}", JsonConvert.SerializeObject(order), TimeSpan.FromHours(1))
+                            );
+                        }
+                        catch (RedisConnectionException ex)
+                        {
+                            Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -242,20 +350,46 @@ namespace Services
         {
             try
             {
-                var order = await _orderRepository.GetById(orderId);
+                var order = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _orderRepository.GetById(orderId)
+                );
 
                 if (order != null && order.Status != "Completed" && order.Status != "Failed")
                 {
                     order.Status = "Failed";
 
-                    await _orderRepository.Update(order);
-                    var orderDetails = await _orderDetailRepository.GetByOrderId(orderId);
-                    foreach (var orderDetail in orderDetails)
+                    await _dbPolicyWrap.ExecuteAsync(async () =>
                     {
-                        var product = orderDetail.ProductVariantId;
-                        var productDetail = await _productVariantService.GetById(product);
-                        productDetail.StockQuantity += orderDetail.Quantity;
-                        await _productVariantService.Update(productDetail);
+                        await _orderRepository.Update(order);
+                    });
+
+                    if (_redisConnection != null || _redisConnection.IsConnected)
+                    {
+                        try
+                        {
+                            await _redisPolicyWrap.ExecuteAsync(async () =>
+                                await _redisDb.StringSetAsync($"order:{order.OrderId}", JsonConvert.SerializeObject(order), TimeSpan.FromHours(1))
+                            );
+                        }
+                        catch (RedisConnectionException ex)
+                        {
+                            Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                        }
+                    }
+
+
+                    var orderDetails = await _dbPolicyWrap.ExecuteAsync(async () =>
+                        await _orderDetailRepository.GetByOrderId(orderId)
+                    );
+                    if (orderDetails.Count != 0)
+                    {
+                        foreach (var orderDetail in orderDetails)
+                        {
+                            var product = orderDetail.ProductVariantId;
+                            var productDetail = await _productVariantService.GetById(product);
+                            productDetail.StockQuantity += orderDetail.Quantity;
+                            await _productVariantService.Update(productDetail);
+                        }
                     }
                 }
             }
@@ -263,7 +397,7 @@ namespace Services
             {
                 throw new Exception("An error occurred while automatically failing the order.", ex);
             }
-           
+
         }
     }
 }

@@ -1,8 +1,12 @@
 ﻿using BusinessObjects;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Nest;
 using Newtonsoft.Json;
+using Polly;
+using Polly.Retry;
+using Polly.Timeout;
+using Polly.Wrap;
 using Repositories;
 using Repositories.Interfaces;
 using Services.Helper;
@@ -24,7 +28,12 @@ namespace Services
         private readonly IHubContext<ProductHub> _hubContext;
         private readonly IConnectionMultiplexer _redisConnection;
         private readonly IDatabase _redisDb;
-
+        private readonly AsyncRetryPolicy _dbRetryPolicy;
+        private readonly AsyncRetryPolicy _redisRetryPolicy;
+        private readonly AsyncTimeoutPolicy _dbTimeoutPolicy;
+        private readonly AsyncTimeoutPolicy _redisTimeoutPolicy;
+        private readonly AsyncPolicyWrap _dbPolicyWrap;
+        private readonly AsyncPolicyWrap _redisPolicyWrap;
 
         public ProductVariantService(IProductVariantRepository productVariantRepository, IHubContext<ProductHub> hubContext, IProductService productService, IConnectionMultiplexer redisConnection)
         {
@@ -33,6 +42,31 @@ namespace Services
             _productService = productService;
             _redisConnection = redisConnection;
             _redisDb = _redisConnection.GetDatabase();
+            _redisRetryPolicy = Policy.Handle<SqlException>()
+                                   .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                                   (exception, timeSpan, retryCount, context) =>
+                                   {
+                                       Console.WriteLine($"Retry {retryCount} for {context.PolicyKey} at {timeSpan} due to: {exception}.");
+                                   });
+            _dbRetryPolicy = Policy.Handle<SqlException>()
+                                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                                (exception, timeSpan, retryCount, context) =>
+                                {
+                                    Console.WriteLine($"[Db Retry] Attempt {retryCount} after {timeSpan} due to: {exception.Message}");
+                                });
+            _dbTimeoutPolicy = Policy.TimeoutAsync(10, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+            {
+                Console.WriteLine($"[Db Timeout] Operation timed out after {timeSpan}");
+                return Task.CompletedTask;
+            });
+            _redisTimeoutPolicy = Policy.TimeoutAsync(2, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+            {
+                Console.WriteLine($"[Redis Timeout] Operation timed out after {timeSpan}");
+                return Task.CompletedTask;
+            });
+            _dbPolicyWrap = Policy.WrapAsync(_dbRetryPolicy, _dbTimeoutPolicy);
+            _redisPolicyWrap = Policy.WrapAsync(_redisRetryPolicy, _redisTimeoutPolicy);
+
         }
 
         public async Task<ProductVariant> Add(ProductVariantModel productVariantModel)
@@ -50,7 +84,12 @@ namespace Services
                     Status = productVariantModel.Status,
                     VariantImageURL = productVariantModel.ProductImageUrl != null ? productVariantModel.ProductImageUrl[0].FileName : null
                 };
-                await _productVariantRepository.Add(productVariant);
+
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                {
+                    await _productVariantRepository.Add(productVariant);
+                });
+
                 await _redisDb.StringSetAsync($"productVariant:{productVariant.ProductVariantId}", JsonConvert.SerializeObject(productVariant), TimeSpan.FromHours(1));
 
                 return productVariant;
@@ -82,7 +121,10 @@ namespace Services
                 productVariant.Status = productVariantModel.Status;
                 productVariant.VariantImageURL = productVariantModel.ProductImageUrl != null ? productVariantModel.ProductImageUrl[0].FileName : null;
 
-                await _productVariantRepository.Update(productVariant);
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                {
+                    await _productVariantRepository.Update(productVariant);
+                });
                 await _redisDb.StringSetAsync($"productVariant:{id}", JsonConvert.SerializeObject(productVariant), TimeSpan.FromHours(1));
 
                 if (stockChanged)
@@ -112,12 +154,38 @@ namespace Services
         {
             try
             {
-                var cachedProduct = await _redisDb.StringGetAsync($"productVariant:{id}");
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        var cachedProduct = await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringGetAsync($"productVariant:{id}")
+                        );
 
-                if (!cachedProduct.IsNullOrEmpty)
-                    return JsonConvert.DeserializeObject<ProductVariant>(cachedProduct);
-                var product = await _productVariantRepository.GetById(id);
-                await _redisDb.StringSetAsync($"productVariant:{id}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
+                        if (!cachedProduct.IsNullOrEmpty)
+                            return JsonConvert.DeserializeObject<ProductVariant>(cachedProduct);
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
+
+                var product = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _productVariantRepository.GetById(id)
+                );
+
+                try
+                {
+                    await _redisPolicyWrap.ExecuteAsync(async () =>
+                        await _redisDb.StringSetAsync($"productVariant:{id}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1))
+                    );
+                }
+                catch (RedisConnectionException ex)
+                {
+                    Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                }
+
                 return product;
             }
             catch (Exception ex)
@@ -130,7 +198,11 @@ namespace Services
         {
             try
             {
-                return await _productVariantRepository.GetAll();
+                var products = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _productVariantRepository.GetAll()
+                );
+
+                return products;
             }
             catch (Exception ex)
             {
@@ -142,7 +214,9 @@ namespace Services
         {
             try
             {
-                await _productVariantRepository.Delete(id);
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _productVariantRepository.Delete(id)
+                );
             }
             catch (Exception ex)
             {
@@ -161,7 +235,9 @@ namespace Services
         {
             try
             {
-                var dbSet = await _productVariantRepository.GetDbSet();
+                var dbSet = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _productVariantRepository.GetDbSet()
+                );
                 var source = dbSet.AsNoTracking();
 
                 if (status.HasValue)
@@ -252,7 +328,11 @@ namespace Services
                     return;
                 }
                 product.StockQuantity = newStockQuantity;
-                await _productVariantRepository.Update(product);
+
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _productVariantRepository.Update(product)
+                );
+
                 var newStock = await _productService.ProductRemaining(product.ProductId);
 
                 await _hubContext.Clients.All.SendAsync("ReceiveProductStockUpdate", product.ProductId, newStock);
@@ -273,7 +353,9 @@ namespace Services
                 if (product != null)
                 {
                     product.StockQuantity = update.Value;
-                    await _productVariantRepository.Update(product);
+                    await _dbPolicyWrap.ExecuteAsync(async () =>
+                        await _productVariantRepository.Update(product)
+                    );
                 }
             }
 

@@ -1,7 +1,11 @@
 ﻿using BusinessObjects;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Nest;
 using Newtonsoft.Json;
+using Polly;
+using Polly.Retry;
+using Polly.Timeout;
+using Polly.Wrap;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
@@ -15,12 +19,42 @@ namespace Services
         private readonly IReviewRepository _reviewRepository;
         private readonly IConnectionMultiplexer _redisConnection;
         private readonly IDatabase _redisDb;
+        private readonly AsyncRetryPolicy _dbRetryPolicy;
+        private readonly AsyncRetryPolicy _redisRetryPolicy;
+        private readonly AsyncTimeoutPolicy _dbTimeoutPolicy;
+        private readonly AsyncTimeoutPolicy _redisTimeoutPolicy;
+        private readonly AsyncPolicyWrap _dbPolicyWrap;
+        private readonly AsyncPolicyWrap _redisPolicyWrap;
 
         public ReviewService(IReviewRepository reviewRepository, IConnectionMultiplexer redisConnection)
         {
             _reviewRepository = reviewRepository;
             _redisConnection = redisConnection;
             _redisDb = _redisConnection.GetDatabase();
+            _redisRetryPolicy = Policy.Handle<SqlException>()
+                       .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                       (exception, timeSpan, retryCount, context) =>
+                       {
+                           Console.WriteLine($"Retry {retryCount} for {context.PolicyKey} at {timeSpan} due to: {exception}.");
+                       });
+            _dbRetryPolicy = Policy.Handle<SqlException>()
+                                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                                (exception, timeSpan, retryCount, context) =>
+                                {
+                                    Console.WriteLine($"[Db Retry] Attempt {retryCount} after {timeSpan} due to: {exception.Message}");
+                                });
+            _dbTimeoutPolicy = Policy.TimeoutAsync(10, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+            {
+                Console.WriteLine($"[Db Timeout] Operation timed out after {timeSpan}");
+                return Task.CompletedTask;
+            });
+            _redisTimeoutPolicy = Policy.TimeoutAsync(2, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+            {
+                Console.WriteLine($"[Redis Timeout] Operation timed out after {timeSpan}");
+                return Task.CompletedTask;
+            });
+            _dbPolicyWrap = Policy.WrapAsync(_dbRetryPolicy, _dbTimeoutPolicy);
+            _redisPolicyWrap = Policy.WrapAsync(_redisRetryPolicy, _redisTimeoutPolicy);
         }
 
         public async Task<PaginatedList<Review>> GetPaginatedReviews(
@@ -34,7 +68,8 @@ namespace Services
         {
             try
             {
-                var dbSet = await _reviewRepository.GetDbSet();
+                var dbSet = await _dbPolicyWrap.ExecuteAsync(async () => await _reviewRepository.GetDbSet());
+
                 var source = dbSet.AsNoTracking();
 
                 if (!string.IsNullOrEmpty(searchQuery))
@@ -83,12 +118,39 @@ namespace Services
         {
             try
             {
-                var cachedReview = await _redisDb.StringGetAsync($"review:{id}");
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        var cachedReview = await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringGetAsync($"review:{id}")
+                        );
 
-                if (!cachedReview.IsNullOrEmpty)
-                    return JsonConvert.DeserializeObject<Review>(cachedReview);
-                var review = await _reviewRepository.GetById(id);
-                await _redisDb.StringSetAsync($"review:{id}", JsonConvert.SerializeObject(review), TimeSpan.FromHours(1));
+                        if (!cachedReview.IsNullOrEmpty)
+                            return JsonConvert.DeserializeObject<Review>(cachedReview);
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
+
+                var review = await _dbPolicyWrap.ExecuteAsync(async () => await _reviewRepository.GetById(id));
+
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                             await _redisDb.StringSetAsync($"review:{id}", JsonConvert.SerializeObject(review), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
+
                 return review;
             }
             catch (Exception ex)
@@ -111,8 +173,21 @@ namespace Services
                     ReviewDate = DateTime.Now
                 };
 
-                await _reviewRepository.Add(review);
-                await _redisDb.StringSetAsync($"review:{review.ReviewId}", JsonConvert.SerializeObject(review), TimeSpan.FromHours(1));
+                await _dbPolicyWrap.ExecuteAsync(async () => await _reviewRepository.Add(review));
+
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"review:{review.ReviewId}", JsonConvert.SerializeObject(review), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
 
                 return review;
             }
@@ -139,8 +214,21 @@ namespace Services
                 review.ReviewText = reviewModel.ReviewText;
                 review.ReviewDate = DateTime.Now;
 
-                await _reviewRepository.Update(review);
-                await _redisDb.StringSetAsync($"review:{reviewId}", JsonConvert.SerializeObject(review), TimeSpan.FromHours(1));
+                await _dbPolicyWrap.ExecuteAsync(async () => await _reviewRepository.Update(review));
+
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"review:{reviewId}", JsonConvert.SerializeObject(review), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
 
                 return review;
             }
@@ -154,7 +242,7 @@ namespace Services
         {
             try
             {
-                await _reviewRepository.Delete(id);
+                await _dbPolicyWrap.ExecuteAsync(async () => await _reviewRepository.Delete(id));
             }
             catch (Exception ex)
             {
@@ -166,7 +254,10 @@ namespace Services
         {
             try
             {
-                var reviews = await _reviewRepository.GetDbSet();
+                var reviews = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _reviewRepository.GetDbSet()
+                );
+
                 var averageRating = reviews.Where(r => r.ProductId == productId).Average(r => r.Rating);
 
                 return averageRating == null ? 0 : averageRating;

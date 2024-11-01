@@ -18,6 +18,12 @@ namespace Services
             _client = client;
         }
 
+        public async Task<bool> IsAvailableAsync()
+        {
+            var pingResponse = await _client.PingAsync();
+            return pingResponse.IsValid; // Returns true if the ping is successful
+        }
+
         public async Task CreateIndexAsync(string indexName)
         {
             // Check if the index exists

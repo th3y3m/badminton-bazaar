@@ -126,7 +126,7 @@ namespace Services
 
                 if (!string.IsNullOrEmpty(searchQuery) && items.Any())
                 {
-                    if (_elasticsearchService == null)
+                    if (!await _elasticsearchService.IsAvailableAsync())
                     {
                         items = items
                             .Where(p => p.ProductName.ToLower().Contains(searchQuery.ToLower()))
@@ -171,14 +171,23 @@ namespace Services
                 };
 
                 await _dbPolicyWrap.ExecuteAsync(async () =>
-                    await _productRepository.Add(product)   
+                    await _productRepository.Add(product)
                 );
 
-                // Use Polly retry policy for Redis set operation
-                await _retryPolicy.ExecuteAsync(async () =>
+                if (_redisConnection != null || _redisConnection.IsConnecting)
                 {
-                    await _redisDb.StringSetAsync($"product:{product.ProductId}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
-                });
+                    try
+                    {
+                        await _policyWrap.ExecuteAsync(async () =>
+                        {
+                            await _redisDb.StringSetAsync($"product:{product.ProductId}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
+                        });
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
 
                 return product;
             }
@@ -206,10 +215,20 @@ namespace Services
                     await _productRepository.Update(product)
                 );
 
-                await _policyWrap.ExecuteAsync(async () =>
+                if (_redisConnection != null || _redisConnection.IsConnecting)
                 {
-                    await _redisDb.StringSetAsync($"product:{product.ProductId}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
-                });
+                    try
+                    {
+                        await _policyWrap.ExecuteAsync(async () =>
+                        {
+                            await _redisDb.StringSetAsync($"product:{product.ProductId}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
+                        });
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
 
                 return product;
             }
@@ -227,12 +246,23 @@ namespace Services
                 {
                     await _productRepository.Delete(productId);
                 });
+
                 var product = await GetProductById(productId);
 
-                await _policyWrap.ExecuteAsync(async () =>
+                if (_redisConnection != null || _redisConnection.IsConnecting)
                 {
-                    await _redisDb.StringSetAsync($"product:{product.ProductId}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
-                });
+                    try
+                    {
+                        await _policyWrap.ExecuteAsync(async () =>
+                        {
+                            await _redisDb.StringSetAsync($"product:{product.ProductId}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
+                        });
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
             }
             catch (Exception ex)
             {

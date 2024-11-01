@@ -1,7 +1,11 @@
 ﻿using BusinessObjects;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Nest;
 using Newtonsoft.Json;
+using Polly;
+using Polly.Retry;
+using Polly.Timeout;
+using Polly.Wrap;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
@@ -16,6 +20,12 @@ namespace Services
         private readonly IReviewService _reviewService;
         private readonly IConnectionMultiplexer _redisConnection;
         private readonly IDatabase _redisDb;
+        private readonly AsyncRetryPolicy _dbRetryPolicy;
+        private readonly AsyncRetryPolicy _redisRetryPolicy;
+        private readonly AsyncTimeoutPolicy _dbTimeoutPolicy;
+        private readonly AsyncTimeoutPolicy _redisTimeoutPolicy;
+        private readonly AsyncPolicyWrap _dbPolicyWrap;
+        private readonly AsyncPolicyWrap _redisPolicyWrap;
 
         public UserDetailService(IUserDetailRepository userDetailRepository, IReviewService reviewService, IConnectionMultiplexer redisConnection)
         {
@@ -23,6 +33,30 @@ namespace Services
             _reviewService = reviewService;
             _redisConnection = redisConnection;
             _redisDb = _redisConnection.GetDatabase();
+            _redisRetryPolicy = Policy.Handle<SqlException>()
+           .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+           (exception, timeSpan, retryCount, context) =>
+           {
+               Console.WriteLine($"Retry {retryCount} for {context.PolicyKey} at {timeSpan} due to: {exception}.");
+           });
+            _dbRetryPolicy = Policy.Handle<SqlException>()
+                                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                                (exception, timeSpan, retryCount, context) =>
+                                {
+                                    Console.WriteLine($"[Db Retry] Attempt {retryCount} after {timeSpan} due to: {exception.Message}");
+                                });
+            _dbTimeoutPolicy = Policy.TimeoutAsync(10, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+            {
+                Console.WriteLine($"[Db Timeout] Operation timed out after {timeSpan}");
+                return Task.CompletedTask;
+            });
+            _redisTimeoutPolicy = Policy.TimeoutAsync(2, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+            {
+                Console.WriteLine($"[Redis Timeout] Operation timed out after {timeSpan}");
+                return Task.CompletedTask;
+            });
+            _dbPolicyWrap = Policy.WrapAsync(_dbRetryPolicy, _dbTimeoutPolicy);
+            _redisPolicyWrap = Policy.WrapAsync(_redisRetryPolicy, _redisTimeoutPolicy);
         }
 
         public async Task<PaginatedList<UserDetail>> GetPaginatedUsers(
@@ -33,7 +67,8 @@ namespace Services
         {
             try
             {
-                var dbSet = await _userDetailRepository.GetDbSet();
+                var dbSet = await _dbPolicyWrap.ExecuteAsync(async () => await _userDetailRepository.GetDbSet());
+
                 var source = dbSet.AsNoTracking();
 
                 // Apply search filter
@@ -66,13 +101,36 @@ namespace Services
         {
             try
             {
-                var cachedUserDetail = await _redisDb.StringGetAsync($"userDetail:{id}");
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        var cachedUserDetail = await _redisPolicyWrap.ExecuteAsync(async () => await _redisDb.StringGetAsync($"userDetail:{id}"));
+                        if (!cachedUserDetail.IsNullOrEmpty)
+                            return JsonConvert.DeserializeObject<UserDetail>(cachedUserDetail);
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
 
-                if (!cachedUserDetail.IsNullOrEmpty)
-                    return JsonConvert.DeserializeObject<UserDetail>(cachedUserDetail);
+                var userDetail = await _dbPolicyWrap.ExecuteAsync(async () => await _userDetailRepository.GetById(id));
 
-                var userDetail = await _userDetailRepository.GetById(id);
-                await _redisDb.StringSetAsync($"userDetail:{id}", JsonConvert.SerializeObject(userDetail), TimeSpan.FromHours(1));
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"userDetail:{id}", JsonConvert.SerializeObject(userDetail), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
+
                 return userDetail;
             }
             catch (Exception ex)
@@ -85,8 +143,23 @@ namespace Services
         {
             try
             {
-                await _userDetailRepository.Add(userDetail);
-                await _redisDb.StringSetAsync($"userDetail:{userDetail.UserId}", JsonConvert.SerializeObject(userDetail), TimeSpan.FromHours(1));
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _userDetailRepository.Add(userDetail)
+                );
+
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"userDetail:{userDetail.UserId}", JsonConvert.SerializeObject(userDetail), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
 
             }
             catch (Exception ex)
@@ -99,7 +172,8 @@ namespace Services
         {
             try
             {
-                var user = await _userDetailRepository.GetById(id);
+
+                var user = await _dbPolicyWrap.ExecuteAsync(async () => await _userDetailRepository.GetById(id));
 
                 if (user == null)
                 {
@@ -109,8 +183,21 @@ namespace Services
                 user.FullName = userDetail.FullName;
                 user.Address = userDetail.Address;
                 user.ProfilePicture = userDetail.ProfilePicture;
-                await _userDetailRepository.Update(user);
-                await _redisDb.StringSetAsync($"userDetail:{id}", JsonConvert.SerializeObject(userDetail), TimeSpan.FromHours(1));
+                await _dbPolicyWrap.ExecuteAsync(async () => await _userDetailRepository.Update(user));
+
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"userDetail:{id}", JsonConvert.SerializeObject(userDetail), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
 
             }
             catch (Exception ex)
@@ -129,7 +216,7 @@ namespace Services
                     throw new Exception("Review not found");
                 }
 
-                var user = await _userDetailRepository.GetById(review.UserId);
+                var user = await _dbPolicyWrap.ExecuteAsync(async () => await _userDetailRepository.GetById(review.UserId));
                 return user;
             }
             catch (Exception ex)

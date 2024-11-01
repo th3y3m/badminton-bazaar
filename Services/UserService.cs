@@ -1,8 +1,12 @@
 ﻿using BusinessObjects;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Nest;
 using Newtonsoft.Json;
+using Polly;
+using Polly.Retry;
+using Polly.Timeout;
+using Polly.Wrap;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
@@ -16,6 +20,12 @@ namespace Services
         private readonly UserManager<IdentityUser> _userManager;
         private readonly IConnectionMultiplexer _redisConnection;
         private readonly IDatabase _redisDb;
+        private readonly AsyncRetryPolicy _dbRetryPolicy;
+        private readonly AsyncRetryPolicy _redisRetryPolicy;
+        private readonly AsyncTimeoutPolicy _dbTimeoutPolicy;
+        private readonly AsyncTimeoutPolicy _redisTimeoutPolicy;
+        private readonly AsyncPolicyWrap _dbPolicyWrap;
+        private readonly AsyncPolicyWrap _redisPolicyWrap;
 
         public UserService(IUserRepository userRepository, IConnectionMultiplexer redisConnection, UserManager<IdentityUser> userManager)
         {
@@ -23,6 +33,30 @@ namespace Services
             _redisConnection = redisConnection;
             _redisDb = _redisConnection.GetDatabase();
             _userManager = userManager;
+            _redisRetryPolicy = Policy.Handle<SqlException>()
+           .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+           (exception, timeSpan, retryCount, context) =>
+           {
+               Console.WriteLine($"Retry {retryCount} for {context.PolicyKey} at {timeSpan} due to: {exception}.");
+           });
+            _dbRetryPolicy = Policy.Handle<SqlException>()
+                                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                                (exception, timeSpan, retryCount, context) =>
+                                {
+                                    Console.WriteLine($"[Db Retry] Attempt {retryCount} after {timeSpan} due to: {exception.Message}");
+                                });
+            _dbTimeoutPolicy = Policy.TimeoutAsync(10, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+            {
+                Console.WriteLine($"[Db Timeout] Operation timed out after {timeSpan}");
+                return Task.CompletedTask;
+            });
+            _redisTimeoutPolicy = Policy.TimeoutAsync(2, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+            {
+                Console.WriteLine($"[Redis Timeout] Operation timed out after {timeSpan}");
+                return Task.CompletedTask;
+            });
+            _dbPolicyWrap = Policy.WrapAsync(_dbRetryPolicy, _dbTimeoutPolicy);
+            _redisPolicyWrap = Policy.WrapAsync(_redisRetryPolicy, _redisTimeoutPolicy);
         }
 
         public async Task<PaginatedList<IdentityUser>> GetPaginatedUsers(
@@ -74,13 +108,38 @@ namespace Services
         {
             try
             {
-                var cachedUser = await _redisDb.StringGetAsync($"user:{id}");
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        var cachedUser = await _redisPolicyWrap.ExecuteAsync(async () => await _redisDb.StringGetAsync($"user:{id}"));
+                        if (!cachedUser.IsNullOrEmpty)
+                            return JsonConvert.DeserializeObject<IdentityUser>(cachedUser);
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
 
-                if (!cachedUser.IsNullOrEmpty)
-                    return JsonConvert.DeserializeObject<IdentityUser>(cachedUser);
+                var user = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _userManager.FindByIdAsync(id)
+                );
 
-                var user = _userManager.FindByIdAsync(id).Result;
-                await _redisDb.StringSetAsync($"user:{id}", JsonConvert.SerializeObject(user), TimeSpan.FromHours(1));
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"user:{id}", JsonConvert.SerializeObject(user), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
+
                 return user;
             }
             catch (Exception ex)
@@ -93,9 +152,23 @@ namespace Services
         {
             try
             {
-                await _userManager.UpdateAsync(user);
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _userManager.UpdateAsync(user)
+                );
 
-                await _redisDb.StringSetAsync($"user:{user.Id}", JsonConvert.SerializeObject(user), TimeSpan.FromHours(1));
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"user:{user.Id}", JsonConvert.SerializeObject(user), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -107,12 +180,28 @@ namespace Services
         {
             try
             {
-                var result = await _userManager.CreateAsync(user);
+                var result = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _userManager.CreateAsync(user)
+                );
+
                 if (!result.Succeeded)
                 {
                     throw new Exception("Failed to create user");
                 }
-                await _redisDb.StringSetAsync($"user:{user.Id}", JsonConvert.SerializeObject(user), TimeSpan.FromHours(1));
+
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"user:{user.Id}", JsonConvert.SerializeObject(user), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
 
                 return user;
             }
@@ -126,7 +215,7 @@ namespace Services
         {
             try
             {
-                var existingUser = await _userManager.FindByIdAsync(userId);
+                var existingUser = await _dbPolicyWrap.ExecuteAsync(async () => await _userManager.FindByIdAsync(userId));
                 if (existingUser == null)
                 {
                     return null;
@@ -136,12 +225,26 @@ namespace Services
                 existingUser.UserName = user.UserName;
                 existingUser.PhoneNumber = user.PhoneNumber;
 
-                var result = await _userManager.UpdateAsync(existingUser);
+                var result = await _dbPolicyWrap.ExecuteAsync(async () => await _userManager.UpdateAsync(existingUser));
                 if (!result.Succeeded)
                 {
                     throw new Exception("Failed to update user");
                 }
-                await _redisDb.StringSetAsync($"user:{userId}", JsonConvert.SerializeObject(existingUser), TimeSpan.FromHours(1));
+
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"user:{userId}", JsonConvert.SerializeObject(existingUser), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
+
                 return existingUser;
             }
             catch (Exception ex)
@@ -154,7 +257,10 @@ namespace Services
         {
             try
             {
-                var result = await _userManager.DeleteAsync(await _userManager.FindByIdAsync(id));
+                var result = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _userManager.DeleteAsync(await _userManager.FindByIdAsync(id))
+                );
+
                 if (!result.Succeeded)
                 {
                     throw new Exception("Failed to delete user");
@@ -170,7 +276,9 @@ namespace Services
         {
             try
             {
-                return await _userManager.Users.ToListAsync();
+                return await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _userManager.Users.ToListAsync()
+                );
             }
             catch (Exception ex)
             {
@@ -182,7 +290,9 @@ namespace Services
         {
             try
             {
-                await _userRepository.Ban(id);
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _userRepository.Ban(id)
+                );
             }
             catch (Exception ex)
             {
@@ -194,7 +304,7 @@ namespace Services
         {
             try
             {
-                await _userRepository.Unban(id);
+                await _dbPolicyWrap.ExecuteAsync(async () => await _userRepository.Unban(id));
             }
             catch (Exception ex)
             {
@@ -206,8 +316,9 @@ namespace Services
         {
             try
             {
-                List<IdentityUser> users = await _userManager.Users.ToListAsync();
-                return users.Count;
+                return await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _userManager.Users.CountAsync()
+                );
             }
             catch (Exception ex)
             {

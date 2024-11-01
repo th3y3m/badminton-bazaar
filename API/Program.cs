@@ -31,25 +31,11 @@ namespace API
 
             ConfigurationManager configuration = builder.Configuration;
 
-            // Polly Policies
-            var retryPolicy = HttpPolicyExtensions
-                .HandleTransientHttpError()
-                .OrResult(msg => msg.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
-                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
-
-            var circuitBreakerPolicy = HttpPolicyExtensions
-                .HandleTransientHttpError()
-                .CircuitBreakerAsync(2, TimeSpan.FromMinutes(1));
-
             // Configure DbContext
             builder.Services.AddDbContext<Repositories.DbContext>(options =>
             {
                 options.UseSqlServer(configuration.GetConnectionString("BadmintonBazaarDb"));
             });
-
-            builder.Services.AddHttpClient("DatabaseClient")
-                .AddPolicyHandler(retryPolicy)
-                .AddPolicyHandler(circuitBreakerPolicy);
 
             // Hangfire
             builder.Services.AddHangfire(config =>
@@ -181,7 +167,6 @@ namespace API
 
             builder.Services.AddScoped<IVnpayService, VnpayService>();
             builder.Services.AddScoped<IMoMoService, MoMoService>();
-            builder.Services.AddScoped<IElasticsearchService, ElasticsearchService>();
 
             // Mail Settings Configuration
             builder.Services.Configure<MailSettings>(configuration.GetSection("MailSettings"));
@@ -207,25 +192,50 @@ namespace API
                 return retryPolicy.Execute(() => ConnectionMultiplexer.Connect(configurationOptions));
             });
 
-            builder.Services.AddHttpClient("RedisClient")
-                .AddPolicyHandler(retryPolicy)
-                .AddPolicyHandler(circuitBreakerPolicy);
-
-            builder.Services.AddHttpClient("ElasticClient", client =>
+            builder.Services.AddSingleton<IElasticClient>(sp =>
             {
-                client.BaseAddress = new Uri("http://localhost:9200");
-            })
-            .AddPolicyHandler(retryPolicy)
-            .AddPolicyHandler(circuitBreakerPolicy);
+                var settings = new ConnectionSettings(new Uri("http://localhost:9200"))
+                    .DefaultIndex("products");
 
-            var settings = new ConnectionSettings(new Uri("http://localhost:9200")) 
-                .DefaultIndex("products");
-            builder.Services.AddSingleton<IElasticClient>(new ElasticClient(settings));
+                var retryPolicy = Polly.Policy
+                    .Handle<Exception>() // Handle any exception, or you can be more specific
+                    .WaitAndRetryAsync(5, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                        (exception, timeSpan, retryCount, context) =>
+                        {
+                            Console.WriteLine($"Attempt {retryCount} to connect to Elasticsearch failed. Error: {exception.Message}");
+                        });
 
-            var client = new ElasticClient(settings);
+                IElasticClient client = null;
+                try
+                {
+                    retryPolicy.ExecuteAsync(async () =>
+                    {
+                        client = new ElasticClient(settings);
+                        var pingResponse = await client.PingAsync();
+                        if (!pingResponse.IsValid)
+                        {
+                            throw new Exception("Elasticsearch ping failed.");
+                        }
+                    }).Wait();
 
-            var indexHelper = new ElasticsearchService(client);
-            await indexHelper.CreateIndexAsync("products");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Elasticsearch connection failed after retries: {ex.Message}");
+                }
+
+                return client ?? new ElasticClient(settings); // Return client even if failed
+            });
+            builder.Services.AddSingleton<IElasticsearchService, ElasticsearchService>();
+
+            //var settings = new ConnectionSettings(new Uri("http://localhost:9200")) 
+            //    .DefaultIndex("products");
+            //builder.Services.AddSingleton<IElasticClient>(new ElasticClient(settings));
+
+            //var client = new ElasticClient(settings);
+
+            //var indexHelper = new ElasticsearchService(client);
+            //await indexHelper.CreateIndexAsync("products");
 
             // CORS Configuration
             builder.Services.AddCors(options =>

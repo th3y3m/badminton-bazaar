@@ -1,16 +1,16 @@
 ﻿using BusinessObjects;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Nest;
 using Newtonsoft.Json;
+using Polly;
+using Polly.Retry;
+using Polly.Timeout;
+using Polly.Wrap;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
 using StackExchange.Redis;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Services
 {
@@ -20,6 +20,12 @@ namespace Services
         private readonly IProductVariantRepository _productVariantRepository;
         private readonly IConnectionMultiplexer _redisConnection;
         private readonly IDatabase _redisDb;
+        private readonly AsyncRetryPolicy _dbRetryPolicy;
+        private readonly AsyncRetryPolicy _redisRetryPolicy;
+        private readonly AsyncTimeoutPolicy _dbTimeoutPolicy;
+        private readonly AsyncTimeoutPolicy _redisTimeoutPolicy;
+        private readonly AsyncPolicyWrap _dbPolicyWrap;
+        private readonly AsyncPolicyWrap _redisPolicyWrap;
 
         public ColorService(IColorRepository colorRepository, IProductVariantRepository productVariantRepository, IConnectionMultiplexer redisConnection)
         {
@@ -27,13 +33,41 @@ namespace Services
             _productVariantRepository = productVariantRepository;
             _redisConnection = redisConnection;
             _redisDb = _redisConnection.GetDatabase();
+            _redisRetryPolicy = Policy.Handle<SqlException>()
+           .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+           (exception, timeSpan, retryCount, context) =>
+           {
+               Console.WriteLine($"Retry {retryCount} for {context.PolicyKey} at {timeSpan} due to: {exception}.");
+           });
+            _dbRetryPolicy = Policy.Handle<SqlException>()
+                                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                                (exception, timeSpan, retryCount, context) =>
+                                {
+                                    Console.WriteLine($"[Db Retry] Attempt {retryCount} after {timeSpan} due to: {exception.Message}");
+                                });
+            _dbTimeoutPolicy = Policy.TimeoutAsync(10, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+            {
+                Console.WriteLine($"[Db Timeout] Operation timed out after {timeSpan}");
+                return Task.CompletedTask;
+            });
+
+            _redisTimeoutPolicy = Policy.TimeoutAsync(2, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+            {
+                Console.WriteLine($"[Redis Timeout] Operation timed out after {timeSpan}");
+                return Task.CompletedTask;
+            });
+
+            _dbPolicyWrap = Policy.WrapAsync(_dbRetryPolicy, _dbTimeoutPolicy);
+            _redisPolicyWrap = Policy.WrapAsync(_redisRetryPolicy, _redisTimeoutPolicy);
         }
 
         public async Task<List<ColorModel>> GetColorsOfProduct(string productId)
         {
             try
             {
-                var allProduct = await _productVariantRepository.GetAll();
+                var allProduct = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _productVariantRepository.GetAll()
+                );
                 var productVariants = allProduct.Where(p => p.ProductId == productId).ToList();
                 var colorIds = productVariants.Select(p => p.ColorId).ToList();
                 var allColors = await GetAll();
@@ -67,8 +101,23 @@ namespace Services
                     ColorName = colorName
                 };
 
-                await _colorRepository.Add(color);
-                await _redisDb.StringSetAsync($"color:{color.ColorId}", JsonConvert.SerializeObject(color), TimeSpan.FromHours(1));
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _colorRepository.Add(color)
+                );
+
+                if (_redisConnection != null && _redisConnection.IsConnecting)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"color:{color.ColorId}", JsonConvert.SerializeObject(color), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
                 return color;
             }
             catch (Exception ex)
@@ -82,9 +131,23 @@ namespace Services
         {
             try
             {
-                await _colorRepository.Update(color);
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _colorRepository.Update(color)
+                );
 
-                await _redisDb.StringSetAsync($"color:{color.ColorId}", JsonConvert.SerializeObject(color), TimeSpan.FromHours(1));
+                if (_redisConnection != null && _redisConnection.IsConnecting)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"color:{color.ColorId}", JsonConvert.SerializeObject(color), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -97,18 +160,46 @@ namespace Services
         {
             try
             {
-                var cachedColor = await _redisDb.StringGetAsync($"color:{id}");
+                RedisValue cachedColor = RedisValue.Null;
 
-                if (!cachedColor.IsNullOrEmpty)
-                    return JsonConvert.DeserializeObject<Color>(cachedColor);
-                var color = await _colorRepository.GetById(id);
+                if (_redisConnection != null || _redisConnection.IsConnecting)
+                {
 
-                await _redisDb.StringSetAsync($"color:{id}", JsonConvert.SerializeObject(color), TimeSpan.FromHours(1));
+                    try
+                    {
+                        cachedColor = await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringGetAsync($"color:{id}")
+                        );
+                        if (!cachedColor.IsNullOrEmpty)
+                            return JsonConvert.DeserializeObject<Color>(cachedColor);
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
+
+                var color = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _colorRepository.GetById(id)
+                );
+
+                if (_redisConnection != null || _redisConnection.IsConnecting)
+                {
+                    try
+                    {
+                        cachedColor = await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"color:{id}", JsonConvert.SerializeObject(color), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
                 return color;
             }
             catch (Exception ex)
             {
-                // Handle or log the exception as needed
                 throw new Exception("An error occurred while retrieving the color by ID.", ex);
             }
         }
@@ -117,11 +208,14 @@ namespace Services
         {
             try
             {
-                return await _colorRepository.GetAll();
+                List<Color> colors = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _colorRepository.GetAll()
+                );
+
+                return colors;
             }
             catch (Exception ex)
             {
-                // Handle or log the exception as needed
                 throw new Exception("An error occurred while retrieving all colors.", ex);
             }
         }
@@ -130,12 +224,26 @@ namespace Services
         {
             try
             {
-                await _colorRepository.Delete(id);
-                await _redisDb.KeyDeleteAsync($"color:{id}");
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _colorRepository.Delete(id)
+                );
+
+                if (_redisConnection != null || _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.KeyDeleteAsync($"color:{id}")
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
             }
             catch (Exception ex)
             {
-                // Handle or log the exception as needed
                 throw new Exception("An error occurred while deleting the color.", ex);
             }
         }
@@ -148,7 +256,9 @@ namespace Services
         {
             try
             {
-                var dbSet = await _colorRepository.GetDbSet();
+                var dbSet = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _colorRepository.GetDbSet()
+                );
                 var source = dbSet.AsNoTracking();
                 if (!string.IsNullOrEmpty(searchQuery))
                 {

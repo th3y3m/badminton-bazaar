@@ -1,7 +1,9 @@
 ﻿using BusinessObjects;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Nest;
 using Newtonsoft.Json;
+using Polly.Timeout;
+using Polly;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
@@ -11,7 +13,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using static Nest.JoinField;
+using Polly.Retry;
+using Polly.Wrap;
 
 namespace Services
 {
@@ -24,6 +27,12 @@ namespace Services
         private readonly IUserDetailService _userDetailService;
         private readonly IConnectionMultiplexer _redisConnection;
         private readonly IDatabase _redisDb;
+        private readonly AsyncRetryPolicy _dbRetryPolicy;
+        private readonly AsyncRetryPolicy _redisRetryPolicy;
+        private readonly AsyncTimeoutPolicy _dbTimeoutPolicy;
+        private readonly AsyncTimeoutPolicy _redisTimeoutPolicy;
+        private readonly AsyncPolicyWrap _dbPolicyWrap;
+        private readonly AsyncPolicyWrap _redisPolicyWrap;
 
         public PaymentService(IPaymentRepository paymentRepository, IVnpayService vnpayService, IUserDetailService userDetailService, IOrderService orderService, IMoMoService moMoService, IConnectionMultiplexer redisConnection)
         {
@@ -34,6 +43,30 @@ namespace Services
             _moMoService = moMoService;
             _redisConnection = redisConnection;
             _redisDb = _redisConnection.GetDatabase();
+            _redisRetryPolicy = Policy.Handle<SqlException>()
+                                   .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                                   (exception, timeSpan, retryCount, context) =>
+                                   {
+                                       Console.WriteLine($"Retry {retryCount} for {context.PolicyKey} at {timeSpan} due to: {exception}.");
+                                   });
+            _dbRetryPolicy = Policy.Handle<SqlException>()
+                                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                                (exception, timeSpan, retryCount, context) =>
+                                {
+                                    Console.WriteLine($"[Db Retry] Attempt {retryCount} after {timeSpan} due to: {exception.Message}");
+                                });
+            _dbTimeoutPolicy = Policy.TimeoutAsync(10, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+            {
+                Console.WriteLine($"[Db Timeout] Operation timed out after {timeSpan}");
+                return Task.CompletedTask;
+            });
+            _redisTimeoutPolicy = Policy.TimeoutAsync(2, TimeoutStrategy.Optimistic, (context, timeSpan, task) =>
+            {
+                Console.WriteLine($"[Redis Timeout] Operation timed out after {timeSpan}");
+                return Task.CompletedTask;
+            });
+            _dbPolicyWrap = Policy.WrapAsync(_dbRetryPolicy, _dbTimeoutPolicy);
+            _redisPolicyWrap = Policy.WrapAsync(_redisRetryPolicy, _redisTimeoutPolicy);
         }
 
         public async Task<PaginatedList<Payment>> GetPaginatedPayments(
@@ -46,7 +79,10 @@ namespace Services
         {
             try
             {
-                var dbSet = await _paymentRepository.GetDbSet();
+                var dbSet = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _paymentRepository.GetDbSet()
+                );
+
                 var source = dbSet.AsNoTracking();
 
                 if (!string.IsNullOrEmpty(searchQuery))
@@ -81,7 +117,6 @@ namespace Services
             }
             catch (Exception ex)
             {
-                // Handle exception (e.g., log it)
                 throw new Exception($"Error retrieving paginated payments: {ex.Message}");
             }
         }
@@ -90,17 +125,48 @@ namespace Services
         {
             try
             {
-                var cachedPayment = await _redisDb.StringGetAsync($"payment:{id}");
+                if (_redisConnection != null && _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        RedisValue cachedPayment = await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringGetAsync($"payment:{id}")
+                        );
 
-                if (!cachedPayment.IsNullOrEmpty)
-                    return JsonConvert.DeserializeObject<Payment>(cachedPayment);
-                var payment = await _paymentRepository.GetById(id);
-                await _redisDb.StringSetAsync($"payment:{id}", JsonConvert.SerializeObject(payment), TimeSpan.FromHours(1));
+                        if (!cachedPayment.IsNullOrEmpty)
+                        {
+                            return JsonConvert.DeserializeObject<Payment>(cachedPayment);
+                        }
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
+
+                var payment = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _paymentRepository.GetById(id)
+                );
+
+                if (_redisConnection != null && _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                        {
+                            await _redisDb.StringSetAsync($"payment:{id}", JsonConvert.SerializeObject(payment), TimeSpan.FromHours(1));
+                        });
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
+
                 return payment;
             }
             catch (Exception ex)
             {
-                // Handle exception (e.g., log it)
                 throw new Exception($"Error retrieving payment by ID: {ex.Message}");
             }
         }
@@ -109,12 +175,15 @@ namespace Services
         {
             try
             {
-                var payments = await _paymentRepository.GetAll();
+                var payments = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _paymentRepository.GetAll()
+                );
+
                 return payments.FirstOrDefault(p => p.OrderId == id);
             }
             catch (Exception ex)
             {
-                // Handle exception (e.g., log it)
+
                 throw new Exception($"Error retrieving payment by ID: {ex.Message}");
             }
         }
@@ -123,12 +192,26 @@ namespace Services
         {
             try
             {
-                await _paymentRepository.Add(payment);
-                await _redisDb.StringSetAsync($"payment:{payment.PaymentId}", JsonConvert.SerializeObject(payment), TimeSpan.FromHours(1));
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _paymentRepository.Add(payment)
+                );
+
+                if (_redisConnection != null && _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"payment:{payment.PaymentId}", JsonConvert.SerializeObject(payment), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
             }
             catch (Exception ex)
             {
-                // Handle exception (e.g., log it)
                 throw new Exception($"Error adding payment: {ex.Message}");
             }
         }
@@ -137,12 +220,26 @@ namespace Services
         {
             try
             {
-                await _paymentRepository.Update(payment);
-                await _redisDb.StringSetAsync($"payment:{payment.PaymentId}", JsonConvert.SerializeObject(payment), TimeSpan.FromHours(1));
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _paymentRepository.Update(payment)
+                );
+
+                if (_redisConnection != null && _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"payment:{payment.PaymentId}", JsonConvert.SerializeObject(payment), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
             }
             catch (Exception ex)
             {
-                // Handle exception (e.g., log it)
                 throw new Exception($"Error updating payment: {ex.Message}");
             }
         }
@@ -151,13 +248,30 @@ namespace Services
         {
             try
             {
-                await _paymentRepository.Delete(id);
-                var payment = await GetPaymentById(id);
-                await _redisDb.StringSetAsync($"payment:{id}", JsonConvert.SerializeObject(payment), TimeSpan.FromHours(1));
+                await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _paymentRepository.Delete(id)
+                );
+
+                var payment = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await GetPaymentById(id)
+                );
+
+                if (_redisConnection != null && _redisConnection.IsConnected)
+                {
+                    try
+                    {
+                        await _redisPolicyWrap.ExecuteAsync(async () =>
+                            await _redisDb.StringSetAsync($"payment:{id}", JsonConvert.SerializeObject(payment), TimeSpan.FromHours(1))
+                        );
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
+                    }
+                }
             }
             catch (Exception ex)
             {
-                // Handle exception (e.g., log it)
                 throw new Exception($"Error deleting payment: {ex.Message}");
             }
         }
@@ -166,6 +280,7 @@ namespace Services
         {
             try
             {
+
                 var order = await _orderService.GetOrderById(orderId);
                 var price = await _orderService.TotalPrice(orderId);
                 if (order == null)
@@ -178,7 +293,7 @@ namespace Services
             }
             catch (Exception ex)
             {
-                // Handle exception (e.g., log it)
+
                 throw new Exception($"Error processing booking payment: {ex.Message}");
             }
         }
@@ -200,7 +315,7 @@ namespace Services
             }
             catch (Exception ex)
             {
-                // Handle exception (e.g., log it)
+
                 throw new Exception($"Error processing booking payment: {ex.Message}");
             }
         }
@@ -211,7 +326,9 @@ namespace Services
             {
                 var timeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
                 var nowUtc = DateTime.UtcNow;
-                var payments = await _paymentRepository.GetAll();
+                var payments = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _paymentRepository.GetAll()
+                );
                 var today = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone).Date;
                 var todayPayments = payments.Where(p => p.PaymentDate.Date == today && p.PaymentStatus == "Complete").ToList();
                 var revenue = todayPayments.Sum(p => p.PaymentAmount);
@@ -228,7 +345,7 @@ namespace Services
             }
             catch (Exception ex)
             {
-                // Handle exception (e.g., log it)
+
                 throw new Exception($"Error retrieving today's revenue: {ex.Message}");
             }
         }
@@ -239,7 +356,9 @@ namespace Services
             {
                 var timeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
                 var nowUtc = DateTime.UtcNow;
-                var payments = await _paymentRepository.GetAll();
+                var payments = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _paymentRepository.GetAll()
+                );
                 var today = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone).Date;
                 var firstDayOfWeek = today.AddDays(-(int)today.DayOfWeek);
                 var thisWeekPayments = payments.Where(p => p.PaymentDate.Date >= firstDayOfWeek && p.PaymentStatus == "Complete").ToList();
@@ -257,7 +376,7 @@ namespace Services
             }
             catch (Exception ex)
             {
-                // Handle exception (e.g., log it)
+
                 throw new Exception($"Error retrieving this week's revenue: {ex.Message}");
             }
         }
@@ -269,7 +388,9 @@ namespace Services
             {
                 var timeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
                 var nowUtc = DateTime.UtcNow;
-                var payments = await _paymentRepository.GetAll();
+                var payments = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _paymentRepository.GetAll()
+                );
                 var today = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone).Date;
                 var firstDayOfMonth = new DateTime(today.Year, today.Month, 1);
                 var thisMonthPayments = payments.Where(p => p.PaymentDate.Date >= firstDayOfMonth && p.PaymentStatus == "Complete").ToList();
@@ -287,7 +408,7 @@ namespace Services
             }
             catch (Exception ex)
             {
-                // Handle exception (e.g., log it)
+
                 throw new Exception($"Error retrieving this month's revenue: {ex.Message}");
             }
         }
@@ -300,7 +421,9 @@ namespace Services
             {
                 var timeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
                 var nowUtc = DateTime.UtcNow;
-                var payments = await _paymentRepository.GetAll();
+                var payments = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _paymentRepository.GetAll()
+                );
                 var today = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone).Date;
                 var firstDayOfYear = new DateTime(today.Year, 1, 1);
                 var thisYearPayments = payments.Where(p => p.PaymentDate.Date >= firstDayOfYear && p.PaymentStatus == "Complete").ToList();
@@ -318,7 +441,7 @@ namespace Services
             }
             catch (Exception ex)
             {
-                // Handle exception (e.g., log it)
+
                 throw new Exception($"Error retrieving this year's revenue: {ex.Message}");
             }
         }
@@ -327,22 +450,27 @@ namespace Services
         {
             try
             {
-                var payments = await _paymentRepository.GetAll();
+                var payments = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _paymentRepository.GetAll()
+                );
                 return payments.Where(p => p.PaymentStatus == "Complete").Sum(p => p.PaymentAmount);
             }
             catch (Exception ex)
             {
-                // Handle exception (e.g., log it)
+
                 throw new Exception($"Error retrieving total revenue: {ex.Message}");
             }
         }
+
         public async Task<decimal[]> GetRevenueFromStartOfWeek()
         {
             try
             {
                 var timeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
                 var nowUtc = DateTime.UtcNow;
-                var payments = await _paymentRepository.GetAll();
+                var payments = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _paymentRepository.GetAll()
+                );
                 var today = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone).Date;
                 var firstDayOfWeek = today.AddDays(-(int)today.DayOfWeek);
                 var revenue = new decimal[7];
@@ -357,7 +485,7 @@ namespace Services
             }
             catch (Exception ex)
             {
-                // Handle exception (e.g., log it)
+
                 throw new Exception($"Error retrieving revenue from start of week: {ex.Message}");
             }
         }
@@ -368,7 +496,9 @@ namespace Services
             {
                 var timeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
                 var nowUtc = DateTime.UtcNow;
-                var payments = await _paymentRepository.GetAll();
+                var payments = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _paymentRepository.GetAll()
+                );
                 var today = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone).Date;
                 var firstDayOfMonth = new DateTime(today.Year, today.Month, 1);
                 var revenue = new decimal[DateTime.DaysInMonth(today.Year, today.Month)];
@@ -383,7 +513,7 @@ namespace Services
             }
             catch (Exception ex)
             {
-                // Handle exception (e.g., log it)
+
                 throw new Exception($"Error retrieving revenue from start of month: {ex.Message}");
             }
 
@@ -395,7 +525,9 @@ namespace Services
             {
                 var timeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
                 var nowUtc = DateTime.UtcNow;
-                var payments = await _paymentRepository.GetAll();
+                var payments = await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _paymentRepository.GetAll()
+                );
                 var today = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone).Date;
                 var firstDayOfYear = new DateTime(today.Year, 1, 1);
                 var revenue = new decimal[12];
@@ -410,7 +542,7 @@ namespace Services
             }
             catch (Exception ex)
             {
-                // Handle exception (e.g., log it)
+
                 throw new Exception($"Error retrieving revenue from start of year: {ex.Message}");
             }
         }

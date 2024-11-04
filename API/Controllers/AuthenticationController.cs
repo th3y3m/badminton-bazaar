@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Mvc;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
+using Services;
 using System.IdentityModel.Tokens.Jwt;
+using StackExchange.Redis;
 
 namespace API.Controllers
 {
@@ -17,13 +19,15 @@ namespace API.Controllers
         private readonly IUserService _userService;
         //private readonly MailService _mailService;
         private readonly IUserDetailService _userDetailService;
+        private readonly IRedisLock _redisLock;
 
-        public AuthenticationController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, IUserService userService, IUserDetailService userDetailService)
+        public AuthenticationController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, IUserService userService, IUserDetailService userDetailService, IRedisLock redisLock)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _userService = userService;
             _userDetailService = userDetailService;
+            _redisLock = redisLock;
         }
 
         [HttpPost]
@@ -87,41 +91,60 @@ namespace API.Controllers
         [Route("register")]
         public async Task<IActionResult> Register([FromBody] RegisterModel model)
         {
-            var userExists = await _userManager.FindByEmailAsync(model.Email);
-            if (userExists != null)
-                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel { Status = "Error", Message = "User already exists!" });
+            string lockKey = "register_lock_" + model.Email; // Unique lock key per email
+            string lockValue = Guid.NewGuid().ToString(); // Unique identifier for this lock request
+            TimeSpan lockExpiry = TimeSpan.FromSeconds(30); // Lock expiry time
 
-            IdentityUser user = new IdentityUser()
+            // Attempt to acquire the lock
+            if (!_redisLock.AcquireLock(lockKey, lockValue))
             {
-                Email = model.Email,
-                SecurityStamp = Guid.NewGuid().ToString(),
-                UserName = model.Email
-            };
-            var result = await _userManager.CreateAsync(user, model.Password);
-            if (!result.Succeeded)
-            {
-                var errors = result.Errors.Select(e => e.Description);
-                return StatusCode(StatusCodes.Status400BadRequest, new ResponseModel { Status = "Error", Message = string.Join(" ", errors) });
+                return StatusCode(StatusCodes.Status429TooManyRequests,
+                    new ResponseModel { Status = "Error", Message = "Registration is in progress. Please try again later." });
             }
 
-            if (!await _roleManager.RoleExistsAsync("Customer"))
-                await _roleManager.CreateAsync(new IdentityRole("Customer"));
-
-
-            await _userManager.AddToRoleAsync(user, "Customer");
-
-            UserDetail userDetail = new UserDetail()
+            try
             {
-                UserId = user.Id,
-                Point = 0,
-                FullName = model.FullName,
-                ProfilePicture = "https://firebasestorage.googleapis.com/v0/b/storage-8b808.appspot.com/o/OIP.jpeg?alt=media&token=60195a0a-2fd6-4c66-9e3a-0f7f80eb8473"
-            };
-            await _userDetailService.AddUserDetail(userDetail);
+                var userExists = await _userManager.FindByEmailAsync(model.Email);
+                if (userExists != null)
+                    return StatusCode(StatusCodes.Status400BadRequest, new ResponseModel { Status = "Error", Message = "User already exists!" });
 
-            return Ok(new ResponseModel { Status = "Success", Message = "User created successfully!" });
-        } 
-        
+                IdentityUser user = new IdentityUser()
+                {
+                    Email = model.Email,
+                    SecurityStamp = Guid.NewGuid().ToString(),
+                    UserName = model.Email
+                };
+
+                var result = await _userManager.CreateAsync(user, model.Password);
+                if (!result.Succeeded)
+                {
+                    var errors = result.Errors.Select(e => e.Description);
+                    return StatusCode(StatusCodes.Status400BadRequest, new ResponseModel { Status = "Error", Message = string.Join(" ", errors) });
+                }
+
+                if (!await _roleManager.RoleExistsAsync("Customer"))
+                    await _roleManager.CreateAsync(new IdentityRole("Customer"));
+
+                await _userManager.AddToRoleAsync(user, "Customer");
+
+                UserDetail userDetail = new UserDetail()
+                {
+                    UserId = user.Id,
+                    Point = 0,
+                    FullName = model.FullName,
+                    ProfilePicture = "https://firebasestorage.googleapis.com/v0/b/storage-8b808.appspot.com/o/OIP.jpeg?alt=media&token=60195a0a-2fd6-4c66-9e3a-0f7f80eb8473"
+                };
+                await _userDetailService.AddUserDetail(userDetail);
+
+                return Ok(new ResponseModel { Status = "Success", Message = "User created successfully!" });
+            }
+            finally
+            {
+                _redisLock.ReleaseLock(lockKey, lockValue);
+            }
+        }
+
+
         [HttpPost]
         [Route("registerAdmin")]
         public async Task<IActionResult> RegisterAdmin([FromBody] RegisterModel model)

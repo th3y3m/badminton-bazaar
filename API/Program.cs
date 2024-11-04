@@ -166,6 +166,7 @@ namespace API
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<ICartService, CartService>();
             builder.Services.AddScoped<IFreightPriceService, FreightPriceService>();
+            builder.Services.AddScoped<IRedisLock, RedisLock>();
 
             builder.Services.AddScoped<IVnpayService, VnpayService>();
             builder.Services.AddScoped<IMoMoService, MoMoService>();

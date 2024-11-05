@@ -59,6 +59,11 @@ namespace Services
             _redisPolicyWrap = Policy.WrapAsync(_redisRetryPolicy, _redisTimeoutPolicy);
         }
 
+        public async Task UpdateUserDetail(UserDetail userDetail)
+        {
+            await _dbPolicyWrap.ExecuteAsync(async () => await _userDetailRepository.Update(userDetail));
+        }
+
         public async Task<PaginatedList<UserDetail>> GetPaginatedUsers(
             string searchQuery,
             string sortBy,

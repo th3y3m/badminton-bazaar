@@ -7,436 +7,212 @@ using Services.Models;
 using Services;
 using System.IdentityModel.Tokens.Jwt;
 using StackExchange.Redis;
+using Microsoft.AspNetCore.Authentication;
+using System.Security.Claims;
 
 namespace API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("auth")]
     [ApiController]
     public class AuthenticationController : Controller
     {
-        private readonly UserManager<IdentityUser> _userManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
-        private readonly IUserService _userService;
-        //private readonly MailService _mailService;
-        private readonly IUserDetailService _userDetailService;
-        private readonly IRedisLock _redisLock;
+        private readonly IAuthService _authenticationService;
+        private readonly SignInManager<IdentityUser> _signInManager;
 
-        public AuthenticationController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, IUserService userService, IUserDetailService userDetailService, IRedisLock redisLock)
+        public AuthenticationController(IAuthService authenticationService, SignInManager<IdentityUser> signInManager)
         {
-            _userManager = userManager;
-            _roleManager = roleManager;
-            _userService = userService;
-            _userDetailService = userDetailService;
-            _redisLock = redisLock;
+            _authenticationService = authenticationService;
+            _signInManager = signInManager;
         }
 
         [HttpPost]
         [Route("login")]
         public async Task<IActionResult> Login([FromBody] LoginModel model)
         {
-            if (string.IsNullOrWhiteSpace(model.Email) || string.IsNullOrWhiteSpace(model.Password))
-                return StatusCode(StatusCodes.Status400BadRequest, new ResponseModel { Status = "Error", Message = "Email or password is empty." });
-            //var ip = Utils.GetIpAddress(HttpContext);
-            var user = await _userManager.FindByEmailAsync(model.Email);
-
-            if (user == null)
+            try
             {
-                return
-                    StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel { Status = "Error", Message = "User not found!" });
-            }
+                var response = await _authenticationService.Login(model);
 
-            //check if user is banned
-            //if (BanList.BannedUsers.Contains(ip) || userDetail.Status == false)
-            if (user.LockoutEnabled == false)
-            {
-                return
-                    StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel { Status = "Error", Message = "User is banned!" });
+                return Ok(response);
             }
-            else
+            catch (Exception ex)
             {
-                try
-                {
-                    if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
-                    {
-                        var roles = await _userManager.GetRolesAsync(user);
-                        var userRole = roles.FirstOrDefault();
-                        return Ok(new
-                        {
-                            Id = user.Id,
-                            Token = GenerateJWT.GenerateToken(user, userRole),
-                            Role = userRole
-                        });
-                    }
-                    else
-                    {
-                        user.AccessFailedCount++;
-                        if (user.AccessFailedCount == 5)
-                        {
-                            //BanList.BannedUsers.Add(ip);
-                            user.LockoutEnabled = false;
-                        }
-                        await _userManager.UpdateAsync(user);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    return BadRequest();
-                }
+                return BadRequest(ex);
             }
-
-            return Unauthorized();
         }
 
         [HttpPost]
         [Route("register")]
         public async Task<IActionResult> Register([FromBody] RegisterModel model)
         {
-            string lockKey = "register_lock_" + model.Email; // Unique lock key per email
-            string lockValue = Guid.NewGuid().ToString(); // Unique identifier for this lock request
-            TimeSpan lockExpiry = TimeSpan.FromSeconds(30); // Lock expiry time
-
-            // Attempt to acquire the lock
-            if (!_redisLock.AcquireLock(lockKey, lockValue))
-            {
-                return StatusCode(StatusCodes.Status429TooManyRequests,
-                    new ResponseModel { Status = "Error", Message = "Registration is in progress. Please try again later." });
-            }
-
             try
             {
-                var userExists = await _userManager.FindByEmailAsync(model.Email);
-                if (userExists != null)
-                    return StatusCode(StatusCodes.Status400BadRequest, new ResponseModel { Status = "Error", Message = "User already exists!" });
+                await _authenticationService.RegisterSystemAccount(model);
 
-                IdentityUser user = new IdentityUser()
-                {
-                    Email = model.Email,
-                    SecurityStamp = Guid.NewGuid().ToString(),
-                    UserName = model.Email
-                };
-
-                var result = await _userManager.CreateAsync(user, model.Password);
-                if (!result.Succeeded)
-                {
-                    var errors = result.Errors.Select(e => e.Description);
-                    return StatusCode(StatusCodes.Status400BadRequest, new ResponseModel { Status = "Error", Message = string.Join(" ", errors) });
-                }
-
-                if (!await _roleManager.RoleExistsAsync("Customer"))
-                    await _roleManager.CreateAsync(new IdentityRole("Customer"));
-
-                await _userManager.AddToRoleAsync(user, "Customer");
-
-                UserDetail userDetail = new UserDetail()
-                {
-                    UserId = user.Id,
-                    Point = 0,
-                    FullName = model.FullName,
-                    ProfilePicture = "https://firebasestorage.googleapis.com/v0/b/storage-8b808.appspot.com/o/OIP.jpeg?alt=media&token=60195a0a-2fd6-4c66-9e3a-0f7f80eb8473"
-                };
-                await _userDetailService.AddUserDetail(userDetail);
-
-                return Ok(new ResponseModel { Status = "Success", Message = "User created successfully!" });
+                return Ok("Please verify your email address.");
             }
-            finally
+            catch (Exception ex)
             {
-                _redisLock.ReleaseLock(lockKey, lockValue);
+                return BadRequest(ex);
             }
-        }
-
-
-        [HttpPost]
-        [Route("registerAdmin")]
-        public async Task<IActionResult> RegisterAdmin([FromBody] RegisterModel model)
-        {
-            var userExists = await _userManager.FindByEmailAsync(model.Email);
-            if (userExists != null)
-                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel { Status = "Error", Message = "User already exists!" });
-
-            IdentityUser user = new IdentityUser()
-            {
-                Email = model.Email,
-                SecurityStamp = Guid.NewGuid().ToString(),
-                UserName = model.Email
-            };
-            var result = await _userManager.CreateAsync(user, model.Password);
-            if (!result.Succeeded)
-            {
-                var errors = result.Errors.Select(e => e.Description);
-                return StatusCode(StatusCodes.Status400BadRequest, new ResponseModel { Status = "Error", Message = string.Join(" ", errors) });
-            }
-
-            if (!await _roleManager.RoleExistsAsync("Admin"))
-                await _roleManager.CreateAsync(new IdentityRole("Admin"));
-
-
-            await _userManager.AddToRoleAsync(user, "Admin");
-
-            UserDetail userDetail = new UserDetail()
-            {
-                UserId = user.Id,
-                Point = 0,
-                FullName = model.FullName,
-                ProfilePicture = "https://firebasestorage.googleapis.com/v0/b/storage-8b808.appspot.com/o/OIP.jpeg?alt=media&token=60195a0a-2fd6-4c66-9e3a-0f7f80eb8473"
-            };
-            await _userDetailService.AddUserDetail(userDetail);
-
-            return Ok(new ResponseModel { Status = "Success", Message = "User created successfully!" });
         }
 
         //[HttpPost]
-        //[Route("register")]
-        //public async Task<IActionResult> Register([FromBody] RegisterModel model)
+        //[Route("google-login")]
+        //public async Task<IActionResult> GoogleLogin(string token)
         //{
-        //    var userExists = await _userManager.FindByEmailAsync(model.Email);
-        //    if (userExists != null)
-        //        return StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel { Status = "Error", Message = "User already exists!" });
+        //    var handler = new JwtSecurityTokenHandler();
+        //    var jsonToken = handler.ReadToken(token) as JwtSecurityToken;
+        //    var email = jsonToken.Claims.First(claim => claim.Type == "email").Value;
+        //    var name = jsonToken.Claims.First(claim => claim.Type == "name").Value;
+        //    var picture = jsonToken.Claims.First(claim => claim.Type == "picture").Value;
 
-        //    IdentityUser user = new IdentityUser()
-        //    {
-        //        Email = model.Email,
-        //        SecurityStamp = Guid.NewGuid().ToString(),
-        //        UserName = model.Email
-        //    };
-        //    var result = await _userManager.CreateAsync(user, model.Password);
-        //    if (!result.Succeeded)
-        //    {
-        //        var errors = result.Errors.Select(e => e.Description);
-        //        return StatusCode(StatusCodes.Status400BadRequest, new ResponseModel { Status = "Error", Message = string.Join(" ", errors) });
-        //    }
-
-        //    if (!await _roleManager.RoleExistsAsync("Customer"))
-        //    {
-        //        var role = new IdentityRole("Customer");
-        //        await _roleManager.CreateAsync(role);
-        //    }
-
-        //    var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-        //    var base64 = Encoding.UTF8.GetBytes(token);
-        //    var encodeToken = WebEncoders.Base64UrlEncode(base64);
-        //    Console.WriteLine("code đầu: " + token);
-        //    Console.WriteLine("code gửi: " + encodeToken);
-        //    var callbackUrl = Url.Action("ResetPassword", "Authentication", new { token = encodeToken, email = user.Email }, Request.Scheme);
-
-        //    var mailRequest = new MailRequest
-        //    {
-        //        ToEmail = user.Email,
-        //        Subject = "Court Caller Confirmation Email (Register)",
-        //        Body = FormEmail.EnailContent(user.Email, callbackUrl)
-        //    };
-        //    await _mailService.SendEmailAsync(mailRequest);
-
-        //    return Ok(new ResponseModel() { Status = "Success", Message = "Please check email to activate account" });
-        //    //await _userManager.AddToRoleAsync(user, "Customer");
-        //    //UserDetail userDetail = new UserDetail()
-        //    //{
-        //    //    UserId = user.Id,
-        //    //    Point = 0,
-        //    //    FullName = model.FullName,
-        //    //    ProfilePicture = $"https://firebasestorage.googleapis.com/v0/b/court-callers.appspot.com/o/user.jpg?alt=media&token=3601d057-9503-4cc8-b203-2eb0b89f900d"
-
-        //    //};
-        //    //_userDetailService.AddUserDetail(userDetail);
-        //    //return Ok(new ResponseModel() { Status = "Success", Message = "User created successfully!" });
-        //}
-        //[HttpGet]
-        //[Route("confirm-email")]
-        //public async Task<IActionResult> ConfirmEmail(string email, string token)
-        //{
         //    var user = await _userManager.FindByEmailAsync(email);
         //    if (user == null)
-        //        return StatusCode(StatusCodes.Status400BadRequest, new ResponseModel { Status = "Error", Message = "Invalid email." });
-        //    var base64 = WebEncoders.Base64UrlDecode(token);
-        //    var decodedToken = Encoding.UTF8.GetString(base64);
-        //    Console.WriteLine("code nhận: " + token);
-        //    Console.WriteLine("code đã decode: " + decodedToken);
-
-        //    var result = _userManager.ConfirmEmailAsync(user, decodedToken);
-        //    if (!result.IsCompleted)
-        //        return StatusCode(StatusCodes.Status400BadRequest, new ResponseModel { Status = "Error", Message = "Email confirmation failed." });
-        //    await _userManager.AddToRoleAsync(user, "Customer");
-        //    UserDetail userDetail = new UserDetail()
         //    {
-        //        UserId = user.Id,
-        //        Point = 0,
-        //        FullName = user.UserName,  // Replace with actual full name if available
-        //        ProfilePicture = $"https://firebasestorage.googleapis.com/v0/b/court-callers.appspot.com/o/user.jpg?alt=media&token=3601d057-9503-4cc8-b203-2eb0b89f900d"
-        //    };
-        //    _userDetailService.AddUserDetail(userDetail);
+        //        user = new IdentityUser
+        //        {
+        //            Email = email,
+        //            UserName = email,
+        //            SecurityStamp = Guid.NewGuid().ToString()
+        //        };
+        //        await _userManager.CreateAsync(user);
+        //        UserDetail userDetail = new UserDetail()
+        //        {
+        //            UserId = user.Id,
+        //            Point = 0,
+        //            FullName = name,
+        //            ProfilePicture = picture
+        //            //Id = user.Id
+        //        };
+        //        _userDetailService.AddUserDetail(userDetail);
+        //        await _userManager.AddToRoleAsync(user, "Customer");
 
-        //    return Ok(new ResponseModel() { Status = "Success", Message = "Email confirmed successfully!" });
-
-        //}
-
-
-
-
-        //[HttpPost]
-        //[Route("register-admin")]
-        //public async Task<IActionResult> RegisterAdmin([FromBody] RegisterModel model)
-        //{
-        //    var userExists = await _userManager.FindByEmailAsync(model.Email);
-        //    if (userExists != null)
-        //        return StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel { Status = "Error", Message = "User already exists!" });
-
-        //    IdentityUser user = new IdentityUser()
-        //    {
-        //        Email = model.Email,
-        //        SecurityStamp = Guid.NewGuid().ToString(),
-        //        UserName = model.Email
-        //    };
-        //    var result = await _userManager.CreateAsync(user, model.Password);
-        //    if (!result.Succeeded)
-        //    {
-        //        var errors = result.Errors.Select(e => e.Description);
-        //        return StatusCode(StatusCodes.Status400BadRequest, new ResponseModel { Status = "Error", Message = string.Join(" ", errors) });
         //    }
 
-        //    if (!await _roleManager.RoleExistsAsync("Admin"))
-        //        await _roleManager.CreateAsync(new IdentityRole("Admin"));
+        //    var roles = await _userManager.GetRolesAsync(user);
+        //    var userRole = roles.FirstOrDefault();
 
-
-        //    await _userManager.AddToRoleAsync(user, "Admin");
-
-        //    UserDetail userDetail = new UserDetail()
+        //    return Ok(new
         //    {
-        //        UserId = user.Id,
-        //        Point = 0,
-        //        FullName = model.FullName,
-
-        //    };
-        //    _userDetailService.AddUserDetail(userDetail);
-
-        //    return Ok(new ResponseModel { Status = "Success", Message = "User created successfully!" });
+        //        Token = GenerateJWT.GenerateToken(user, userRole)
+        //    });
         //}
 
+        [HttpGet("signin-google")]
+        public IActionResult SignInWithGoogle()
+        {
+            try
+            {
+                var redirectUrl = Url.Action("GoogleResponse", "Account");
+                var properties = _signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl);
+                return Challenge(properties, "Google");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
+        }
 
+        [HttpGet("google/callback")]
+        public async Task<IActionResult> GoogleResponse()
+        {
+            try
+            {
+                var result = await HttpContext.AuthenticateAsync("External");
 
+                if (result == null)
+                {
+                    return BadRequest("External authentication error");
+                }
 
+                var response = await _authenticationService.HandleExternalLoginProviderCallBack(result);
 
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet("signin-facebook")]
+        public IActionResult SignInWithFacebook()
+        {
+            try
+            {
+                var redirectUrl = Url.Action("FacebookResponse", "Account");
+                var properties = _signInManager.ConfigureExternalAuthenticationProperties("Facebook", redirectUrl);
+                return Challenge(properties, "Facebook");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet("facebook/callback")]
+        public async Task<IActionResult> FacebookResponse()
+        {
+            try
+            {
+                var result = await HttpContext.AuthenticateAsync("External");
+
+                if (result == null)
+                {
+                    return BadRequest("External authentication error");
+                }
+
+                var response = await _authenticationService.HandleExternalLoginProviderCallBack(result);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
+        }
+
+        ////Facebook Login
         //[HttpPost]
-        //[Route("register-staff")]
-        //public async Task<IActionResult> RegisterStaff([FromBody] RegisterModel model)
+        //[Route("facebook-login")]
+        //public async Task<IActionResult> FacebookLogin(string token)
         //{
-        //    var userExists = await _userManager.FindByEmailAsync(model.Email);
-        //    if (userExists != null)
-        //        return StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel { Status = "Error", Message = "User already exists!" });
+        //    var handler = new JwtSecurityTokenHandler();
+        //    var jsonToken = handler.ReadToken(token) as JwtSecurityToken;
+        //    var email = jsonToken.Claims.First(claim => claim.Type == "email").Value;
+        //    var name = jsonToken.Claims.First(claim => claim.Type == "name").Value;
+        //    var picture = jsonToken.Claims.First(claim => claim.Type == "picture").Value;
 
-        //    IdentityUser user = new IdentityUser()
+        //    var user = await _userManager.FindByEmailAsync(email);
+        //    if (user == null)
         //    {
-        //        Email = model.Email,
-        //        SecurityStamp = Guid.NewGuid().ToString(),
-        //        UserName = model.Email
-        //    };
-        //    var result = await _userManager.CreateAsync(user, model.Password);
-        //    if (!result.Succeeded)
-        //    {
-        //        var errors = result.Errors.Select(e => e.Description);
-        //        return StatusCode(StatusCodes.Status400BadRequest, new ResponseModel { Status = "Error", Message = string.Join(" ", errors) });
+        //        user = new IdentityUser
+        //        {
+        //            Email = email,
+        //            UserName = email,
+        //            SecurityStamp = Guid.NewGuid().ToString()
+        //        };
+        //        await _userManager.CreateAsync(user);
+        //        UserDetail userDetail = new UserDetail()
+        //        {
+        //            UserId = user.Id,
+        //            Point = 0,
+        //            FullName = name,
+        //            ProfilePicture = picture
+        //        };
+        //        _userDetailService.AddUserDetail(userDetail);
+        //        await _userManager.AddToRoleAsync(user, "Customer");
+
         //    }
 
-        //    if (!await _roleManager.RoleExistsAsync("Staff"))
-        //        await _roleManager.CreateAsync(new IdentityRole("Staff"));
+        //    var roles = await _userManager.GetRolesAsync(user);
+        //    var userRole = roles.FirstOrDefault();
 
-        //    await _userManager.AddToRoleAsync(user, "Staff");
-
-        //    UserDetail userDetail = new UserDetail()
+        //    return Ok(new
         //    {
-        //        UserId = user.Id,
-        //        Point = 0,
-        //        FullName = model.FullName,
-
-        //    };
-        //    _userDetailService.AddUserDetail(userDetail);
-
-        //    return Ok(new ResponseModel { Status = "Success", Message = "Staff created successfully!" });
+        //        Token = GenerateJWT.GenerateToken(user, userRole)
+        //    });
         //}
-
-
-
-        [HttpPost]
-        [Route("google-login")]
-        public async Task<IActionResult> GoogleLogin(string token)
-        {
-            var handler = new JwtSecurityTokenHandler();
-            var jsonToken = handler.ReadToken(token) as JwtSecurityToken;
-            var email = jsonToken.Claims.First(claim => claim.Type == "email").Value;
-            var name = jsonToken.Claims.First(claim => claim.Type == "name").Value;
-            var picture = jsonToken.Claims.First(claim => claim.Type == "picture").Value;
-
-            var user = await _userManager.FindByEmailAsync(email);
-            if (user == null)
-            {
-                user = new IdentityUser
-                {
-                    Email = email,
-                    UserName = email,
-                    SecurityStamp = Guid.NewGuid().ToString()
-                };
-                await _userManager.CreateAsync(user);
-                UserDetail userDetail = new UserDetail()
-                {
-                    UserId = user.Id,
-                    Point = 0,
-                    FullName = name,
-                    ProfilePicture = picture
-                    //Id = user.Id
-                };
-                _userDetailService.AddUserDetail(userDetail);
-                await _userManager.AddToRoleAsync(user, "Customer");
-
-            }
-
-            var roles = await _userManager.GetRolesAsync(user);
-            var userRole = roles.FirstOrDefault();
-
-            return Ok(new
-            {
-                Token = GenerateJWT.GenerateToken(user, userRole)
-            });
-        }
-
-        //Facebook Login
-        [HttpPost]
-        [Route("facebook-login")]
-        public async Task<IActionResult> FacebookLogin(string token)
-        {
-            var handler = new JwtSecurityTokenHandler();
-            var jsonToken = handler.ReadToken(token) as JwtSecurityToken;
-            var email = jsonToken.Claims.First(claim => claim.Type == "email").Value;
-            var name = jsonToken.Claims.First(claim => claim.Type == "name").Value;
-            var picture = jsonToken.Claims.First(claim => claim.Type == "picture").Value;
-
-            var user = await _userManager.FindByEmailAsync(email);
-            if (user == null)
-            {
-                user = new IdentityUser
-                {
-                    Email = email,
-                    UserName = email,
-                    SecurityStamp = Guid.NewGuid().ToString()
-                };
-                await _userManager.CreateAsync(user);
-                UserDetail userDetail = new UserDetail()
-                {
-                    UserId = user.Id,
-                    Point = 0,
-                    FullName = name,
-                    ProfilePicture = picture
-                };
-                _userDetailService.AddUserDetail(userDetail);
-                await _userManager.AddToRoleAsync(user, "Customer");
-
-            }
-
-            var roles = await _userManager.GetRolesAsync(user);
-            var userRole = roles.FirstOrDefault();
-
-            return Ok(new
-            {
-                Token = GenerateJWT.GenerateToken(user, userRole)
-            });
-        }
 
 
 
@@ -521,5 +297,20 @@ namespace API.Controllers
 
         //    return Ok(new ResponseModel { Status = "Complele", Message = "Confirmed" });
         //}
+
+        [HttpPost]
+        [Route("verify-email")]
+        public async Task<IActionResult> VerifyEmail([FromQuery] string email, [FromQuery] string token)
+        {
+            try
+            {
+                await _authenticationService.VerifyEmail(email, token);
+                return Ok(new ResponseModel { Status = "Success", Message = "Email verified successfully!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel { Status = "Error", Message = ex.Message });
+            }
+        }
     }
 }

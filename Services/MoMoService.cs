@@ -266,8 +266,8 @@ namespace Services
         private readonly string partnerCode = "MOMOBKUN20180529";
         private readonly string accessKey = "klm05TvNBzhg7h7j";
         private readonly string secretKey = "at67qH6mk8w5Y1nAyMoYKMWACiEi2bsa";
-        private readonly string returnUrl = "https://localhost:7173/MomoAPI/paymentconfirm";
-        private readonly string notifyUrl = "https://localhost:7173/MomoAPI/ipn";
+        private readonly string returnUrl = "https://localhost:8080/MomoAPI/paymentconfirm";
+        private readonly string notifyUrl = "https://localhost:8080/MomoAPI/ipn";
 
         public MoMoService(ILogger<MoMoService> logger, IOrderRepository orderRepository, IPaymentRepository paymentRepository, IConnectionMultiplexer redisConnection, IOrderService orderService)
         {

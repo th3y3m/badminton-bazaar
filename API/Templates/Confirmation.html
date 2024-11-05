@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            background-color: #007bff;
+            color: #ffffff;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+
+            .header h1 {
+                margin: 0;
+                font-size: 24px;
+            }
+
+        .content {
+            padding: 20px;
+            text-align: center;
+            background-color: #f9f9f9;
+        }
+
+            .content p {
+                font-size: 18px;
+                color: #333333;
+            }
+
+        .button {
+            display: inline-block;
+            padding: 15px 30px;
+            margin: 20px 0;
+            font-size: 18px;
+            color: #ffffff;
+            background-color: #28a745;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+            .button:hover {
+                background-color: #218838;
+            }
+
+        .footer {
+            text-align: center;
+            padding: 10px 0;
+            background-color: #007bff;
+            color: #ffffff;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+            font-size: 14px;
+        }
+
+            .footer p {
+                margin: 0;
+            }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Verify your email</h1>
+        </div>
+        <div class="content">
+            <p>Thank you for signing up with Badminton Bazaar. Please verify your email address by clicking the button below.</p>
+            <a class="button" href="https://localhost:8080/api/Authentication/verify-email?token={{token}}&email={{email}}">Verify Email</a>
+        </div>
+        <div class="footer">
+            <p>&copy; 2024 Badminton Bazaar. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -9,7 +9,8 @@ namespace Services.Interface
 {
     public interface IMailService
     {
-        public Task SendEmailAsync(MailRequest mailRequest);
-
+        Task SendEmailAsync(MailRequest mailRequest);
+        Task SendConfirmationEmailAsync(string toMail, string token);
+        Task SendForgetPasswordEmailAsync(string toMail, string token);
     }
 }

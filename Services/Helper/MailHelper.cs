@@ -10,11 +10,11 @@ using System.Threading.Tasks;
 
 namespace Services.Helper
 {
-    public class MailService
+    public class MailHelper
     {
 
         private readonly MailSettings _mailSettings;
-        public MailService(IOptions<MailSettings> mailSettings)
+        public MailHelper(IOptions<MailSettings> mailSettings)
         {
             _mailSettings = mailSettings.Value;
         }

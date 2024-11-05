@@ -24,6 +24,12 @@ namespace BusinessObjects
         [StringLength(500)]
         public string? ProfilePicture { get; set; }
 
+        [StringLength(int.MaxValue)]
+        public string? RefreshToken { get; set; }
+
+        public DateTime? RefreshTokenExpiration { get; set; }
+
+
         // Navigation property
         public virtual IdentityUser User { get; set; }
     }

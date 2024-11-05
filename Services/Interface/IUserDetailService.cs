@@ -21,6 +21,7 @@ namespace Services.Interface
         Task AddUserDetail(UserDetail userDetail);
 
         Task UpdateUserDetail(UserDetailModel userDetail, string id);
+        Task UpdateUserDetail(UserDetail userDetail);
 
         Task<UserDetail> GetUserByReview(string reviewId);
     }

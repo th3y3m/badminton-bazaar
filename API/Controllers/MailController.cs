@@ -14,12 +14,26 @@ namespace API.Controllers
             _mailService = mailService;
         }
 
-        [HttpPost("send")]
+        [HttpPost("send-mail")]
         public async Task<IActionResult> SendMail([FromForm] MailRequest request)
         {
             try
             {
                 await _mailService.SendEmailAsync(request);
+                return Ok();
+            }
+            catch
+            {
+                return BadRequest();
+            }
+        } 
+        
+        [HttpPost("confirmation-mail")]
+        public async Task<IActionResult> SendConfirmationMail(string toMail, string OTP)
+        {
+            try
+            {
+                await _mailService.SendConfirmationEmailAsync(toMail, OTP);
                 return Ok();
             }
             catch

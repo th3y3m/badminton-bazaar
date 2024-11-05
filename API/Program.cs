@@ -58,8 +58,24 @@ namespace API
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddControllersWithViews();
 
+            builder.Services.AddAuthentication()
+                .AddGoogle(options =>
+                {
+                    options.ClientId = configuration["Google:ClientId"];
+                    options.ClientSecret = configuration["Google:ClientSecret"];
+                })
+                .AddFacebook(options =>
+                {
+                    options.AppId = configuration["Facebook:ClientId"];
+                    options.AppSecret = configuration["Facebook:ClientSecret"];
+                });
+
             // Identity Configuration
-            builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+            builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
+            {
+                options.SignIn.RequireConfirmedEmail = true; // Require email confirmation
+                options.User.RequireUniqueEmail = true;
+            })
                 .AddEntityFrameworkStores<Repositories.DbContext>()
                 .AddDefaultTokenProviders();
 
@@ -167,6 +183,7 @@ namespace API
             builder.Services.AddScoped<ICartService, CartService>();
             builder.Services.AddScoped<IFreightPriceService, FreightPriceService>();
             builder.Services.AddScoped<IRedisLock, RedisLock>();
+            builder.Services.AddScoped<IMailService, MailService>();
 
             builder.Services.AddScoped<IVnpayService, VnpayService>();
             builder.Services.AddScoped<IMoMoService, MoMoService>();

@@ -21,5 +21,6 @@ namespace Services.Interface
         Task<RefreshTokenResponse> GenerateRefreshToken(RefreshTokenRequest request);
         Task LinkExternalLogin(AuthenticateResult authenticateResult);
         Task UnlinkExternalLogin(string email, string provider);
+        Task CreatePasswordForExternalLogin(CreatePasswordRequest request);
     }
 }

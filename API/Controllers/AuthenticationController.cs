@@ -283,6 +283,16 @@ namespace API.Controllers
             try
             {
                 var response = await _authenticationService.GenerateRefreshToken(model);
+
+                var cookieOptions = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true, // Only send cookie over HTTPS
+                    SameSite = SameSiteMode.Strict, // Prevent cross-site requests
+                    Expires = DateTime.UtcNow.AddDays(30) // Set cookie expiration
+                };
+
+                Response.Cookies.Append("RefreshToken", response.RefreshToken, cookieOptions);
                 return Ok(response);
             }
             catch (Exception ex)
@@ -314,6 +324,21 @@ namespace API.Controllers
             {
                 await _authenticationService.UnlinkExternalLogin(email, provider);
                 return Ok(new ResponseModel { Status = "Success", Message = "External login unlinked successfully!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel { Status = "Error", Message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Route("create-password-for-external-login")]
+        public async Task<IActionResult> CreatePasswordForExternalLogin([FromBody] CreatePasswordRequest model)
+        {
+            try
+            {
+                await _authenticationService.CreatePasswordForExternalLogin(model);
+                return Ok(new ResponseModel { Status = "Success", Message = "Password created successfully!" });
             }
             catch (Exception ex)
             {

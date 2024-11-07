@@ -9,6 +9,8 @@ using System.IdentityModel.Tokens.Jwt;
 using StackExchange.Redis;
 using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication.Facebook;
+using Microsoft.AspNetCore.Authentication.Google;
 
 namespace API.Controllers
 {
@@ -104,9 +106,9 @@ namespace API.Controllers
         {
             try
             {
-                var redirectUrl = Url.Action("GoogleResponse", "Account");
-                var properties = _signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl);
-                return Challenge(properties, "Google");
+                var redirectUrl = Url.Action("GoogleResponse", "Authentication", null, Request.Scheme);
+                var properties = _signInManager.ConfigureExternalAuthenticationProperties(GoogleDefaults.AuthenticationScheme, redirectUrl);
+                return Challenge(properties, GoogleDefaults.AuthenticationScheme);
             }
             catch (Exception ex)
             {
@@ -119,9 +121,9 @@ namespace API.Controllers
         {
             try
             {
-                var result = await HttpContext.AuthenticateAsync("External");
+                var result = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
 
-                if (result == null)
+                if (result == null || !result.Succeeded)
                 {
                     return BadRequest("External authentication error");
                 }
@@ -141,9 +143,9 @@ namespace API.Controllers
         {
             try
             {
-                var redirectUrl = Url.Action("FacebookResponse", "Account");
-                var properties = _signInManager.ConfigureExternalAuthenticationProperties("Facebook", redirectUrl);
-                return Challenge(properties, "Facebook");
+                var redirectUrl = Url.Action("FacebookResponse", "Authentication");
+                var properties = _signInManager.ConfigureExternalAuthenticationProperties(FacebookDefaults.AuthenticationScheme, redirectUrl);
+                return Challenge(properties, FacebookDefaults.AuthenticationScheme);
             }
             catch (Exception ex)
             {
@@ -156,9 +158,9 @@ namespace API.Controllers
         {
             try
             {
-                var result = await HttpContext.AuthenticateAsync("External");
+                var result = await HttpContext.AuthenticateAsync(FacebookDefaults.AuthenticationScheme);
 
-                if (result == null)
+                if (result == null || !result.Succeeded)
                 {
                     return BadRequest("External authentication error");
                 }
@@ -298,7 +300,7 @@ namespace API.Controllers
         //    return Ok(new ResponseModel { Status = "Complele", Message = "Confirmed" });
         //}
 
-        [HttpPost]
+        [HttpGet]
         [Route("verify-email")]
         public async Task<IActionResult> VerifyEmail([FromQuery] string email, [FromQuery] string token)
         {
@@ -306,6 +308,66 @@ namespace API.Controllers
             {
                 await _authenticationService.VerifyEmail(email, token);
                 return Ok(new ResponseModel { Status = "Success", Message = "Email verified successfully!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel { Status = "Error", Message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Route("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest model)
+        {
+            try
+            {
+                await _authenticationService.ChangePassword(model);
+                return Ok(new ResponseModel { Status = "Success", Message = "Password changed successfully!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel { Status = "Error", Message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Route("forget-password")]
+        public async Task<IActionResult> ForgetPassword([FromBody] ForgetPasswordModel model)
+        {
+            try
+            {
+                await _authenticationService.ForgetPassword(model);
+                return Ok(new ResponseModel { Status = "Success", Message = "Reset password link has been sent to your email address." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel { Status = "Error", Message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Route("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest model)
+        {
+            try
+            {
+                await _authenticationService.ResetPassword(model);
+                return Ok(new ResponseModel { Status = "Success", Message = "Password reset successfully!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel { Status = "Error", Message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Route("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest model)
+        {
+            try
+            {
+                var response = await _authenticationService.GenerateRefreshToken(model);
+                return Ok(response);
             }
             catch (Exception ex)
             {

@@ -22,6 +22,9 @@ using Polly.Retry;
 using Polly.CircuitBreaker;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OAuth;
+using Microsoft.AspNetCore.Authentication.Google;
 
 namespace API
 {
@@ -49,26 +52,15 @@ namespace API
 
             builder.Services.AddSession(options =>
             {
-                options.IdleTimeout = TimeSpan.FromDays(7);
+                options.IdleTimeout = TimeSpan.FromMinutes(30);
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
-                options.Cookie.SameSite = SameSiteMode.None;
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
             });
 
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddControllersWithViews();
-
-            builder.Services.AddAuthentication()
-                .AddGoogle(options =>
-                {
-                    options.ClientId = configuration["Google:ClientId"];
-                    options.ClientSecret = configuration["Google:ClientSecret"];
-                })
-                .AddFacebook(options =>
-                {
-                    options.AppId = configuration["Facebook:ClientId"];
-                    options.AppSecret = configuration["Facebook:ClientSecret"];
-                });
 
             // Identity Configuration
             builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
@@ -105,10 +97,11 @@ namespace API
             // JWT Authentication Configuration
             builder.Services.AddAuthentication(options =>
             {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(options =>
+                options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
             {
                 options.SaveToken = true;
                 options.RequireHttpsMetadata = false;
@@ -120,6 +113,17 @@ namespace API
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWT:Secret"]))
                 };
+            })
+            .AddCookie()
+            .AddGoogle(options =>
+            {
+                options.ClientId = configuration["Google:ClientId"];
+                options.ClientSecret = configuration["Google:ClientSecret"];
+            })
+            .AddFacebook(options =>
+            {
+                options.AppId = configuration["Facebook:ClientId"];
+                options.AppSecret = configuration["Facebook:ClientSecret"];
             });
 
             // Swagger Configuration
@@ -184,6 +188,7 @@ namespace API
             builder.Services.AddScoped<IFreightPriceService, FreightPriceService>();
             builder.Services.AddScoped<IRedisLock, RedisLock>();
             builder.Services.AddScoped<IMailService, MailService>();
+            builder.Services.AddScoped<IAuthService, AuthenticationService>();
 
             builder.Services.AddScoped<IVnpayService, VnpayService>();
             builder.Services.AddScoped<IMoMoService, MoMoService>();

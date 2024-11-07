@@ -30,7 +30,18 @@ namespace Repositories
         {
             try
             {
-                _dbContext.UserDetails.Update(userDetail);
+                var existingEntity = await _dbContext.UserDetails.FindAsync(userDetail.UserId);
+                if (existingEntity != null)
+                {
+                    // Update the existing entity's properties
+                    _dbContext.Entry(existingEntity).CurrentValues.SetValues(userDetail);
+                }
+                else
+                {
+                    // Attach the new entity if it is not being tracked
+                    _dbContext.UserDetails.Attach(userDetail);
+                    _dbContext.Entry(userDetail).State = EntityState.Modified;
+                }
                 await _dbContext.SaveChangesAsync();
             }
             catch (Exception ex)
@@ -38,6 +49,7 @@ namespace Repositories
                 throw new Exception($"Error updating user detail: {ex.Message}");
             }
         }
+
 
         public async Task<UserDetail> GetById(string id)
         {

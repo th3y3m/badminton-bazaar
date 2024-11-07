@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
@@ -74,7 +75,7 @@ namespace Services
 
                 if (user == null)
                 {
-                    throw new ArgumentNullException("User not found!");
+                    throw new ArgumentNullException("Invalid email or password");
                 }
 
                 if (user.LockoutEnabled == false)
@@ -149,7 +150,6 @@ namespace Services
                         Email = model.Email,
                         UserName = model.Email,
                         EmailConfirmed = false,
-                        PasswordHash = model.ConfirmPassword
                     };
 
                     var result = await _userManager.CreateAsync(user, model.Password);
@@ -185,8 +185,16 @@ namespace Services
                     var userDetail = await _userDetailService.GetUserById(userExists.Id);
                     userDetail.RefreshToken = refreshToken;
                     userDetail.RefreshTokenExpiration = tokenExpiration;
+                    userDetail.FullName = model.FullName;
 
                     await _userDetailService.UpdateUserDetail(userDetail);
+
+                    var addPasswordResult = await _userManager.AddPasswordAsync(userExists, model.Password);
+                    if (!addPasswordResult.Succeeded)
+                    {
+                        var errors = string.Join(", ", addPasswordResult.Errors.Select(e => e.Description));
+                        throw new ArgumentException("Adding password failed: " + errors);
+                    }
 
                     mailToken = await _userManager.GenerateEmailConfirmationTokenAsync(userExists);
                 }
@@ -213,7 +221,8 @@ namespace Services
                     throw new ArgumentNullException("User not found!");
                 }
 
-                var result = await _userManager.ConfirmEmailAsync(user, token);
+                var decodedToken = WebUtility.UrlDecode(token);
+                var result = await _userManager.ConfirmEmailAsync(user, decodedToken);
                 if (!result.Succeeded)
                 {
                     var errors = result.Errors.Select(e => e.Description);
@@ -269,7 +278,7 @@ namespace Services
                 var user = await _dbPolicyWrap.ExecuteAsync(async () => await _userManager.FindByEmailAsync(model.Email));
                 if (user == null || !(await _userManager.IsEmailConfirmedAsync(user)))
                 {
-                    return;
+                    throw new ArgumentException("Not found account");
                 }
 
                 var token = await _dbPolicyWrap.ExecuteAsync(async () => await _userManager.GeneratePasswordResetTokenAsync(user));
@@ -326,6 +335,11 @@ namespace Services
                 }
 
                 var userDetail = await _userDetailService.GetUserById(user.Id);
+                if (userDetail.RefreshTokenExpiration < DateTime.Now)
+                {
+                    throw new AbandonedMutexException("Refresh token expired!");
+                }
+
                 if (userDetail.RefreshToken != request.RefreshToken || userDetail.RefreshTokenExpiration < DateTime.Now)
                 {
                     throw new ArgumentException("Invalid refresh token!");
@@ -357,12 +371,16 @@ namespace Services
         {
             try
             {
+                if (authenticateResult?.Principal == null)
+                {
+                    throw new ArgumentNullException(nameof(authenticateResult.Principal), "Principal cannot be null");
+                }
+                var principal = authenticateResult.Principal;
+
                 var email = authenticateResult.Principal.FindFirstValue(ClaimTypes.Email);
-                var phoneNumber = authenticateResult.Principal.FindFirstValue("phone");
                 var name = authenticateResult.Principal.FindFirstValue(ClaimTypes.Name);
-                var username = authenticateResult.Principal.FindFirstValue("preferred_username");
-                var profilePicture = authenticateResult.Principal.FindFirstValue("picture");
-                var provider = authenticateResult.Principal.FindFirstValue(ClaimTypes.NameIdentifier); // Use this for provider login info
+                var providerKey = authenticateResult.Principal.FindFirstValue(ClaimTypes.NameIdentifier); // Use this for provider login info
+                var provider = authenticateResult.Properties.Items["LoginProvider"]; // Get the provider name
                 var refreshToken = Guid.NewGuid().ToString();
                 var tokenExpiration = DateTime.Now.AddDays(30);
 
@@ -374,8 +392,7 @@ namespace Services
                     user = new IdentityUser
                     {
                         Email = email,
-                        PhoneNumber = phoneNumber,
-                        UserName = username,
+                        UserName = email,
                         EmailConfirmed = true // Set as confirmed if you trust the external provider
                     };
 
@@ -400,7 +417,6 @@ namespace Services
                         UserId = user.Id,
                         Point = 0,
                         FullName = name,
-                        ProfilePicture = profilePicture
                     };
 
                     await _userDetailService.AddUserDetail(newUserDetail);

@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity.Data;
 using Services.Models;
 using System;
 using System.Collections.Generic;
@@ -16,5 +15,9 @@ namespace Services.Interface
         Task RegisterSystemAccount(RegisterModel model);
         Task VerifyEmail(string email, string token);
         Task<LoginResponse> HandleExternalLoginProviderCallBack(AuthenticateResult result);
+        Task ChangePassword(ChangePasswordRequest request);
+        Task ForgetPassword(ForgetPasswordModel model);
+        Task ResetPassword(ResetPasswordRequest model);
+        Task<RefreshTokenResponse> GenerateRefreshToken(RefreshTokenRequest request);
     }
 }

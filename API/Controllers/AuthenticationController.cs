@@ -216,90 +216,6 @@ namespace API.Controllers
         //    });
         //}
 
-
-
-
-        ////ForgetPassword
-        //[HttpPost]
-        //[Route("forget-password")]
-        //public async Task<IActionResult> ForgetPassword([FromBody] string email)
-        //{
-        //    var user = await _userManager.FindByEmailAsync(email);
-        //    if (user == null)
-        //        return StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel { Status = "Error", Message = "User does not exist!" });
-
-        //    var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-        //    var base64 = Encoding.UTF8.GetBytes(token);
-        //    var encodeToken = WebEncoders.Base64UrlEncode(base64);
-        //    var callbackUrl = Url.Action("ResetPassword", "Authentication", new { token = encodeToken, email = user.Email }, Request.Scheme);
-
-        //    var mailRequest = new MailRequest
-        //    {
-        //        ToEmail = user.Email,
-        //        Subject = "Court Caller Confirmation Email (Reset Password)",
-        //        Body = FormEmail.EnailContent(user.Email, callbackUrl)
-        //    };
-        //    await _mailService.SendEmailAsync(mailRequest);
-
-        //    return Ok(new ResponseModel { Status = "Success", Message = "Reset password link has been sent to your email address." });
-        //}
-
-        //[HttpGet]
-        //[Route("reset-password")]
-        //public async Task<IActionResult> ResetPassword(string token, string email)
-        //{
-        //    if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(email))
-        //    {
-        //        return BadRequest("Invalid password reset token or email.");
-        //    }
-
-        //    var user = await _userManager.FindByEmailAsync(email);
-        //    if (user == null)
-        //    {
-        //        return BadRequest("User not found.");
-        //    }
-
-        //    //var isTokenValid = await _userManager.VerifyUserTokenAsync(user, _userManager.Options.Tokens.PasswordResetTokenProvider, "ResetPassword", token);
-        //    //if (!isTokenValid)
-        //    //{
-        //    //    return BadRequest("Invalid token.");
-        //    //}
-
-        //    // Redirect to the React app's reset password page with token and email
-        //    var resetPasswordUrl = $"https://localhost:3000/reset-password?token={token}&email={email}";
-        //    return Redirect(resetPasswordUrl);
-        //}
-
-
-
-        ////ResetPassword
-        //[HttpPost]
-        //[Route("reset-password")]
-        //public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordModel model)
-        //{
-
-
-        //    var user = await _userManager.FindByEmailAsync(model.Email);
-        //    if (user == null)
-        //        return RedirectToAction("ResetPasswordConfirmation", "Authentication");
-        //    var base64 = WebEncoders.Base64UrlDecode(model.Token);
-        //    var decodedToken = Encoding.UTF8.GetString(base64);
-
-        //    var resetPassResult = await _userManager.ResetPasswordAsync(user, decodedToken, model.Password);
-
-
-        //    if (!resetPassResult.Succeeded)
-        //    {
-        //        foreach (var error in resetPassResult.Errors)
-        //        {
-        //            ModelState.AddModelError(string.Empty, error.Description);
-        //        }
-        //        return BadRequest(new ResponseModel { Status = "Error", Message = "Something Wrong, Please Try Again" });
-        //    }
-
-        //    return Ok(new ResponseModel { Status = "Complele", Message = "Confirmed" });
-        //}
-
         [HttpGet]
         [Route("verify-email")]
         public async Task<IActionResult> VerifyEmail([FromQuery] string email, [FromQuery] string token)
@@ -368,6 +284,36 @@ namespace API.Controllers
             {
                 var response = await _authenticationService.GenerateRefreshToken(model);
                 return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel { Status = "Error", Message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Route("link-external-login")]
+        public async Task<IActionResult> LinkExternalLogin([FromBody] AuthenticateResult result)
+        {
+            try
+            {
+                await _authenticationService.LinkExternalLogin(result);
+                return Ok(new ResponseModel { Status = "Success", Message = "External login linked successfully!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel { Status = "Error", Message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Route("unlink-external-login")]
+        public async Task<IActionResult> UnlinkExternalLogin([FromBody] string email, [FromBody] string provider)
+        {
+            try
+            {
+                await _authenticationService.UnlinkExternalLogin(email, provider);
+                return Ok(new ResponseModel { Status = "Success", Message = "External login unlinked successfully!" });
             }
             catch (Exception ex)
             {

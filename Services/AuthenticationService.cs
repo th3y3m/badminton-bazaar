@@ -178,6 +178,10 @@ namespace Services
 
                     await _userDetailService.AddUserDetail(newUserDetail);
 
+                    // Link the external login to the user
+                    var loginInfo = new UserLoginInfo("System", "", "System");
+                    await _userManager.AddLoginAsync(user, loginInfo);
+
                     mailToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                 }
                 else
@@ -420,24 +424,33 @@ namespace Services
                     };
 
                     await _userDetailService.AddUserDetail(newUserDetail);
+
+                    // Link the external login to the user
+                    var loginInfo = new UserLoginInfo(provider, providerKey, provider);
+                    await _userManager.AddLoginAsync(existedUser ?? user, loginInfo);
                 }
 
-                // Link the external login to the user
-                var loginInfo = new UserLoginInfo(provider, authenticateResult.Principal.FindFirstValue(ClaimTypes.NameIdentifier), provider);
-                await _userManager.AddLoginAsync(existedUser ?? user, loginInfo);
+                var loginInfos = await _dbPolicyWrap.ExecuteAsync(async () => await _userManager.GetLoginsAsync(existedUser ?? user));
 
-                var roles = await _dbPolicyWrap.ExecuteAsync(async () => await _userManager.GetRolesAsync(existedUser ?? user));
+                var hasLinkedProvider = loginInfos.Any(login => login.LoginProvider == provider);
+
+                if (!hasLinkedProvider)
+                {
+                    throw new ApplicationException("User exists but has not linked this provider.");
+                }
+
+                var roles = await _dbPolicyWrap.ExecuteAsync(() => _userManager.GetRolesAsync(user));
                 var userRole = roles.FirstOrDefault();
-                var token = GenerateJWT.GenerateToken(existedUser ?? user, userRole);
+                var token = GenerateJWT.GenerateToken(user, userRole);
 
-                var userDetail = await _userDetailService.GetUserById((existedUser ?? user).Id);
+                var userDetail = await _userDetailService.GetUserById(user.Id);
                 userDetail.RefreshToken = refreshToken;
                 userDetail.RefreshTokenExpiration = tokenExpiration;
                 await _userDetailService.UpdateUserDetail(userDetail);
 
                 return new LoginResponse
                 {
-                    Id = (existedUser ?? user).Id,
+                    Id = user.Id,
                     Token = token,
                     Role = userRole,
                     RefreshToken = refreshToken,
@@ -449,5 +462,90 @@ namespace Services
             }
         }
 
+        public async Task LinkExternalLogin(AuthenticateResult authenticateResult)
+        {
+            try
+            {
+                var email = authenticateResult.Principal.FindFirstValue(ClaimTypes.Email);
+
+                var user = await _dbPolicyWrap.ExecuteAsync(async () => await _userManager.FindByEmailAsync(email));
+                if (user == null)
+                {
+                    throw new ArgumentNullException("User not found!");
+                }
+
+                var providerKey = authenticateResult.Principal.FindFirstValue(ClaimTypes.NameIdentifier);
+                var provider = authenticateResult.Properties.Items["LoginProvider"];
+
+                var loginInfo = new UserLoginInfo(provider, providerKey, provider);
+                var result = await _dbPolicyWrap.ExecuteAsync(async () => await _userManager.AddLoginAsync(user, loginInfo));
+
+                if (!result.Succeeded)
+                {
+                    var errors = result.Errors.Select(e => e.Description);
+                    throw new ArgumentException("Linking external login failed: " + string.Join(", ", errors));
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error linking external login: {ex.Message}");
+            }
+        }
+
+        public async Task UnlinkExternalLogin(string email, string provider)
+        {
+            try
+            {
+                var user = await _dbPolicyWrap.ExecuteAsync(async () => await _userManager.FindByEmailAsync(email));
+                if (user == null)
+                {
+                    throw new ArgumentNullException("User not found!");
+                }
+
+                var loginInfo = await _dbPolicyWrap.ExecuteAsync(async () => await _userManager.GetLoginsAsync(user));
+                var login = loginInfo.FirstOrDefault(l => l.LoginProvider == provider);
+
+                if (login == null)
+                {
+                    throw new ArgumentNullException("Login not found!");
+                }
+
+                var result = await _dbPolicyWrap.ExecuteAsync(async () => await _userManager.RemoveLoginAsync(user, login.LoginProvider, login.ProviderKey));
+
+                if (!result.Succeeded)
+                {
+                    var errors = result.Errors.Select(e => e.Description);
+                    throw new ArgumentException("Unlinking external login failed: " + string.Join(", ", errors));
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error unlinking external login: {ex.Message}");
+            }
+        }
+
+        public async Task CreatePasswordForExternalLogin(CreatePasswordRequest request)
+        {
+            try
+            {
+                var user = await _dbPolicyWrap.ExecuteAsync(async () => await _userManager.FindByEmailAsync(request.Email));
+                if (user == null)
+                {
+                    throw new ArgumentNullException("User not found!");
+                }
+
+                var result = await _dbPolicyWrap.ExecuteAsync(async () => await _userManager.AddPasswordAsync(user, request.Password));
+
+                if (!result.Succeeded)
+                {
+                    var errors = result.Errors.Select(e => e.Description);
+                    throw new ArgumentException("Adding password failed: " + string.Join(", ", errors));
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error creating password for external login: {ex.Message}");
+            }
+        }
     }
 }

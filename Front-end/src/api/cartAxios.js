@@ -3,12 +3,23 @@ import axios from './customizeAxios'; // Assuming your axios instance is saved i
 // const addToCart = async (productId, userId) => {
 //     return await axios.post(`Cart/Add?productId=${productId}&userId=${userId}`);
 // };
+
 const saveCartToCookie = async (productId, userId) => {
-    return await axios.post(`Cart/AddToCookie?productId=${productId}&userId=${userId}`);
+    try {
+        return await axios.post(`Cart/AddToCookie?productId=${productId}&userId=${userId}`);
+    } catch (error) {
+        console.error("Error saving cart to cookie:", error);
+        throw error;
+    }
 };
 
 const deleteUnitItem = async (productId, userId) => {
-    return await axios.post(`Cart/DeleteUnitItem?productId=${productId}&userId=${userId}`);
+    try {
+        return await axios.post(`Cart/DeleteUnitItem?productId=${productId}&userId=${userId}`);
+    } catch (error) {
+        console.error("Error deleting unit item:", error);
+        throw error;
+    }
 };
 
 const getCart = async (id) => {
@@ -16,8 +27,7 @@ const getCart = async (id) => {
         if (id) {
             const response = await axios.get(`Cart/GetCart?userId=${id}`);
             return response;
-        }
-        else {
+        } else {
             const response = await axios.get(`Cart/GetCart`);
             return response;
         }
@@ -36,7 +46,12 @@ const getCart = async (id) => {
 // };
 
 const removeFromCart = async (productId, userId) => {
-    return await axios.post(`Cart/remove?productId=${productId}&userId=${userId}`);
+    try {
+        return await axios.post(`Cart/remove?productId=${productId}&userId=${userId}`);
+    } catch (error) {
+        console.error("Error removing from cart:", error);
+        throw error;
+    }
 };
 
 // const updateCart = async (productId, quantity, userId) => {
@@ -44,11 +59,21 @@ const removeFromCart = async (productId, userId) => {
 // };
 
 const deleteCookie = async (userId) => {
-    return await axios.post(`Cart/DeleteCookie?userId=${userId}`);
+    try {
+        return await axios.post(`Cart/DeleteCookie?userId=${userId}`);
+    } catch (error) {
+        console.error("Error deleting cookie:", error);
+        throw error;
+    }
 };
 
 const numberOfItemsInCart = async (userId) => {
-    return await axios.get(`Cart/ItemsInCart?userId=${userId}`);
+    try {
+        return await axios.get(`Cart/ItemsInCart?userId=${userId}`);
+    } catch (error) {
+        console.error("Error getting number of items in cart:", error);
+        throw error;
+    }
 };
 
 export {

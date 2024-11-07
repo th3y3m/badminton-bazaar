@@ -95,6 +95,7 @@ const processPayment = async (role, token) => {
     throw error;
   }
 };
+
 const processPaymentMoMo = async (role, token) => {
   try {
     const response = await axios.post('Payment/ProcessPaymentMoMo', null, { params: { role, token } });
@@ -105,32 +106,7 @@ const processPaymentMoMo = async (role, token) => {
   }
 };
 
-const createPaymentMoMo = async (amount, orderId) => {
-  const paymentRequest = {
-    partnerCode: 'MOMOT5BZ20231213_TEST', // Your partner code
-    requestType: 'captureWallet',
-    ipnUrl: 'https://localhost:7173/api/payment/ipn',
-    redirectUrl: 'https://localhost:7173/payment-result',
-    orderInfo: 'Thank you for your purchase at MoMo_test',
-    requestId: `request_${Date.now()}`,
-    extraData: '',
-    lang: 'en',
-    amount: parseInt(amount),  // Amount entered by user
-    orderId: orderId           // Order ID entered by user
-  };
-
-  try {
-    const response = await axios.post(`ProcessPaymentMoMo`, paymentRequest);
-    return response;
-  } catch (error) {
-    console.error('Error creating payment:', error);
-    throw error;
-  }
-};
-
-
 export {
-  createPaymentMoMo,
   processPaymentMoMo,
   fetchPaginatedPayments,
   fetchPaymentById,

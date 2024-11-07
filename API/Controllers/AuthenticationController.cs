@@ -278,11 +278,19 @@ namespace API.Controllers
 
         [HttpPost]
         [Route("refresh-token")]
-        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest model)
+        public async Task<IActionResult> RefreshToken()
         {
             try
             {
-                var response = await _authenticationService.GenerateRefreshToken(model);
+                // Retrieve refresh token from cookie
+                var refreshToken = Request.Cookies["RefreshToken"];
+
+                if (string.IsNullOrEmpty(refreshToken))
+                {
+                    return Unauthorized("Refresh token is missing.");
+                }
+
+                var response = await _authenticationService.GenerateRefreshToken(refreshToken);
 
                 var cookieOptions = new CookieOptions
                 {
@@ -318,11 +326,11 @@ namespace API.Controllers
 
         [HttpPost]
         [Route("unlink-external-login")]
-        public async Task<IActionResult> UnlinkExternalLogin([FromBody] string email, [FromBody] string provider)
+        public async Task<IActionResult> UnlinkExternalLogin([FromBody] UnlinkExternalLoginRequest req)
         {
             try
             {
-                await _authenticationService.UnlinkExternalLogin(email, provider);
+                await _authenticationService.UnlinkExternalLogin(req);
                 return Ok(new ResponseModel { Status = "Success", Message = "External login unlinked successfully!" });
             }
             catch (Exception ex)

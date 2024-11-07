@@ -2,32 +2,62 @@ import axios from './customizeAxios'; // Import the configured axios instance
 
 // Fetch all freight prices
 const fetchAllFreightPrices = async () => {
-    return axios.get('FreightPrice');
+    try {
+        return await axios.get('FreightPrice');
+    } catch (error) {
+        console.error('Error fetching all freight prices:', error);
+        throw error;
+    }
 };
 
 // Fetch a specific freight price by ID
 const fetchFreightPriceById = async (id) => {
-    return axios.get(`FreightPrice/${id}`);
+    try {
+        return await axios.get(`FreightPrice/${id}`);
+    } catch (error) {
+        console.error(`Error fetching freight price by ID (${id}):`, error);
+        throw error;
+    }
 };
 
 // Add a new freight price
 const addFreightPrice = async (freightPriceModel) => {
-    return axios.post('FreightPrice', freightPriceModel);
+    try {
+        return await axios.post('FreightPrice', freightPriceModel);
+    } catch (error) {
+        console.error('Error adding freight price:', error);
+        throw error;
+    }
 };
 
 // Update an existing freight price
 const updateFreightPrice = async (freightPriceModel) => {
-    return axios.put('FreightPrice', freightPriceModel);
+    try {
+        return await axios.put('FreightPrice', freightPriceModel);
+    } catch (error) {
+        console.error('Error updating freight price:', error);
+        throw error;
+    }
 };
 
 // Delete a freight price by ID
 const deleteFreightPrice = async (id) => {
-    return axios.delete(`FreightPrice?id=${id}`);
+    try {
+        return await axios.delete(`FreightPrice?id=${id}`);
+    } catch (error) {
+        console.error(`Error deleting freight price by ID (${id}):`, error);
+        throw error;
+    }
 };
 
 // Get freight price based on distance
 const fetchPriceByDistance = async (km) => {
-    return axios.get(`FreightPrice/GetPriceByDistance?km=${km}`);
+    try {
+        return await axios.get(`FreightPrice/GetPriceByDistance?km=${km}`);
+    } catch (error) {
+        console.error(`Error fetching price by distance (${km} km):`, error);
+        throw error;
+    }
 };
 
 export {

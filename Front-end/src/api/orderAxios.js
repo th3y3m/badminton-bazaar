@@ -1,39 +1,51 @@
 import axios from './customizeAxios'; // Import the configured axios instance
 
 const fetchPaginatedOrders = async (params) => {
-    const {
-        start,
-        end,
-        userId,
-        sortBy = "orderdate_asc",
-        status = null,
-        pageIndex = 1,
-        pageSize = 10
-    } = params;
+    try {
+        const {
+            start,
+            end,
+            userId,
+            sortBy = "orderdate_asc",
+            status = null,
+            pageIndex = 1,
+            pageSize = 10
+        } = params;
 
-    const queryParams = new URLSearchParams();
-    if (start) queryParams.append('start', start);
-    if (end) queryParams.append('end', end);
-    if (userId) queryParams.append('userId', userId);
-    if (sortBy) queryParams.append('sortBy', sortBy);
-    if (status) queryParams.append('status', status);
-    if (pageIndex) queryParams.append('pageIndex', pageIndex);
-    if (pageSize) queryParams.append('pageSize', pageSize);
+        const queryParams = new URLSearchParams();
+        if (start) queryParams.append('start', start);
+        if (end) queryParams.append('end', end);
+        if (userId) queryParams.append('userId', userId);
+        if (sortBy) queryParams.append('sortBy', sortBy);
+        if (status) queryParams.append('status', status);
+        if (pageIndex) queryParams.append('pageIndex', pageIndex);
+        if (pageSize) queryParams.append('pageSize', pageSize);
 
-    return axios.get(`Order/GetPaginatedOrders?${queryParams.toString()}`);
+        return await axios.get(`Order/GetPaginatedOrders?${queryParams.toString()}`);
+    } catch (error) {
+        console.error('Error fetching paginated orders:', error);
+        throw error;
+    }
 };
 
 const fetchOrderById = async (orderId) => {
-    return axios.get(`Order/${orderId}`);
+    try {
+        return await axios.get(`Order/${orderId}`);
+    } catch (error) {
+        console.error(`Error fetching order by ID (${orderId}):`, error);
+        throw error;
+    }
 };
 
 const fetchTotalPrice = async (orderId) => {
-    return axios.get(`Order/Price/${orderId}`);
+    try {
+        return await axios.get(`Order/Price/${orderId}`);
+    } catch (error) {
+        console.error(`Error fetching total price for order ID (${orderId}):`, error);
+        throw error;
+    }
 };
 
-// const createOrder = async (userId) => {
-//     return axios.post('Order/CreateOrder', { userId });
-// };
 const createOrder = async (userId, freight, address) => {
     try {
         const requestBody = {
@@ -42,16 +54,20 @@ const createOrder = async (userId, freight, address) => {
             address: address
         };
 
-        return axios.post('Order/CreateOrder', requestBody); // Send the data in the request body
+        return await axios.post('Order/CreateOrder', requestBody);
     } catch (error) {
-        console.error(`Error creating order axios: ${error.message}`);
+        console.error(`Error creating order: ${error.message}`);
         throw error;
     }
 };
 
-
 const deleteOrderById = async (orderId) => {
-    return axios.delete(`Order/DeleteOrder/${orderId}`);
+    try {
+        return await axios.delete(`Order/DeleteOrder/${orderId}`);
+    } catch (error) {
+        console.error(`Error deleting order by ID (${orderId}):`, error);
+        throw error;
+    }
 };
 
 export {

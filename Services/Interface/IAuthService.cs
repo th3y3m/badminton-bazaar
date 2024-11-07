@@ -18,9 +18,9 @@ namespace Services.Interface
         Task ChangePassword(ChangePasswordRequest request);
         Task ForgetPassword(ForgetPasswordModel model);
         Task ResetPassword(ResetPasswordRequest model);
-        Task<RefreshTokenResponse> GenerateRefreshToken(RefreshTokenRequest request);
+        Task<RefreshTokenResponse> GenerateRefreshToken(string request);
         Task LinkExternalLogin(AuthenticateResult authenticateResult);
-        Task UnlinkExternalLogin(string email, string provider);
+        Task UnlinkExternalLogin(UnlinkExternalLoginRequest req);
         Task CreatePasswordForExternalLogin(CreatePasswordRequest request);
     }
 }

@@ -328,25 +328,20 @@ namespace Services
             }
         }
 
-        public async Task<RefreshTokenResponse> GenerateRefreshToken(RefreshTokenRequest request)
+        public async Task<RefreshTokenResponse> GenerateRefreshToken(string request)
         {
             try
             {
-                var user = await _dbPolicyWrap.ExecuteAsync(async () => await _userManager.FindByEmailAsync(request.Email));
-                if (user == null)
-                {
-                    throw new ArgumentNullException("User not found!");
-                }
-
-                var userDetail = await _userDetailService.GetUserById(user.Id);
+                var userDetail = await _userDetailService.GetUserDetailByRefreshToken(request);
                 if (userDetail.RefreshTokenExpiration < DateTime.Now)
                 {
                     throw new AbandonedMutexException("Refresh token expired!");
                 }
 
-                if (userDetail.RefreshToken != request.RefreshToken || userDetail.RefreshTokenExpiration < DateTime.Now)
+                var user = await _dbPolicyWrap.ExecuteAsync(async () => await _userManager.FindByIdAsync(userDetail.UserId));
+                if (user == null)
                 {
-                    throw new ArgumentException("Invalid refresh token!");
+                    throw new ArgumentNullException("User not found!");
                 }
 
                 var roles = await _dbPolicyWrap.ExecuteAsync(async () => await _userManager.GetRolesAsync(user));
@@ -492,18 +487,18 @@ namespace Services
             }
         }
 
-        public async Task UnlinkExternalLogin(string email, string provider)
+        public async Task UnlinkExternalLogin(UnlinkExternalLoginRequest req)
         {
             try
             {
-                var user = await _dbPolicyWrap.ExecuteAsync(async () => await _userManager.FindByEmailAsync(email));
+                var user = await _dbPolicyWrap.ExecuteAsync(async () => await _userManager.FindByEmailAsync(req.Email));
                 if (user == null)
                 {
                     throw new ArgumentNullException("User not found!");
                 }
 
                 var loginInfo = await _dbPolicyWrap.ExecuteAsync(async () => await _userManager.GetLoginsAsync(user));
-                var login = loginInfo.FirstOrDefault(l => l.LoginProvider == provider);
+                var login = loginInfo.FirstOrDefault(l => l.LoginProvider == req.Provider);
 
                 if (login == null)
                 {

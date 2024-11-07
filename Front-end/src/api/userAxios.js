@@ -1,35 +1,63 @@
 import axios from './customizeAxios'; // Import the configured axios instance
 
 const fetchPaginatedUsers = async (params) => {
-    const {
-        searchQuery = "",
-        sortBy = "name_asc",
-        status = true,
-        pageIndex = 1,
-        pageSize = 10
-    } = params;
+    try {
+        const {
+            searchQuery = "",
+            sortBy = "name_asc",
+            status = true,
+            pageIndex = 1,
+            pageSize = 10
+        } = params;
 
-    const queryParams = new URLSearchParams();
-    if (searchQuery) queryParams.append('searchQuery', searchQuery);
-    if (sortBy) queryParams.append('sortBy', sortBy);
-    if (status) queryParams.append('status', status);
-    if (pageIndex) queryParams.append('pageIndex', pageIndex);
-    if (pageSize) queryParams.append('pageSize', pageSize);
+        const queryParams = new URLSearchParams();
+        if (searchQuery) queryParams.append('searchQuery', searchQuery);
+        if (sortBy) queryParams.append('sortBy', sortBy);
+        if (status) queryParams.append('status', status);
+        if (pageIndex) queryParams.append('pageIndex', pageIndex);
+        if (pageSize) queryParams.append('pageSize', pageSize);
 
-    return axios.get(`User?${queryParams.toString()}`);
+        return await axios.get(`User?${queryParams.toString()}`);
+    } catch (error) {
+        console.error('Error fetching paginated users:', error);
+        throw error;
+    }
 };
 
 const fetchUserById = async (id) => {
-    return axios.get(`User/${id}`);
+    try {
+        return await axios.get(`User/${id}`);
+    } catch (error) {
+        console.error(`Error fetching user by ID (${id}):`, error);
+        throw error;
+    }
 };
+
 const deleteUser = async (id) => {
-    return axios.delete(`User/${id}`);
+    try {
+        return await axios.delete(`User/${id}`);
+    } catch (error) {
+        console.error(`Error deleting user by ID (${id}):`, error);
+        throw error;
+    }
 };
+
 const banUser = async (id) => {
-    return axios.put(`User/ban/${id}`);
+    try {
+        return await axios.put(`User/ban/${id}`);
+    } catch (error) {
+        console.error(`Error banning user by ID (${id}):`, error);
+        throw error;
+    }
 };
+
 const unbanUser = async (id) => {
-    return axios.get(`User/unban/${id}`);
+    try {
+        return await axios.get(`User/unban/${id}`);
+    } catch (error) {
+        console.error(`Error unbanning user by ID (${id}):`, error);
+        throw error;
+    }
 };
 
 export {

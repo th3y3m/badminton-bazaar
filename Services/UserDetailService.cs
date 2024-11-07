@@ -217,7 +217,7 @@ namespace Services
             {
                 var review = await _reviewService.GetReviewById(reviewId);
                 if (review == null)
-                    {
+                {
                     throw new Exception("Review not found");
                 }
 
@@ -227,6 +227,20 @@ namespace Services
             catch (Exception ex)
             {
                 throw new Exception($"Error retrieving user by review ID: {ex.Message}");
+            }
+        }
+
+        public async Task<UserDetail> GetUserDetailByRefreshToken(string refreshToken)
+        {
+            try
+            {
+                var userDetails = await _dbPolicyWrap.ExecuteAsync(async () => await _userDetailRepository.GetDbSet());
+                var userDetail = await _dbPolicyWrap.ExecuteAsync(async () => await userDetails.FirstOrDefaultAsync(p => p.RefreshToken == refreshToken));
+                return userDetail;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving user by refresh token: {ex.Message}");
             }
         }
     }

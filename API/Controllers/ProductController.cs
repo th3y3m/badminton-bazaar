@@ -194,5 +194,21 @@ namespace API.Controllers
                 return StatusCode(500, $"Error retrieving related products: {ex.Message}");
             }
         }
+
+        [HttpGet("product-page-qr-code")]
+        public IActionResult GenerateProductPageQrCode([FromQuery] string productId)
+        {
+            try
+            {
+                string productUrl = $"https://localhost:3000/product-details/{productId}";
+                var qrCodeService = new QRCoderService();
+                var qrCodeImage = qrCodeService.GenerateQRCode(productUrl);
+                return File(qrCodeImage, "image/png");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error generating QR code: {ex.Message}");
+            }
+        }
     }
 }

@@ -189,6 +189,9 @@ namespace API
             builder.Services.AddScoped<IRedisLock, RedisLock>();
             builder.Services.AddScoped<IMailService, MailService>();
             builder.Services.AddScoped<IAuthService, AuthenticationService>();
+            builder.Services.AddScoped<IChatService, ChatService>();
+
+            builder.Services.AddHttpClient<IChatService, ChatService>();
 
             builder.Services.AddScoped<IVnpayService, VnpayService>();
             builder.Services.AddScoped<IMoMoService, MoMoService>();

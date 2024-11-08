@@ -4,7 +4,7 @@ import { refreshToken } from "./authAxios";
 
 // Create axios instance
 const instance = axios.create({
-    baseURL: 'https://localhost:7173/api/',
+    baseURL: 'https://localhost:8080/api/',
     withCredentials: true
 });
 

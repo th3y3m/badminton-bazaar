@@ -108,6 +108,30 @@ const numOfProductRemaining = async (id) => {
     }
 };
 
+const productPageQrCode = async (id) => {
+    try {
+        const response = await axios.get(`Product/product-page-qr-code?productId=${id}`, {
+            responseType: 'blob'
+        });
+        return response;
+    } catch (error) {
+        console.error(`Error fetching product page QR code by ID (${id}):`, error);
+        throw error;
+    }
+};
+
+// const [qrCode, setQrCode] = useState("");
+
+// const fetchQrCode = async (id) => {
+//     try {
+//         const qrCodeBlob = await productPageQrCode(id);
+//         const qrCodeUrl = URL.createObjectURL(qrCodeBlob);
+//         setQrCode(qrCodeUrl);
+//     } catch (error) {
+//         console.error("Error fetching QR code:", error);
+//     }
+// };
+
 export {
     fetchPaginatedProducts,
     fetchProductById,
@@ -116,5 +140,6 @@ export {
     updateProduct,
     deleteProductById,
     getTopSeller,
-    numOfProductRemaining
+    numOfProductRemaining,
+    productPageQrCode
 };

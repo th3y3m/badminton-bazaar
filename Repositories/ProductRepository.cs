@@ -92,5 +92,21 @@ namespace Repositories
                 throw new Exception($"Error deleting product: {ex.Message}");
             }
         }
+
+        public async Task<List<Product>> GetProducts(string id)
+        {
+            try
+            {
+                return await _dbContext.Products
+                    .Include(p => p.Category)
+                    .Include(p => p.Supplier)
+                    .Include(p => p.ProductVariants)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving products: {ex.Message}");
+            }
+        }
     }
 }

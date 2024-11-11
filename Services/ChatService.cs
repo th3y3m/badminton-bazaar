@@ -3,6 +3,7 @@ using Services.Interface;
 using System;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -22,7 +23,7 @@ namespace Services
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
         }
 
-        public async Task<string> GetResponseAsync(string userMessage)
+        public async Task<string> GetResponseAsyncUsingGoogleFlanT5Large(string userMessage)
         {
             try
             {
@@ -44,7 +45,7 @@ namespace Services
             }
             catch (Exception ex)
             {
-                throw new Exception("Error in GetResponseAsync method", ex);
+                throw new Exception("Error in GetResponseAsyncUsingGoogleFlanT5Large method", ex);
             }
         }
     }

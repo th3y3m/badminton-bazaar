@@ -190,8 +190,10 @@ namespace API
             builder.Services.AddScoped<IMailService, MailService>();
             builder.Services.AddScoped<IAuthService, AuthenticationService>();
             builder.Services.AddScoped<IChatService, ChatService>();
+            builder.Services.AddScoped<IAIService, AIService>();
 
             builder.Services.AddHttpClient<IChatService, ChatService>();
+            builder.Services.AddHttpClient<IAIService, AIService>();
 
             builder.Services.AddScoped<IVnpayService, VnpayService>();
             builder.Services.AddScoped<IMoMoService, MoMoService>();

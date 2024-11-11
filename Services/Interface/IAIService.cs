@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace Services.Interface
 {
-    public interface IChatService
+    public interface IAIService
     {
-        Task<string> GetResponseAsyncUsingGoogleFlanT5Large(string userMessage);
+        Task<string> GetResponseAsyncUsingLocalAI(string userMessage);
     }
 }

@@ -14,12 +14,12 @@ namespace API.Controllers
             _chatService = chatService;
         }
 
-        [HttpPost]
-        public async Task<IActionResult> GetSuggestion([FromBody] string userMessage)
+        [HttpPost("google-flan-t5-large")]
+        public async Task<IActionResult> GetResponseAsyncUsingGoogleFlanT5Large([FromBody] string userMessage)
         {
             try
             {
-                var suggestion = await _chatService.GetResponseAsync(userMessage);
+                var suggestion = await _chatService.GetResponseAsyncUsingGoogleFlanT5Large(userMessage);
                 return Ok(suggestion);
             }
             catch (Exception ex)

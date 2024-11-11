@@ -210,5 +210,21 @@ namespace API.Controllers
                 return StatusCode(500, $"Error generating QR code: {ex.Message}");
             }
         }
+
+        [HttpGet("generate-image")]
+        public IActionResult GenerateImage([FromQuery] string text)
+        {
+            try
+            {
+                var imageService = new ImageService();
+                var image = ImageService.GenerateImage(text);
+                return File(image, "image/png");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error generating image: {ex.Message}");
+            }
+        }
+
     }
 }

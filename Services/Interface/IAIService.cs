@@ -8,6 +8,7 @@ namespace Services.Interface
 {
     public interface IAIService
     {
-        Task<string> GetResponseAsyncUsingLocalAI(string userMessage);
+        Task<string> GetResponseAsyncUsingLocalTextGenerationAI(string userMessage);
+        Task<string> GetResponseAsyncUsingLocalImageGenerationAI(string userMessage);
     }
 }

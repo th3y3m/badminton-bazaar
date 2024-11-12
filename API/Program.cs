@@ -193,7 +193,10 @@ namespace API
             builder.Services.AddScoped<IAIService, AIService>();
 
             builder.Services.AddHttpClient<IChatService, ChatService>();
-            builder.Services.AddHttpClient<IAIService, AIService>();
+            builder.Services.AddHttpClient<IAIService, AIService>(client =>
+            {
+                client.Timeout = TimeSpan.FromMinutes(60);
+            });
 
             builder.Services.AddScoped<IVnpayService, VnpayService>();
             builder.Services.AddScoped<IMoMoService, MoMoService>();

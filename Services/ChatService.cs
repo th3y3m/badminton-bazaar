@@ -18,8 +18,8 @@ namespace Services
         public ChatService(HttpClient httpClient, IConfiguration configuration)
         {
             _httpClient = httpClient;
-            _apiKey = configuration["AI:APIKey"];
-            _apiUrl = configuration["AI:URL"];
+            _apiKey = configuration["HuggingFace:Token"];
+            _apiUrl = configuration["HuggingFace:URL"];
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
         }
 

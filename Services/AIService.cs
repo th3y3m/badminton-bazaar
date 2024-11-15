@@ -17,24 +17,25 @@ namespace Services
     {
         private readonly HttpClient _httpClient;
         private readonly string _localAiTextUrl;
+        private readonly string _localAiTextWithConfigUrl;
         private readonly string _localAiImageUrl;
+        private readonly string _googleAiUrl;
+        private readonly string _googleAiAndDbUrl;
 
         public AIService(HttpClient httpClient, IConfiguration configuration)
         {
             _httpClient = httpClient;
             _localAiTextUrl = configuration["LocalAI:Text"];
+            _localAiTextWithConfigUrl = configuration["LocalAI:TextWithConfig"];
             _localAiImageUrl = configuration["LocalAI:Image"];
+            _googleAiUrl = configuration["LocalAI:Google"];
+            _googleAiAndDbUrl = configuration["LocalAI:GoogleDb"];
         }
 
-        public async Task<string> GetResponseAsyncUsingLocalImageGenerationAI(string userMessage)
+        public async Task<string> GetResponseAsyncUsingLocalImageGenerationAI(GetResponseAsyncUsingLocalImageGenerationAIRequest requestBody)
         {
             try
             {
-                var requestBody = new
-                {
-                    prompt = userMessage,
-                };
-
                 var response = await _httpClient.PostAsJsonAsync(_localAiImageUrl, requestBody);
                 response.EnsureSuccessStatusCode();
 
@@ -91,6 +92,54 @@ namespace Services
             catch (Exception ex)
             {
                 return $"Error: {ex.Message}";
+            }
+        }
+
+        public async Task<ChatResponseWithConfig> GetResponseAsyncUsingLocalTextGenerationAIWithConfig(GetResponseAsyncUsingTextGenerationAIRequest request)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync(_localAiTextWithConfigUrl, request);
+                response.EnsureSuccessStatusCode();
+
+                var result = await response.Content.ReadFromJsonAsync<ChatResponseWithConfig>();
+                return result ?? throw new Exception("No GetResponseAsyncUsingLocalTextGenerationAIWithConfig received");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error: {ex.Message}");
+            }
+        }
+
+        public async Task<GoogleChatResponse> GetResponseAsyncUsingGoogleAI(GoogleChatRequest request)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync(_googleAiUrl, request);
+                response.EnsureSuccessStatusCode();
+
+                var result = await response.Content.ReadFromJsonAsync<GoogleChatResponse>();
+                return result ?? throw new Exception("No GetResponseAsyncUsingGooleAI received");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error: {ex.Message}");
+            }
+        }
+
+        public async Task<GoogleChatResponse> GetResponseAsyncUsingGoogleAIAndDb(GoogleChatRequest request)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync(_googleAiAndDbUrl, request);
+                response.EnsureSuccessStatusCode();
+
+                var result = await response.Content.ReadFromJsonAsync<GoogleChatResponse>();
+                return result ?? throw new Exception("No GetResponseAsyncUsingGoogleAIAndDb received");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error: {ex.Message}");
             }
         }
     }

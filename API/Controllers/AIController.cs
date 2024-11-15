@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using Services;
 using Services.Interface;
+using Services.Models;
 
 namespace API.Controllers
 {
@@ -31,12 +33,12 @@ namespace API.Controllers
         }
 
         [HttpPost("local-image-ai")]
-        public async Task<IActionResult> GetResponseAsyncUsingLocalImageGenerationAI([FromBody] string userMessage)
+        public async Task<IActionResult> GetResponseAsyncUsingLocalImageGenerationAI(GetResponseAsyncUsingLocalImageGenerationAIRequest request)
         {
             try
             {
                 // Call the AI service to get the base64-encoded image
-                var base64Image = await _aiService.GetResponseAsyncUsingLocalImageGenerationAI(userMessage);
+                var base64Image = await _aiService.GetResponseAsyncUsingLocalImageGenerationAI(request);
 
                 // Check if we got a valid image
                 if (string.IsNullOrEmpty(base64Image) || !IsValidBase64(base64Image))
@@ -49,6 +51,50 @@ namespace API.Controllers
 
                 // Return the image as a FileResult (image/png in this case)
                 return File(imageBytes, "image/png");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPost("local-text-ai-with-config")]
+        public async Task<IActionResult> GetResponseAsyncUsingLocalTextGenerationAIWithConfig([FromQuery] GetResponseAsyncUsingTextGenerationAIRequest request)
+        {
+            try
+            {
+                var res = await _aiService.GetResponseAsyncUsingLocalTextGenerationAIWithConfig(request);
+
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPost("google-ai")]
+        public async Task<IActionResult> GetResponseAsyncUsingGooleAI([FromQuery] GoogleChatRequest request)
+        {
+            try
+            {
+                var res = await _aiService.GetResponseAsyncUsingGoogleAI(request);
+
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+        [HttpPost("google-ai-db")]
+        public async Task<IActionResult> GetResponseAsyncUsingGoogleAIAndDb([FromQuery] GoogleChatRequest request)
+        {
+            try
+            {
+                var res = await _aiService.GetResponseAsyncUsingGoogleAIAndDb(request);
+
+                return Ok(res);
             }
             catch (Exception ex)
             {

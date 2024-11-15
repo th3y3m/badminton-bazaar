@@ -29,4 +29,32 @@ namespace Services.Models
     {
         public ChatMessage message { get; set; }
     }
+
+    public class GetResponseAsyncUsingLocalImageGenerationAIRequest
+    {
+        public string user_message { get; set; }
+        public int steps { get; set; }
+    }
+
+    public class GetResponseAsyncUsingTextGenerationAIRequest
+    {
+        public string? session_id { get; set; } = "";
+        public string user_message { get; set; }
+    }
+
+    public class ChatResponseWithConfig
+    {
+        public string session_id { get; set; }
+        public string response { get; set; }
+    }
+
+    public class GoogleChatResponse
+    {
+        public string response { get; set; }
+    }
+
+    public class GoogleChatRequest
+    {
+        public string user_message { get; set; }
+    }
 }

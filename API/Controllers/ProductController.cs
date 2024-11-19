@@ -17,10 +17,12 @@ namespace API.Controllers
     public class ProductController : Controller
     {
         private readonly IProductService _productService;
+        private readonly IBrowsingHistoryService _browsingHistoryService;
 
-        public ProductController(IProductService productService)
+        public ProductController(IProductService productService, IBrowsingHistoryService browsingHistoryService)
         {
             _productService = productService;
+            _browsingHistoryService = browsingHistoryService;
         }
 
         [HttpGet]
@@ -53,14 +55,14 @@ namespace API.Controllers
         {
             try
             {
-                //var userId = User?.FindFirst("Id")?.Value;
+                var userId = User?.FindFirst("Id")?.Value;
 
-                //var sessionId = HttpContext.Session.Id; // Use session ID for guests
+                var sessionId = HttpContext.Session.Id; // Use session ID for guests
 
-                //if (!string.IsNullOrEmpty(id))
-                //{
-                //    await _browsingHistoryService.LogBrowsingEvent(userId, id, sessionId);
-                //}
+                if (!string.IsNullOrEmpty(id))
+                {
+                    await _browsingHistoryService.LogBrowsingEvent(userId, id, sessionId);
+                }
 
                 var product = await _productService.GetProductById(id);
                 return Ok(product);

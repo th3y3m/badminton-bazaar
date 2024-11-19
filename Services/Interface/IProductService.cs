@@ -31,9 +31,10 @@ namespace Services.Interface
         Task<List<Product>> GetTopSeller(int n);
         Task<int> GetSelledProduct(string productId);
         Task<List<Product>> GetRelatedProduct(string productId);
-        Task<List<ProductRecommendation>> GetProductRecommendations(string userId);
-        Task<List<ProductRecommendation>> GetContentBasedRecommendations(string userId);
-        Task<List<ProductRecommendation>> GetCollaborativeFilteringRecommendations(string userId);
-        Task<List<ProductRecommendation>> PredictHybridRecommendations(string userId);
+        //Task<List<ProductRecommendation>> GetProductRecommendations(string userId);
+        //Task<List<ProductRecommendation>> GetContentBasedRecommendations(string userId);
+        //Task<List<ProductRecommendation>> GetCollaborativeFilteringRecommendations(string userId);
+        Task<List<ProductRecommendation>> PredictHybridRecommendationsByRating(string userId);
+        Task<List<ProductRecommendation>> PredictRecommendationsByPersonalBrowsingHistory(string userId);
     }
 }

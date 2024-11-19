@@ -59,7 +59,7 @@ namespace API.Controllers
 
                 var sessionId = HttpContext.Session.Id; // Use session ID for guests
 
-                if (!string.IsNullOrEmpty(id))
+                if (!string.IsNullOrEmpty(id) && !string.IsNullOrEmpty(userId))
                 {
                     await _browsingHistoryService.LogBrowsingEvent(userId, id, sessionId);
                 }
@@ -239,12 +239,26 @@ namespace API.Controllers
             }
         }
         
-        [HttpGet("product-recommendation")]
-        public async Task<IActionResult> GetProductRecommendation([FromQuery] string userId)
+        //[HttpGet("product-recommendation")]
+        //public async Task<IActionResult> GetProductRecommendation([FromQuery] string userId)
+        //{
+        //    try
+        //    {
+        //        var productList = await _productService.GetProductRecommendations(userId);
+        //        return Ok(productList);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, $"Error product recommendation: {ex.Message}");
+        //    }
+        //}
+        
+        [HttpGet("product-recommendation-v2")]
+        public async Task<IActionResult> GetProductRecommendationV2([FromQuery] string userId)
         {
             try
             {
-                var productList = await _productService.GetProductRecommendations(userId);
+                var productList = await _productService.PredictHybridRecommendationsByRating(userId);
                 return Ok(productList);
             }
             catch (Exception ex)
@@ -252,18 +266,18 @@ namespace API.Controllers
                 return StatusCode(500, $"Error product recommendation: {ex.Message}");
             }
         }
-        
-        [HttpGet("product-recommendation-v2")]
-        public async Task<IActionResult> GetProductRecommendationV2([FromQuery] string userId)
+
+        [HttpGet("product-recommendation-v3")]
+        public async Task<List<ProductRecommendation>> PredictHRecommendationsByPersonalBrowsingHistory(string userId)
         {
             try
             {
-                var productList = await _productService.PredictHybridRecommendations(userId);
-                return Ok(productList);
+                var productList = await _productService.PredictRecommendationsByPersonalBrowsingHistory(userId);
+                return productList;
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error product recommendation: {ex.Message}");
+                return null;
             }
         }
     }

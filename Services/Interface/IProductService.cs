@@ -22,6 +22,7 @@ namespace Services.Interface
             int pageIndex,
             int pageSize);
         Task<Product> GetProductById(string id);
+        Task<List<Product>> GetProducts();
         Task<Product> AddProduct(ProductModel productModel);
         Task<Product> UpdateProduct(ProductModel productModel, string id);
         Task DeleteProduct(string id);
@@ -30,5 +31,9 @@ namespace Services.Interface
         Task<List<Product>> GetTopSeller(int n);
         Task<int> GetSelledProduct(string productId);
         Task<List<Product>> GetRelatedProduct(string productId);
+        Task<List<ProductRecommendation>> GetProductRecommendations(string userId);
+        Task<List<ProductRecommendation>> GetContentBasedRecommendations(string userId);
+        Task<List<ProductRecommendation>> GetCollaborativeFilteringRecommendations(string userId);
+        Task<List<ProductRecommendation>> PredictHybridRecommendations(string userId);
     }
 }

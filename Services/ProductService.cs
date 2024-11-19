@@ -17,6 +17,9 @@ using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using Polly.Timeout;
 using Polly.Wrap;
+using Microsoft.ML.Trainers;
+using Microsoft.ML;
+using Repositories;
 
 namespace Services
 {
@@ -25,9 +28,11 @@ namespace Services
         private readonly IProductRepository _productRepository;
         private readonly IProductVariantRepository _productVariantRepository;
         private readonly IOrderDetailRepository _orderDetailRepository;
+        private readonly IReviewRepository _reviewRepository;
         private readonly IConnectionMultiplexer _redisConnection;
         private readonly IDatabase _redisDb;
         private readonly IElasticsearchService _elasticsearchService;
+        private readonly IBrowsingHistoryRepository _browsingHistoryRepository;
         private readonly AsyncRetryPolicy _dbRetryPolicy;
         private readonly AsyncRetryPolicy _retryPolicy;
         private readonly AsyncTimeoutPolicy _dbTimeoutPolicy;
@@ -35,11 +40,13 @@ namespace Services
         private readonly AsyncPolicyWrap _dbPolicyWrap;
         private readonly AsyncPolicyWrap _policyWrap;
 
-        public ProductService(IProductRepository productRepository, IProductVariantRepository productVariantRepository, IOrderDetailRepository orderDetailRepository, IConnectionMultiplexer redisConnection, IElasticsearchService elasticClient)
+        public ProductService(IProductRepository productRepository, IProductVariantRepository productVariantRepository, IOrderDetailRepository orderDetailRepository, IConnectionMultiplexer redisConnection, IElasticsearchService elasticClient, IBrowsingHistoryRepository browsingHistoryRepository, IReviewRepository reviewRepository)
         {
             _productRepository = productRepository;
             _productVariantRepository = productVariantRepository;
             _orderDetailRepository = orderDetailRepository;
+            _reviewRepository = reviewRepository;
+            _browsingHistoryRepository = browsingHistoryRepository;
             _redisConnection = redisConnection;
             _redisDb = _redisConnection.GetDatabase();
             _elasticsearchService = elasticClient;
@@ -151,6 +158,18 @@ namespace Services
             catch (Exception ex)
             {
                 throw new Exception($"Error retrieving paginated products: {ex.Message}");
+            }
+        }
+
+        public async Task<List<Product>> GetProducts()
+        {
+            try
+            {
+                return await _productRepository.GetAll();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving products: {ex.Message}");
             }
         }
 
@@ -407,6 +426,248 @@ namespace Services
             {
                 throw new Exception($"Error retrieving related products: {ex.Message}");
             }
+        }
+
+        public async Task<List<ProductRecommendation>> GetCollaborativeFilteringRecommendations(string userId)
+        {
+            try
+            {
+                List<BrowsingHistory> userBrowsingHistories = await _browsingHistoryRepository.GetUserHistories(userId);
+
+                if (userBrowsingHistories.Count == 0)
+                {
+                    return new List<ProductRecommendation>();
+                }
+
+                var userProductMatrix = userBrowsingHistories
+                    .GroupBy(b => b.ProductId)
+                    .Select(g => new ProductInteractionV2
+                    {
+                        UserId = userId,
+                        ProductId = g.Key,
+                        Label = g.Count() // Using view count as the label
+                    })
+                    .ToList();
+
+                var mlContext = new MLContext();
+
+                IDataView trainingDataView = mlContext.Data.LoadFromEnumerable(userProductMatrix);
+
+                var pipeline = mlContext.Transforms.Conversion.MapValueToKey(nameof(ProductInteractionV2.UserId))
+                    .Append(mlContext.Transforms.Conversion.MapValueToKey(nameof(ProductInteractionV2.ProductId)))
+                    .Append(mlContext.Recommendation().Trainers.MatrixFactorization(
+                        new MatrixFactorizationTrainer.Options
+                        {
+                            MatrixColumnIndexColumnName = nameof(ProductInteractionV2.ProductId),
+                            MatrixRowIndexColumnName = nameof(ProductInteractionV2.UserId),
+                            LabelColumnName = nameof(ProductInteractionV2.Label)
+                        }));
+
+                var model = pipeline.Fit(trainingDataView);
+
+                var predictionEngine = mlContext.Model.CreatePredictionEngine<ProductInteractionV2, ProductScorePrediction>(model);
+
+                var allProducts = await GetProducts();
+
+                var recommendations = new List<ProductRecommendation>();
+
+                foreach (var product in allProducts)
+                {
+                    var prediction = predictionEngine.Predict(new ProductInteractionV2
+                    {
+                        UserId = userId,
+                        ProductId = product.ProductId
+                    });
+
+                    var score = float.IsNaN(prediction.Score) ? 0 : prediction.Score;
+
+                    recommendations.Add(new ProductRecommendation
+                    {
+                        Product = product,
+                        Score = score
+                    });
+                }
+
+                // Sort recommendations by Score in descending order
+                recommendations = recommendations.OrderByDescending(r => r.Score).ToList();
+
+                return recommendations;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while generating collaborative filtering recommendations.", ex);
+            }
+        }
+
+        public async Task<List<ProductRecommendation>> GetContentBasedRecommendations(string userId)
+        {
+            try
+            {
+                List<BrowsingHistory> userBrowsingHistories = await _browsingHistoryRepository.GetUserHistories(userId);
+
+                if (userBrowsingHistories.Count == 0)
+                {
+                    return new List<ProductRecommendation>();
+                }
+
+                var recentBrowsingHistory = userBrowsingHistories
+                    .OrderByDescending(b => b.BrowsedAt)
+                    .FirstOrDefault();
+
+                if (recentBrowsingHistory == null)
+                {
+                    return new List<ProductRecommendation>();
+                }
+
+                var recentProduct = await GetProductById(recentBrowsingHistory.ProductId);
+
+                var allProducts = await GetProducts();
+
+                var recommendations = allProducts
+                    .Where(p => p.CategoryId == recentProduct.CategoryId && p.SupplierId == recentProduct.SupplierId && p.Gender == recentProduct.Gender && p.ProductId != recentProduct.ProductId)
+                    .Select(p => new ProductRecommendation
+                    {
+                        Product = p,
+                        Score = 1 // Assign a default score for content-based recommendations
+                    })
+                    .ToList();
+
+                return recommendations;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while generating content based recommendations.", ex);
+            }
+        }
+
+        public async Task<List<ProductRecommendation>> GetProductRecommendations(string userId)
+        {
+            try
+            {
+                var collaborativeRecommendations = await GetCollaborativeFilteringRecommendations(userId);
+                var contentBasedRecommendations = await GetContentBasedRecommendations(userId);
+
+                var combinedRecommendations = collaborativeRecommendations
+                    .Concat(contentBasedRecommendations)
+                    .GroupBy(r => r.Product.ProductId)
+                    .Select(g => new ProductRecommendation
+                    {
+                        Product = g.First().Product,
+                        Score = g.Max(r => r.Score) // Use the highest score from either approach
+                    })
+                    .OrderByDescending(r => r.Score)
+                    .ToList();
+
+                return combinedRecommendations;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<List<ProductRecommendation>> PredictHybridRecommendations(string userId)
+        {
+            double alpha = 0.5; // Weight for collaborative filtering score
+            var mlContext = new MLContext();
+
+            // Load collaborative filtering data
+            var ratings = (await _reviewRepository.GetAll())
+                .Select(r => new UserProductRating
+                {
+                    UserId = r.UserId,
+                    ProductId = r.ProductId,
+                    Rating = r.Rating ?? 0 // Handle nullable ratings
+                })
+                .ToList();
+
+            // Load data into IDataView
+            IDataView dataView = mlContext.Data.LoadFromEnumerable(ratings);
+
+            // Define pipeline: Transform UserId and ProductId to key types
+            var pipeline = mlContext.Transforms.Conversion.MapValueToKey(
+                    inputColumnName: nameof(UserProductRating.UserId),
+                    outputColumnName: "UserIdKey")
+                .Append(mlContext.Transforms.Conversion.MapValueToKey(
+                    inputColumnName: nameof(UserProductRating.ProductId),
+                    outputColumnName: "ProductIdKey"))
+                .Append(mlContext.Recommendation().Trainers.MatrixFactorization(
+                    labelColumnName: nameof(UserProductRating.Rating),
+                    matrixColumnIndexColumnName: "UserIdKey",
+                    matrixRowIndexColumnName: "ProductIdKey"));
+
+            // Train the model
+            var model = pipeline.Fit(dataView);
+
+            // Create prediction engine
+            var predictionEngine = mlContext.Model.CreatePredictionEngine<UserProductRating, RatingPrediction>(model);
+
+            // Prepare hybrid recommendations
+            var recommendations = new List<ProductRecommendation>();
+            var products = await _productRepository.GetAll();
+            var productVectors = GetProductFeatureVectors(products);
+
+            foreach (var product in products)
+            {
+                // Collaborative Filtering Score
+                var collaborativePrediction = predictionEngine.Predict(new UserProductRating
+                {
+                    UserId = userId,
+                    ProductId = product.ProductId
+                });
+                var collaborativeScore = float.IsNaN(collaborativePrediction.Score) ? 0 : collaborativePrediction.Score;
+
+                // Content-Based Filtering Score
+                double contentScore = 0;
+                if (productVectors.ContainsKey(product.ProductId))
+                {
+                    foreach (var otherProduct in products)
+                    {
+                        if (otherProduct.ProductId != product.ProductId)
+                        {
+                            var similarity = CalculateCosineSimilarity(
+                                productVectors[product.ProductId],
+                                productVectors[otherProduct.ProductId]);
+                            contentScore += similarity;
+                        }
+                    }
+                    contentScore /= products.Count - 1; // Average similarity
+                }
+
+                // Hybrid Score
+                var hybridScore = alpha * collaborativeScore + (1 - alpha) * contentScore;
+
+                // Add to recommendations
+                recommendations.Add(new ProductRecommendation
+                {
+                    Product = product,
+                    Score = (float)hybridScore
+                });
+            }
+
+            // Sort by score descending
+            return recommendations.OrderByDescending(r => r.Score).ToList();
+        }
+
+        private Dictionary<string, float[]> GetProductFeatureVectors(IEnumerable<Product> products)
+        {
+            return products.ToDictionary(p => p.ProductId, p => new float[]
+            {
+                p.BasePrice > 500 ? 1 : 0,  // Example: expensive vs affordable
+                p.Gender == "Unisex" ? 1 : 0, // Example: gender-based attribute
+                p.Gender == "Men" ? 1 : 0,            // Is Male
+                p.Gender == "Women" ? 1 : 0,
+                p.CategoryId.GetHashCode() % 10, // Example: hashed category
+                p.SupplierId.GetHashCode() % 10 // Example: hashed supplier
+            });
+        }
+
+        private static double CalculateCosineSimilarity(float[] vectorA, float[] vectorB)
+        {
+            double dotProduct = vectorA.Zip(vectorB, (a, b) => a * b).Sum();
+            double magnitudeA = Math.Sqrt(vectorA.Sum(a => a * a));
+            double magnitudeB = Math.Sqrt(vectorB.Sum(b => b * b));
+            return dotProduct / (magnitudeA * magnitudeB);
         }
     }
 }

@@ -1,11 +1,13 @@
 ﻿using BusinessObjects;
 using Firebase.Storage;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Repositories;
 using Services;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
+using System.Security.Claims;
 using System.Text.Json;
 
 namespace API.Controllers
@@ -51,6 +53,15 @@ namespace API.Controllers
         {
             try
             {
+                //var userId = User?.FindFirst("Id")?.Value;
+
+                //var sessionId = HttpContext.Session.Id; // Use session ID for guests
+
+                //if (!string.IsNullOrEmpty(id))
+                //{
+                //    await _browsingHistoryService.LogBrowsingEvent(userId, id, sessionId);
+                //}
+
                 var product = await _productService.GetProductById(id);
                 return Ok(product);
             }
@@ -225,6 +236,33 @@ namespace API.Controllers
                 return StatusCode(500, $"Error generating image: {ex.Message}");
             }
         }
-
+        
+        [HttpGet("product-recommendation")]
+        public async Task<IActionResult> GetProductRecommendation([FromQuery] string userId)
+        {
+            try
+            {
+                var productList = await _productService.GetProductRecommendations(userId);
+                return Ok(productList);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error product recommendation: {ex.Message}");
+            }
+        }
+        
+        [HttpGet("product-recommendation-v2")]
+        public async Task<IActionResult> GetProductRecommendationV2([FromQuery] string userId)
+        {
+            try
+            {
+                var productList = await _productService.PredictHybridRecommendations(userId);
+                return Ok(productList);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error product recommendation: {ex.Message}");
+            }
+        }
     }
 }

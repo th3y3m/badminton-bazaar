@@ -97,9 +97,9 @@ namespace API
             // JWT Authentication Configuration
             builder.Services.AddAuthentication(options =>
             {
-                options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
             })
             .AddJwtBearer(options =>
             {
@@ -170,6 +170,7 @@ namespace API
             builder.Services.AddScoped<IUserDetailRepository, UserDetailRepository>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IFreightPriceRepository, FreightPriceRepository>();
+            builder.Services.AddScoped<IBrowsingHistoryRepository, BrowsingHistoryRepository>();
 
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<ICategoryService, CategoryService>();
@@ -191,6 +192,7 @@ namespace API
             builder.Services.AddScoped<IAuthService, AuthenticationService>();
             builder.Services.AddScoped<IChatService, ChatService>();
             builder.Services.AddScoped<IAIService, AIService>();
+            builder.Services.AddScoped<IBrowsingHistoryService, BrowsingHistoryService>();
 
             builder.Services.AddHttpClient<IChatService, ChatService>();
             builder.Services.AddHttpClient<IAIService, AIService>(client =>

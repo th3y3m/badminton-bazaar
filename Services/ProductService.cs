@@ -29,6 +29,7 @@ namespace Services
         private readonly IProductVariantRepository _productVariantRepository;
         private readonly IOrderDetailRepository _orderDetailRepository;
         private readonly IReviewRepository _reviewRepository;
+        private readonly IOrderRepository _orderRepository;
         private readonly IConnectionMultiplexer _redisConnection;
         private readonly IDatabase _redisDb;
         private readonly IElasticsearchService _elasticsearchService;
@@ -40,13 +41,14 @@ namespace Services
         private readonly AsyncPolicyWrap _dbPolicyWrap;
         private readonly AsyncPolicyWrap _policyWrap;
 
-        public ProductService(IProductRepository productRepository, IProductVariantRepository productVariantRepository, IOrderDetailRepository orderDetailRepository, IConnectionMultiplexer redisConnection, IElasticsearchService elasticClient, IBrowsingHistoryRepository browsingHistoryRepository, IReviewRepository reviewRepository)
+        public ProductService(IProductRepository productRepository, IProductVariantRepository productVariantRepository, IOrderDetailRepository orderDetailRepository, IConnectionMultiplexer redisConnection, IElasticsearchService elasticClient, IBrowsingHistoryRepository browsingHistoryRepository, IReviewRepository reviewRepository, IOrderRepository orderRepository)
         {
             _productRepository = productRepository;
             _productVariantRepository = productVariantRepository;
             _orderDetailRepository = orderDetailRepository;
             _reviewRepository = reviewRepository;
             _browsingHistoryRepository = browsingHistoryRepository;
+            _orderRepository = orderRepository;
             _redisConnection = redisConnection;
             _redisDb = _redisConnection.GetDatabase();
             _elasticsearchService = elasticClient;
@@ -420,7 +422,7 @@ namespace Services
             {
                 var product = await _productRepository.GetById(productId);
                 var products = await _productRepository.GetAll();
-                return products.Where(p => p.CategoryId == product.CategoryId && p.ProductId != productId).ToList();
+                return products.Where(p => (p.CategoryId == product.CategoryId || p.SupplierId == product.SupplierId) && p.ProductId != productId).ToList();
             }
             catch (Exception ex)
             {
@@ -669,7 +671,6 @@ namespace Services
                 .OrderByDescending(b => b.BrowseCount)
                 .ToList();
 
-
             // Prepare hybrid recommendations
             var recommendations = new List<ProductRecommendation>();
             var products = await _productRepository.GetAll();
@@ -696,6 +697,62 @@ namespace Services
                 });
             }
 
+            // Sort by score descending
+            return recommendations.OrderByDescending(r => r.Score).ToList();
+        }
+
+        public async Task<List<ProductRecommendation>> PredictRecommendationsByPersonalLatestOrder(string userId)
+        {
+            var latestOrder = await _orderRepository.GetLatestOrder(userId);
+
+            if (latestOrder == null)
+            {
+                return new List<ProductRecommendation>();
+            }
+
+            var orderDetails = await _orderDetailRepository.GetByOrderId(latestOrder.OrderId);
+            var productVariantIds = orderDetails
+                .Select(od => od.ProductVariantId)
+                .Distinct()
+                .ToList();
+
+            var productIds = productVariantIds
+                .Select(pvId => _productVariantRepository.GetById(pvId).Result.ProductId)
+                .Distinct()
+                .ToList();
+
+            // Prepare hybrid recommendations
+            var recommendations = new List<ProductRecommendation>();
+            var products = await _productRepository.GetAll();
+            var filteredProducts = products
+                .Where(p => !productIds.Contains(p.ProductId))
+                .ToList();
+
+            var productVectors = GetProductFeatureVectors(products);
+
+            foreach (var product in filteredProducts)
+            {
+                double contentScore = 0;
+                if (productVectors.ContainsKey(product.ProductId))
+                {
+                    foreach (var productId in productIds)
+                    {
+                        var similarity = CalculateCosineSimilarity(
+                            productVectors[product.ProductId],
+                            productVectors[productId]);
+                        contentScore += similarity;
+
+                    }
+                    contentScore /= products.Count - 1;
+                }
+
+                // Add to recommendations
+                recommendations.Add(new ProductRecommendation
+                {
+                    Product = product,
+                    Score = (float)contentScore
+                });
+            }
 
             // Sort by score descending
             return recommendations.OrderByDescending(r => r.Score).ToList();
@@ -713,7 +770,6 @@ namespace Services
                 (float)p.SupplierId.GetHashCode() / int.MaxValue
             });
         }
-
 
         private static double CalculateCosineSimilarity(float[] vectorA, float[] vectorB)
         {

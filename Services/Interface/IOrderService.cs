@@ -23,5 +23,6 @@ namespace Services.Interface
         Task<Order> AddOrder(string userId, decimal freight, string address);
         Task CancelOrder(string orderId);
         Task AutomaticFailedOrder(string orderId);
+        Task<Order> GetLatestOrder(string userId);
     }
 }

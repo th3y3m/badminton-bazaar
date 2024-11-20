@@ -55,6 +55,21 @@ namespace Repositories
             }
         }
 
+        public async Task<Order> GetLatestOrder(string userId)
+        {
+            try
+            {
+                return await _dbContext.Orders
+                    .Where(o => o.UserId == userId)
+                    .OrderByDescending(o => o.OrderDate)
+                    .FirstOrDefaultAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while retrieving the order by ID.", ex);
+            }
+        }
+
         public async Task<List<Order>> GetAll()
         {
             try

@@ -69,6 +69,21 @@ namespace Services
             _dbPolicyWrap = Policy.WrapAsync(_dbRetryPolicy, _dbTimeoutPolicy);
             _redisPolicyWrap = Policy.WrapAsync(_redisRetryPolicy, _redisTimeoutPolicy);
         }
+
+        public async Task<BusinessObjects.Order> GetLatestOrder(string userId)
+        {
+            try
+            {
+                return await _dbPolicyWrap.ExecuteAsync(async () =>
+                    await _orderRepository.GetLatestOrder(userId)
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while retrieving the latest order.", ex);
+            }
+        }
+
         public async Task<decimal> TotalPrice(string orderId)
         {
             try

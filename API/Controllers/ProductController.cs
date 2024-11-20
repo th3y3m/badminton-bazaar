@@ -268,16 +268,30 @@ namespace API.Controllers
         }
 
         [HttpGet("product-recommendation-v3")]
-        public async Task<List<ProductRecommendation>> PredictHRecommendationsByPersonalBrowsingHistory(string userId)
+        public async Task<IActionResult> PredictHRecommendationsByPersonalBrowsingHistory(string userId)
         {
             try
             {
                 var productList = await _productService.PredictRecommendationsByPersonalBrowsingHistory(userId);
-                return productList;
+                return Ok(productList);
             }
             catch (Exception ex)
             {
-                return null;
+                return StatusCode(500, $"Error product recommendation: {ex.Message}");
+            }
+        }
+        
+        [HttpGet("product-recommendation-by-order")]
+        public async Task<IActionResult> PredictRecommendationsByPersonalLatestOrder(string userId)
+        {
+            try
+            {
+                var productList = await _productService.PredictRecommendationsByPersonalLatestOrder(userId);
+                return Ok(productList);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error product recommendation: {ex.Message}");
             }
         }
     }

@@ -16,7 +16,7 @@ namespace Repositories.Interfaces
         Task<List<OrderDetail>> GetAll();
         Task<DbSet<OrderDetail>> GetDbSet();
         Task Delete(string id);
-        Task<OrderDetail> GetByProductId(string id);
+        Task<List<OrderDetail>> GetByProductId(string id);
         Task<List<OrderDetail>> GetByOrderId(string id);
     }
 }

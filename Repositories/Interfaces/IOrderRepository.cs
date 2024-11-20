@@ -16,5 +16,6 @@ namespace Repositories.Interfaces
         Task<List<Order>> GetAll();
         Task<DbSet<Order>> GetDbSet();
         Task Delete(string id);
+        Task<Order> GetLatestOrder(string userId);
     }
 }

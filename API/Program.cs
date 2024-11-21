@@ -193,6 +193,7 @@ namespace API
             builder.Services.AddScoped<IChatService, ChatService>();
             builder.Services.AddScoped<IAIService, AIService>();
             builder.Services.AddScoped<IBrowsingHistoryService, BrowsingHistoryService>();
+            builder.Services.AddScoped<IVoskService, VoskService>();
 
             builder.Services.AddHttpClient<IChatService, ChatService>();
             builder.Services.AddHttpClient<IAIService, AIService>(client =>

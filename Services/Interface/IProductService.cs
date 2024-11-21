@@ -37,5 +37,6 @@ namespace Services.Interface
         Task<List<ProductRecommendation>> PredictHybridRecommendationsByRating(string userId);
         Task<List<ProductRecommendation>> PredictRecommendationsByPersonalBrowsingHistory(string userId);
         Task<List<ProductRecommendation>> PredictRecommendationsByPersonalLatestOrder(string userId);
+        Task<List<Product>> PredictRecommendationsByComplementaryProducts(string userId);
     }
 }

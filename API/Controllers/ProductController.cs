@@ -74,7 +74,7 @@ namespace API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddProduct([FromBody] ProductModel productModel)
+        public async Task<IActionResult> AddProduct([FromForm] ProductModel productModel)
         {
             try
             {
@@ -287,6 +287,20 @@ namespace API.Controllers
             try
             {
                 var productList = await _productService.PredictRecommendationsByPersonalLatestOrder(userId);
+                return Ok(productList);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error product recommendation: {ex.Message}");
+            }
+        }
+
+        [HttpGet("product-recommendation-by-complementary-product")]
+        public async Task<IActionResult> PredictRecommendationsByComplementaryProducts(string userId)
+        {
+            try
+            {
+                var productList = await _productService.PredictRecommendationsByComplementaryProducts(userId);
                 return Ok(productList);
             }
             catch (Exception ex)

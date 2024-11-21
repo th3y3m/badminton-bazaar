@@ -758,6 +758,53 @@ namespace Services
             return recommendations.OrderByDescending(r => r.Score).ToList();
         }
 
+        public async Task<List<Product>> PredictRecommendationsByComplementaryProducts(string userId)
+        {
+            List<List<string>> ComplementaryProducts = new()
+            {
+                new List<string> { "C001", "C002" },
+                new List<string> { "C003", "C004", "C008" },
+                new List<string> { "C006", "C007" },
+                new List<string> { "C009", "C010" }
+            };
+
+            var latestOrder = await _orderRepository.GetLatestOrder(userId);
+            if (latestOrder == null)
+            {
+                return new List<Product>();
+            }
+
+            var orderDetails = await _orderDetailRepository.GetByOrderId(latestOrder.OrderId);
+
+            var productVariantIds = orderDetails.Select(od => od.ProductVariantId).Distinct().ToList();
+            var productVariants = await Task.WhenAll(productVariantIds.Select(pvId => _productVariantRepository.GetById(pvId)));
+            var productIds = productVariants.Select(pv => pv.ProductId).Distinct().ToList();
+
+            var products = await _productRepository.GetAll();
+
+            var orderCategoryIds = products.Where(p => productIds.Contains(p.ProductId))
+                                           .Select(p => p.CategoryId)
+                                           .Distinct()
+                                           .ToList();
+
+            var recommendations = new List<string>();
+            foreach (var complementarySet in ComplementaryProducts)
+            {
+                if (complementarySet.Any(orderCategoryIds.Contains))
+                {
+                    var missingCategories = complementarySet.Except(orderCategoryIds).ToList();
+                    if (missingCategories.Any())
+                    {
+                        recommendations.AddRange(missingCategories);
+                    }
+                }
+            }
+
+            var categoryRecommendations = recommendations.Distinct().ToList();
+
+            return products.Where(p => categoryRecommendations.Contains(p.CategoryId)).ToList();
+        }
+
         private Dictionary<string, float[]> GetProductFeatureVectors(IEnumerable<Product> products)
         {
             return products.ToDictionary(p => p.ProductId, p => new float[]

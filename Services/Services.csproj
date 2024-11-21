@@ -22,12 +22,14 @@
     <PackageReference Include="Microsoft.ML" Version="4.0.0" />
     <PackageReference Include="Microsoft.ML.Recommender" Version="0.22.0" />
     <PackageReference Include="MimeKit" Version="4.8.0" />
+    <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="NEST" Version="7.17.5" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="OpenAI" Version="2.0.0" />
     <PackageReference Include="Polly" Version="8.4.2" />
     <PackageReference Include="QRCoder" Version="1.4.2" />
     <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
+    <PackageReference Include="Vosk" Version="0.3.38" />
   </ItemGroup>
 
   <ItemGroup>

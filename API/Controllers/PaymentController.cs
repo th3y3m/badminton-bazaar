@@ -154,5 +154,159 @@ namespace API.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+
+        [HttpGet("GetTotalRevenue")]
+        public async Task<IActionResult> GetTotalRevenue()
+        {
+            try
+            {
+                var totalRevenue = await _paymentService.GetTotalRevenue();
+                return Ok(totalRevenue);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("GetTodayRevenue")]
+        public async Task<IActionResult> GetTodayRevenue()
+        {
+            try
+            {
+                var todayRevenue = await _paymentService.GetTodayRevenue();
+                return Ok(todayRevenue);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("GetThisWeekRevenue")]
+        public async Task<IActionResult> GetThisWeekRevenue()
+        {
+            try
+            {
+                var thisWeekRevenue = await _paymentService.GetThisWeekRevenue();
+                return Ok(thisWeekRevenue);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("GetThisMonthRevenue")]
+        public async Task<IActionResult> GetThisMonthRevenue()
+        {
+            try
+            {
+                var thisMonthRevenue = await _paymentService.GetThisMonthRevenue();
+                return Ok(thisMonthRevenue);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("GetThisYearRevenue")]
+        public async Task<IActionResult> GetThisYearRevenue()
+        {
+            try
+            {
+                var thisYearRevenue = await _paymentService.GetThisYearRevenue();
+                return Ok(thisYearRevenue);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("GetRevenueFromStartOfWeek")]
+        public async Task<IActionResult> GetRevenueFromStartOfWeek()
+        {
+            try
+            {
+                var revenueFromStartOfWeek = await _paymentService.GetRevenueFromStartOfWeek();
+                return Ok(revenueFromStartOfWeek);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("GetRevenueFromStartOfMonth")]
+        public async Task<IActionResult> GetRevenueFromStartOfMonth()
+        {
+            try
+            {
+                var revenueFromStartOfMonth = await _paymentService.GetRevenueFromStartOfMonth();
+                return Ok(revenueFromStartOfMonth);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("GetRevenueFromStartOfYear")]
+        public async Task<IActionResult> GetRevenueFromStartOfYear()
+        {
+            try
+            {
+                var revenueFromStartOfYear = await _paymentService.GetRevenueFromStartOfYear();
+                return Ok(revenueFromStartOfYear);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("PredictNextDayRevenue")]
+        public async Task<IActionResult> PredictNextDayRevenue()
+        {
+            try
+            {
+                var predictedRevenue = await _paymentService.PredictNextDayRevenue();
+                return Ok(predictedRevenue);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("PredictNextMonthRevenue")]
+        public async Task<IActionResult> PredictNextMonthRevenue()
+        {
+            try
+            {
+                var predictedRevenue = await _paymentService.PredictNextMonthRevenue();
+                return Ok(predictedRevenue);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("PredictNextYearRevenue")]
+        public async Task<IActionResult> PredictNextYearRevenue()
+        {
+            try
+            {
+                var predictedRevenue = await _paymentService.PredictNextYearRevenue();
+                return Ok(predictedRevenue);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
     }
 }

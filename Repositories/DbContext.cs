@@ -48,6 +48,10 @@ namespace Repositories
         public virtual DbSet<ProductVariant> ProductVariants { get; set; }
         public virtual DbSet<FreightPrice> FreightPrices { get; set; }
         public virtual DbSet<BrowsingHistory> BrowsingHistories { get; set; }
+        public virtual DbSet<Discount> Discounts { get; set; }
+        public virtual DbSet<ProductDiscount> ProductDiscounts { get; set; }
+        public virtual DbSet<UserProductDiscount> UserProductDiscounts { get; set; }
+        public virtual DbSet<PriceFactor> PriceFactors { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

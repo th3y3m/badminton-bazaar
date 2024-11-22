@@ -42,11 +42,21 @@ namespace BusinessObjects
         [Required]
         public bool Status { get; set; }
 
+        [Required]
+        public decimal MinPrice { get; set; }
+
+        [Required]
+        public decimal MaxPrice { get; set; }
+
+        [Required]
+        public decimal DefaultPrice { get; set; }
 
 
         // Navigation properties
         public virtual Category Category { get; set; }
         public virtual Supplier Supplier { get; set; }
         public virtual ICollection<ProductVariant> ProductVariants { get; set; }
+        public virtual ICollection<ProductDiscount> ProductDiscounts { get; set; }
+        public virtual ICollection<UserProductDiscount> UserProductDiscounts { get; set; }
     }
 }

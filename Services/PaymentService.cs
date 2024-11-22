@@ -15,6 +15,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Polly.Retry;
 using Polly.Wrap;
+using Microsoft.ML;
 
 namespace Services
 {
@@ -544,6 +545,219 @@ namespace Services
             {
 
                 throw new Exception($"Error retrieving revenue from start of year: {ex.Message}");
+            }
+        }
+
+        public async Task<float> PredictNextDayRevenue()
+        {
+            try
+            {
+                var mlContext = new MLContext();
+
+                // Load data
+                var payments = (await _paymentRepository.GetAll()).Where(p => p.PaymentStatus == "True").ToList();
+
+                if (payments.Count == 0)
+                {
+                    return 0;
+                }
+
+                // Get the date range
+                var startDate = payments.Min(p => p.PaymentDate).Date;
+                var endDate = DateTime.Now.Date;
+
+                // Create a list of all dates within the range
+                var allDates = Enumerable.Range(0, (endDate - startDate).Days + 1)
+                                         .Select(offset => startDate.AddDays(offset))
+                                         .ToList();
+
+                // Aggregate data by day
+                var aggregatedData = payments
+                    .GroupBy(p => p.PaymentDate.Date)
+                    .Select(g => new PaymentDayData
+                    {
+                        PaymentAmount = (float)g.Sum(p => p.PaymentAmount),
+                        DayOfWeek = (float)g.Key.DayOfWeek,
+                        Month = (float)g.Key.Month,
+                        Year = (float)g.Key.Year
+                    }).ToList();
+
+                // Ensure all dates are included, with zero revenue for missing days
+                var completeData = allDates.Select(date =>
+                    aggregatedData.FirstOrDefault(d => d.DayOfWeek == (float)date.DayOfWeek && d.Month == (float)date.Month && d.Year == (float)date.Year)
+                    ?? new PaymentDayData
+                    {
+                        PaymentAmount = 0,
+                        DayOfWeek = (float)date.DayOfWeek,
+                        Month = (float)date.Month,
+                        Year = (float)date.Year
+                    }).ToList();
+
+                var dataView = mlContext.Data.LoadFromEnumerable(completeData);
+
+                // Define the training pipeline
+                var pipeline = mlContext.Transforms
+                    .Concatenate("Features", nameof(PaymentDayData.DayOfWeek), nameof(PaymentDayData.Month), nameof(PaymentDayData.Year))
+                    .Append(mlContext.Regression.Trainers.Sdca(labelColumnName: nameof(PaymentDayData.PaymentAmount), maximumNumberOfIterations: 100));
+
+                // Train the model
+                var model = pipeline.Fit(dataView);
+
+                // Make a prediction
+                var predictionEngine = mlContext.Model.CreatePredictionEngine<PaymentDayData, PaymentPrediction>(model);
+                var nextDay = DateTime.Now.AddDays(1);
+                var nextDayData = new PaymentDayData
+                {
+                    DayOfWeek = (float)nextDay.DayOfWeek,
+                    Month = (float)nextDay.Month,
+                    Year = (float)nextDay.Year
+                };
+
+                var prediction = predictionEngine.Predict(nextDayData);
+                return prediction.PredictedAmount;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error predicting next day's revenue: {ex.Message}");
+            }
+        }
+
+        public async Task<float> PredictNextMonthRevenue()
+        {
+            try
+            {
+                var mlContext = new MLContext();
+
+                // Load data
+                var payments = (await _paymentRepository.GetAll()).Where(p => p.PaymentStatus == "True").ToList();
+
+                if (payments.Count == 0)
+                {
+                    return 0;
+                }
+
+                // Get the date range
+                var startDate = payments.Min(p => p.PaymentDate).Date;
+                var endDate = DateTime.Now.Date;
+
+                // Create a list of all months within the range
+                var allMonths = Enumerable.Range(0, (endDate.Year - startDate.Year) * 12 + endDate.Month - startDate.Month + 1)
+                                          .Select(offset => new DateTime(startDate.Year, startDate.Month, 1).AddMonths(offset))
+                                          .ToList();
+
+                // Aggregate data by month
+                var aggregatedData = payments
+                    .GroupBy(p => new { p.PaymentDate.Year, p.PaymentDate.Month })
+                    .Select(g => new PaymentMonthData
+                    {
+                        PaymentAmount = (float)g.Sum(p => p.PaymentAmount),
+                        Month = (float)g.Key.Month,
+                        Year = (float)g.Key.Year
+                    }).ToList();
+
+                // Ensure all months are included, with zero revenue for missing months
+                var completeData = allMonths.Select(date =>
+                    aggregatedData.FirstOrDefault(d => d.Month == (float)date.Month && d.Year == (float)date.Year)
+                    ?? new PaymentMonthData
+                    {
+                        PaymentAmount = 0,
+                        Month = (float)date.Month,
+                        Year = (float)date.Year
+                    }).ToList();
+
+                var dataView = mlContext.Data.LoadFromEnumerable(completeData);
+
+                // Define the training pipeline
+                var pipeline = mlContext.Transforms
+                    .Concatenate("Features", nameof(PaymentMonthData.Month), nameof(PaymentMonthData.Year))
+                    .Append(mlContext.Regression.Trainers.Sdca(labelColumnName: nameof(PaymentMonthData.PaymentAmount), maximumNumberOfIterations: 100));
+
+                // Train the model
+                var model = pipeline.Fit(dataView);
+
+                // Make a prediction
+                var predictionEngine = mlContext.Model.CreatePredictionEngine<PaymentMonthData, PaymentPrediction>(model);
+                var nextMonth = DateTime.Now.AddMonths(1);
+                var nextMonthData = new PaymentMonthData
+                {
+                    Month = (float)nextMonth.Month,
+                    Year = (float)nextMonth.Year
+                };
+
+                var prediction = predictionEngine.Predict(nextMonthData);
+                return prediction.PredictedAmount;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error predicting next month's revenue: {ex.Message}");
+            }
+        }
+
+        public async Task<float> PredictNextYearRevenue()
+        {
+            try
+            {
+                var mlContext = new MLContext();
+
+                // Load data
+                var payments = (await _paymentRepository.GetAll()).Where(p => p.PaymentStatus == "True").ToList();
+
+                if (payments.Count == 0)
+                {
+                    return 0;
+                }
+
+                // Get the date range
+                var startDate = payments.Min(p => p.PaymentDate).Date;
+                var endDate = DateTime.Now.Date;
+
+                // Create a list of all years within the range
+                var allYears = Enumerable.Range(startDate.Year, endDate.Year - startDate.Year + 1)
+                                         .Select(year => new DateTime(year, 1, 1))
+                                         .ToList();
+
+                // Aggregate data by year
+                var aggregatedData = payments
+                    .GroupBy(p => p.PaymentDate.Year)
+                    .Select(g => new PaymentYearData
+                    {
+                        PaymentAmount = (float)g.Sum(p => p.PaymentAmount),
+                        Year = (float)g.Key
+                    }).ToList();
+
+                // Ensure all years are included, with zero revenue for missing years
+                var completeData = allYears.Select(date =>
+                    aggregatedData.FirstOrDefault(d => d.Year == (float)date.Year)
+                    ?? new PaymentYearData
+                    {
+                        PaymentAmount = 0,
+                        Year = (float)date.Year
+                    }).ToList();
+
+                var dataView = mlContext.Data.LoadFromEnumerable(completeData);
+
+                // Define the training pipeline
+                var pipeline = mlContext.Transforms
+                    .Concatenate("Features", nameof(PaymentYearData.Year))
+                    .Append(mlContext.Regression.Trainers.Sdca(labelColumnName: nameof(PaymentYearData.PaymentAmount), maximumNumberOfIterations: 100));
+
+                // Train the model
+                var model = pipeline.Fit(dataView);
+
+                // Make a prediction
+                var predictionEngine = mlContext.Model.CreatePredictionEngine<PaymentYearData, PaymentPrediction>(model);
+                var nextYear = DateTime.Now.AddYears(1);
+                var nextYearData = new PaymentYearData
+                {
+                    Year = (float)nextYear.Year
+                };
+
+                var prediction = predictionEngine.Predict(nextYearData);
+                return prediction.PredictedAmount;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error predicting next year's revenue: {ex.Message}");
             }
         }
 

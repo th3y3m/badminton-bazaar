@@ -1,25 +1,17 @@
 ﻿using BusinessObjects;
-using Elasticsearch.Net;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Nest;
+using Microsoft.ML;
 using Newtonsoft.Json;
-using Polly.Retry;
 using Polly;
+using Polly.Retry;
+using Polly.Timeout;
+using Polly.Wrap;
 using Repositories.Interfaces;
 using Services.Helper;
 using Services.Interface;
 using Services.Models;
 using StackExchange.Redis;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.Data.SqlClient;
-using Polly.Timeout;
-using Polly.Wrap;
-using Microsoft.ML.Trainers;
-using Microsoft.ML;
-using Repositories;
 
 namespace Services
 {
@@ -30,6 +22,10 @@ namespace Services
         private readonly IOrderDetailRepository _orderDetailRepository;
         private readonly IReviewRepository _reviewRepository;
         private readonly IOrderRepository _orderRepository;
+        private readonly IDiscountService _discountService;
+        private readonly IProductDiscountService _productDiscountService;
+        private readonly IUserProductDiscountService _userProductDiscountService;
+        private readonly IPriceFactorService _priceFactorService;
         private readonly IConnectionMultiplexer _redisConnection;
         private readonly IDatabase _redisDb;
         private readonly IElasticsearchService _elasticsearchService;
@@ -41,7 +37,7 @@ namespace Services
         private readonly AsyncPolicyWrap _dbPolicyWrap;
         private readonly AsyncPolicyWrap _policyWrap;
 
-        public ProductService(IProductRepository productRepository, IProductVariantRepository productVariantRepository, IOrderDetailRepository orderDetailRepository, IConnectionMultiplexer redisConnection, IElasticsearchService elasticClient, IBrowsingHistoryRepository browsingHistoryRepository, IReviewRepository reviewRepository, IOrderRepository orderRepository)
+        public ProductService(IProductRepository productRepository, IProductVariantRepository productVariantRepository, IOrderDetailRepository orderDetailRepository, IConnectionMultiplexer redisConnection, IElasticsearchService elasticClient, IBrowsingHistoryRepository browsingHistoryRepository, IReviewRepository reviewRepository, IOrderRepository orderRepository, IDiscountService discountService, IProductDiscountService productDiscountService, IUserProductDiscountService userProductDiscountService, IPriceFactorService priceFactorService)
         {
             _productRepository = productRepository;
             _productVariantRepository = productVariantRepository;
@@ -49,6 +45,10 @@ namespace Services
             _reviewRepository = reviewRepository;
             _browsingHistoryRepository = browsingHistoryRepository;
             _orderRepository = orderRepository;
+            _discountService = discountService;
+            _productDiscountService = productDiscountService;
+            _userProductDiscountService = userProductDiscountService;
+            _priceFactorService = priceFactorService;
             _redisConnection = redisConnection;
             _redisDb = _redisConnection.GetDatabase();
             _elasticsearchService = elasticClient;
@@ -293,53 +293,60 @@ namespace Services
 
         public async Task<Product> GetProductById(string productId)
         {
-            Product product = null;
-
-            // Check Redis cache first
-            if (_redisConnection != null && _redisConnection.IsConnected)
+            try
             {
-                try
-                {
-                    RedisValue cachedProduct = RedisValue.Null;
-                    await _policyWrap.ExecuteAsync(async () =>
-                    {
-                        cachedProduct = await _redisDb.StringGetAsync($"product:{productId}");
-                    });
+                Product product = null;
 
-                    if (!cachedProduct.IsNullOrEmpty)
+                // Check Redis cache first
+                if (_redisConnection != null && _redisConnection.IsConnected)
+                {
+                    try
                     {
-                        return JsonConvert.DeserializeObject<Product>(cachedProduct);
+                        RedisValue cachedProduct = RedisValue.Null;
+                        await _policyWrap.ExecuteAsync(async () =>
+                        {
+                            cachedProduct = await _redisDb.StringGetAsync($"product:{productId}");
+                        });
+
+                        if (!cachedProduct.IsNullOrEmpty)
+                        {
+                            return JsonConvert.DeserializeObject<Product>(cachedProduct);
+                        }
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
                     }
                 }
-                catch (RedisConnectionException ex)
-                {
-                    Console.WriteLine($"Redis connection failed: {ex.Message}. Falling back to database.");
-                }
-            }
 
-            // Fetch from database with retry policy
-            await _dbPolicyWrap.ExecuteAsync(async () =>
-            {
-                product = await _productRepository.GetById(productId);
-            });
-
-            // Cache result in Redis if connected
-            if (_redisConnection != null && _redisConnection.IsConnected)
-            {
-                try
+                // Fetch from database with retry policy
+                await _dbPolicyWrap.ExecuteAsync(async () =>
                 {
-                    await _policyWrap.ExecuteAsync(async () =>
+                    product = await _productRepository.GetById(productId);
+                });
+
+                // Cache result in Redis if connected
+                if (_redisConnection != null && _redisConnection.IsConnected)
+                {
+                    try
                     {
-                        await _redisDb.StringSetAsync($"product:{productId}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
-                    });
+                        await _policyWrap.ExecuteAsync(async () =>
+                        {
+                            await _redisDb.StringSetAsync($"product:{productId}", JsonConvert.SerializeObject(product), TimeSpan.FromHours(1));
+                        });
+                    }
+                    catch (RedisConnectionException ex)
+                    {
+                        Console.WriteLine($"Failed to set Redis cache: {ex.Message}");
+                    }
                 }
-                catch (RedisConnectionException ex)
-                {
-                    Console.WriteLine($"Failed to set Redis cache: {ex.Message}");
-                }
-            }
 
-            return product;
+                return product;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error in GetProductById: " + ex.Message);
+            }
         }
 
         public async Task<int> GetSelledProduct(string productId)
@@ -587,7 +594,8 @@ namespace Services
             IDataView dataView = mlContext.Data.LoadFromEnumerable(ratings);
 
             // Define pipeline: Transform UserId and ProductId to key types
-            var pipeline = mlContext.Transforms.Conversion.MapValueToKey(
+            var pipeline = mlContext.Transforms.Conversion
+                .MapValueToKey(
                     inputColumnName: nameof(UserProductRating.UserId),
                     outputColumnName: "UserIdKey")
                 .Append(mlContext.Transforms.Conversion.MapValueToKey(
@@ -803,6 +811,94 @@ namespace Services
             var categoryRecommendations = recommendations.Distinct().ToList();
 
             return products.Where(p => categoryRecommendations.Contains(p.CategoryId)).ToList();
+        }
+
+        public async Task UpdateDynamicPrice()
+        {
+            try
+            {
+                var allProducts = await _productRepository.GetAll();
+                var activeProducts = allProducts.Where(p => p.Status).ToList();
+
+                foreach (var product in activeProducts)
+                {
+                    await CalculateDynamicPricing(product.ProductId);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error updating dynamic pricing: {ex.Message}");
+            }
+        }
+
+        public async Task<decimal> CalculateDynamicPricing(string productId)
+        {
+            try
+            {
+                Product product = await _productRepository.GetById(productId);
+
+                if (product == null)
+                {
+                    throw new Exception("Product not found.");
+                }
+
+                var allProductVariants = await _productVariantRepository.GetAll();
+
+                var productVariants = allProductVariants.Where(pv => pv.ProductId == productId).ToList();
+
+                if (productVariants.Count == 0)
+                {
+                    throw new Exception("Product variants not found.");
+                }
+
+                var totalStock = productVariants.Sum(pv => pv.StockQuantity);
+                var demandFactor = await _priceFactorService.GetPriceFactorAsync("PF001");
+
+                if (totalStock < 10)
+                {
+                    product.BasePrice = product.DefaultPrice * (1 + demandFactor.PriceFactorValue);
+                }
+
+                var todayOrders = (await _orderRepository.GetAll()).Where(o => o.OrderDate.Date == DateTime.Today.Date && o.Status == "Completed").ToList();
+                if (todayOrders.Count == 0)
+                {
+                    return product.BasePrice;
+                }
+
+                var allOrderDetails = await _orderDetailRepository.GetAll();
+                var todayOrderDetails = allOrderDetails.Where(od => todayOrders.Any(o => o.OrderId == od.OrderId)).ToList();
+                if (todayOrderDetails.Count == 0)
+                {
+                    return product.BasePrice;
+                }
+
+                var todayProductOrders = todayOrderDetails.Where(od => productVariants.Any(pv => pv.ProductVariantId == od.ProductVariantId)).ToList();
+
+                var totalProductOrders = todayProductOrders.Sum(od => od.Quantity);
+
+                if (totalProductOrders > 5)
+                {
+                    var orderFactor = await _priceFactorService.GetPriceFactorAsync("PF002");
+                    product.BasePrice = product.DefaultPrice * (1 + orderFactor.PriceFactorValue);
+                }
+
+                if (product.BasePrice < product.MinPrice)
+                {
+                    product.BasePrice = product.MinPrice;
+                }
+                else if (product.BasePrice > product.MaxPrice)
+                {
+                    product.BasePrice = product.MaxPrice;
+                }
+
+                await _productRepository.Update(product);
+
+                return product.BasePrice;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error calculating dynamic pricing: {ex.Message}");
+            }
         }
 
         private Dictionary<string, float[]> GetProductFeatureVectors(IEnumerable<Product> products)

@@ -308,5 +308,19 @@ namespace API.Controllers
                 return StatusCode(500, $"Error product recommendation: {ex.Message}");
             }
         }
+        
+        [HttpGet("UpdateDynamicPrice")]
+        public async Task<IActionResult> UpdateDynamicPrice()
+        {
+            try
+            {
+                await _productService.UpdateDynamicPrice();
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error product recommendation: {ex.Message}");
+            }
+        }
     }
 }

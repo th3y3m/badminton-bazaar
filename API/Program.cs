@@ -171,6 +171,10 @@ namespace API
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IFreightPriceRepository, FreightPriceRepository>();
             builder.Services.AddScoped<IBrowsingHistoryRepository, BrowsingHistoryRepository>();
+            builder.Services.AddScoped<IDiscountRepository, DiscountRepository>();
+            builder.Services.AddScoped<IProductDiscountRepository, ProductDiscountRepository>();
+            builder.Services.AddScoped<IUserProductDiscountRepository, UserProductDiscountRepository>();
+            builder.Services.AddScoped<IPriceFactorRepository, PriceFactorRepository>();
 
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<ICategoryService, CategoryService>();
@@ -194,6 +198,10 @@ namespace API
             builder.Services.AddScoped<IAIService, AIService>();
             builder.Services.AddScoped<IBrowsingHistoryService, BrowsingHistoryService>();
             builder.Services.AddScoped<IVoskService, VoskService>();
+            builder.Services.AddScoped<IDiscountService, DiscountService>();
+            builder.Services.AddScoped<IProductDiscountService, ProductDiscountService>();
+            builder.Services.AddScoped<IUserProductDiscountService, UserProductDiscountService>();
+            builder.Services.AddScoped<IPriceFactorService, PriceFactorService>();
 
             builder.Services.AddHttpClient<IChatService, ChatService>();
             builder.Services.AddHttpClient<IAIService, AIService>(client =>
@@ -325,6 +333,8 @@ namespace API
             app.UseMiddleware<RequestResponseMiddleware>();
 
             app.UseHangfireDashboard();
+            //RecurringJob.AddOrUpdate<IProductService>("UpdateDynamicPriceJob", service => service.UpdateDynamicPrice(), Cron.Hourly);
+            //RecurringJob.RemoveIfExists("UpdateDynamicPriceJob");
 
             // Map SignalR hubs
             app.MapHub<ProductHub>("/productHub");

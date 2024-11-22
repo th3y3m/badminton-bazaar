@@ -33,6 +33,12 @@ namespace Repositories
         {
             try
             {
+                var existingProduct = await _dbContext.Products.FindAsync(product.ProductId);
+                if (existingProduct != null)
+                {
+                    _dbContext.Entry(existingProduct).State = EntityState.Detached;
+                }
+
                 _dbContext.Products.Update(product);
                 await _dbContext.SaveChangesAsync();
             }
@@ -41,6 +47,7 @@ namespace Repositories
                 throw new Exception($"Error updating product: {ex.Message}");
             }
         }
+
 
         public async Task<Product> GetById(string id)
         {

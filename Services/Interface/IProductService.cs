@@ -38,5 +38,7 @@ namespace Services.Interface
         Task<List<ProductRecommendation>> PredictRecommendationsByPersonalBrowsingHistory(string userId);
         Task<List<ProductRecommendation>> PredictRecommendationsByPersonalLatestOrder(string userId);
         Task<List<Product>> PredictRecommendationsByComplementaryProducts(string userId);
+        Task UpdateDynamicPrice();
+        Task<decimal> CalculateDynamicPricing(string productId);
     }
 }

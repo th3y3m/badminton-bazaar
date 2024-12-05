@@ -18,6 +18,15 @@ namespace Services
             _client = client;
         }
 
+        public async Task EnsureIndexExistsAsync(string indexName)
+        {
+            var existsResponse = await _client.Indices.ExistsAsync(indexName);
+            if (!existsResponse.Exists)
+            {
+                await CreateIndexAsync(indexName);
+            }
+        }
+
         public async Task<bool> IsAvailableAsync()
         {
             var pingResponse = await _client.PingAsync();
@@ -103,8 +112,19 @@ namespace Services
             Console.WriteLine($"Index {indexName} created successfully.");
         }
 
+        public async Task ClearIndexAsync(string indexName)
+        {
+            var deleteIndexResponse = await _client.Indices.DeleteAsync(indexName);
+            if (!deleteIndexResponse.IsValid)
+            {
+                throw new Exception($"Error deleting index: {deleteIndexResponse.ServerError.Error.Reason}");
+            }
+        }
+
         public async Task IndexProductsAsync(List<Product> products)
         {
+            await ClearIndexAsync("products");
+
             foreach (var product in products)
             {
                 var indexResponse = await _client.IndexAsync(product, i => i

@@ -82,6 +82,4 @@ Feel free to reach out via [bazaarb43@gmail.com](mailto:bazaarb43@gmail.com) for
 
 ---
 
-#### 📧 Connect with me via: truongtanhuy3006@gmail.com
-
 ##### © 2024 th3y3m
